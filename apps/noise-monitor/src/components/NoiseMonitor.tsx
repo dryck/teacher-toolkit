@@ -60,6 +60,7 @@ export function NoiseMonitor({
   const downDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingUpRef = useRef(false)
   const pendingDownRef = useRef(false)
+  const latestLevelRef = useRef(0)
   
   const { triggerAlerts, stopAlerts } = useAudio(selectedSound, customSounds, isMuted, soundSettings)
 
@@ -121,6 +122,7 @@ export function NoiseMonitor({
 
       analyserRef.current.getByteFrequencyData(dataArray)
       const level = calculateNoiseLevel(dataArray)
+      latestLevelRef.current = level
       onNoiseLevelChange?.(level)
 
       const currentLevelNumber = getNoiseLevelNumber(displayLevel, threshold)
@@ -132,16 +134,17 @@ export function NoiseMonitor({
         if (!pendingUpRef.current) {
           pendingUpRef.current = true
           upDelayTimerRef.current = setTimeout(() => {
-            const freshLevelNumber = getNoiseLevelNumber(level, threshold)
+            const freshLevel = latestLevelRef.current
+            const freshLevelNumber = getNoiseLevelNumber(freshLevel, threshold)
             const oldLevelNumber = getNoiseLevelNumber(displayLevel, threshold)
             if (freshLevelNumber > oldLevelNumber) {
-              setDisplayLevel(level)
-              setIsTooLoud(level > threshold)
+              setDisplayLevel(freshLevel)
+              setIsTooLoud(freshLevel > threshold)
               if (freshLevelNumber >= 4 && oldLevelNumber < 4) {
                 triggerAlerts()
                 triggerTTS()
               }
-              wasTooLoudRef.current = level > threshold
+              wasTooLoudRef.current = freshLevel > threshold
             }
             pendingUpRef.current = false
           }, _upDelay * 1000)
@@ -154,12 +157,13 @@ export function NoiseMonitor({
         if (!pendingDownRef.current) {
           pendingDownRef.current = true
           downDelayTimerRef.current = setTimeout(() => {
-            const freshLevelNumber = getNoiseLevelNumber(level, threshold)
+            const freshLevel = latestLevelRef.current
+            const freshLevelNumber = getNoiseLevelNumber(freshLevel, threshold)
             const oldLevelNumber = getNoiseLevelNumber(displayLevel, threshold)
             if (freshLevelNumber < oldLevelNumber) {
-              setDisplayLevel(level)
-              setIsTooLoud(level > threshold)
-              wasTooLoudRef.current = level > threshold
+              setDisplayLevel(freshLevel)
+              setIsTooLoud(freshLevel > threshold)
+              wasTooLoudRef.current = freshLevel > threshold
               if (freshLevelNumber < 4) {
                 stopAlerts()
                 stopTTS()

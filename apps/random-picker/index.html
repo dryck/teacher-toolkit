@@ -265,7 +265,7 @@ Hannah</textarea>
   </div>
   
   <div class="footer">
-    Made for teachers | <a href="index.html">More Tools</a>
+    Made for teachers | <a href="../">More Tools</a>
   </div>
 
   <script>
@@ -273,6 +273,7 @@ Hannah</textarea>
     let pickedNames = [];
     let remainingNames = [];
     let currentRotation = 0;
+    let isSpinning = false;
 
     function parseNames() {
       const input = document.getElementById('nameInput').value;
@@ -332,8 +333,10 @@ Hannah</textarea>
     }
 
     function spinWheel() {
+      if (isSpinning) return;
+
       parseNames();
-      
+
       if (names.length === 0) {
         const container = document.getElementById('resultContainer');
         container.style.display = 'flex';
@@ -357,10 +360,11 @@ Hannah</textarea>
         remainingNames = [...names];
       }
       
+      isSpinning = true;
       document.getElementById('wheelContainer').style.display = 'block';
       document.getElementById('resultContainer').style.display = 'none';
       createWheel();
-      
+
       const wheel = document.getElementById('wheel');
       const randomIndex = Math.floor(Math.random() * remainingNames.length);
       const winner = remainingNames[randomIndex];
@@ -384,6 +388,7 @@ Hannah</textarea>
           pickedNames.push(winner);
         }
         updateHistory();
+        isSpinning = false;
       }, 4000);
     }
 
@@ -417,6 +422,7 @@ Hannah</textarea>
       pickedNames = [];
       remainingNames = [];
       currentRotation = 0;
+      isSpinning = false;
       document.getElementById('wheel').style.transform = 'rotate(0deg)';
       document.getElementById('resultContainer').innerHTML = '<p style="color: #999;">Enter names and click Spin!</p>';
       document.getElementById('historySection').style.display = 'none';

@@ -525,7 +525,7 @@
         const btn = document.createElement('button');
         btn.className = 'vote-btn';
         btn.innerHTML = `<span style="font-size:2.5rem">${option.emoji}</span><span class="label">${option.label}</span>`;
-        btn.onclick = () => castVote(option);
+        btn.onclick = () => castVote(option, btn);
         container.appendChild(btn);
       });
       
@@ -534,15 +534,15 @@
       document.getElementById('votingSection').classList.add('active');
     }
     
-    function castVote(option) {
+    function castVote(option, buttonEl) {
       if (resultsRevealed) return;
-      
+
       votes[option.label]++;
       totalVotes++;
-      
+
       // Visual feedback
-      event.target.classList.add('voted');
-      setTimeout(() => event.target.classList.remove('voted'), 300);
+      buttonEl.classList.add('voted');
+      setTimeout(() => buttonEl.classList.remove('voted'), 300);
       
       // Sound
       playSound('ding');

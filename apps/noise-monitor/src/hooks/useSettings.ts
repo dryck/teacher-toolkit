@@ -61,8 +61,6 @@ export function useSettings() {
     const newThresholds = { ...thresholds, [key]: value }
     if (validateThresholds(newThresholds)) {
       setThresholds(newThresholds)
-    } else {
-      setThresholds(newThresholds)
     }
   }
 

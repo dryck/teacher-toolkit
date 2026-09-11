@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react'
-import { Theme, CustomImage, ThresholdConfig, SoundSettings } from '../types'
-import { useSettings } from '../hooks/useSettings'
+import { Theme, CustomImage, ThresholdConfig, DelayConfig, SoundSettings } from '../types'
 import { ThemeSelector } from './ThemeSelector'
 
 interface SettingsProps {
@@ -8,8 +7,14 @@ interface SettingsProps {
   customImages: CustomImage[]
   soundSettings: SoundSettings
   noiseLevel?: number
+  thresholds: ThresholdConfig
+  delays: DelayConfig
+  errors: Partial<Record<keyof ThresholdConfig, string>>
+  updateThreshold: (key: keyof ThresholdConfig, value: number) => void
+  updateDelay: (key: keyof DelayConfig, value: number) => void
+  resetToWHO: () => void
+  isUsingWHODefaults: boolean
   onThemeChange: (theme: Theme) => void
-  onDelayChange: (key: 'upDelay' | 'downDelay', value: number) => void
   onSoundSettingsChange: (settings: SoundSettings) => void
   onClose: () => void
 }
@@ -27,13 +32,18 @@ export function SettingsPanel({
   customImages,
   soundSettings,
   noiseLevel = 0,
+  thresholds,
+  delays,
+  errors,
+  updateThreshold,
+  updateDelay,
+  resetToWHO,
+  isUsingWHODefaults,
   onThemeChange,
-  onDelayChange,
   onSoundSettingsChange,
   onClose,
 }: SettingsProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('themes')
-  const { thresholds, delays, errors, updateThreshold, updateDelay, resetToWHO, isUsingWHODefaults } = useSettings()
   const ttsRef = useRef<SpeechSynthesisUtterance | null>(null)
 
   const thresholdLabels: Record<keyof ThresholdConfig, string> = {
@@ -288,10 +298,7 @@ export function SettingsPanel({
                       <input
                         type="number"
                         value={delays.upDelay}
-                        onChange={(e) => {
-                          updateDelay('upDelay', Number(e.target.value))
-                          onDelayChange('upDelay', Number(e.target.value))
-                        }}
+                        onChange={(e) => updateDelay('upDelay', Number(e.target.value))}
                         className="w-20 px-2 py-1 border rounded text-center"
                         min={0.5}
                         max={10}
@@ -306,10 +313,7 @@ export function SettingsPanel({
                     max={10}
                     step={0.5}
                     value={delays.upDelay}
-                    onChange={(e) => {
-                      updateDelay('upDelay', Number(e.target.value))
-                      onDelayChange('upDelay', Number(e.target.value))
-                    }}
+                    onChange={(e) => updateDelay('upDelay', Number(e.target.value))}
                     className="w-full accent-tisa-purple"
                   />
                   <p className="text-xs text-gray-500 mt-1">Delay before noise level increases</p>
@@ -322,10 +326,7 @@ export function SettingsPanel({
                       <input
                         type="number"
                         value={delays.downDelay}
-                        onChange={(e) => {
-                          updateDelay('downDelay', Number(e.target.value))
-                          onDelayChange('downDelay', Number(e.target.value))
-                        }}
+                        onChange={(e) => updateDelay('downDelay', Number(e.target.value))}
                         className="w-20 px-2 py-1 border rounded text-center"
                         min={0.5}
                         max={15}
@@ -340,10 +341,7 @@ export function SettingsPanel({
                     max={15}
                     step={0.5}
                     value={delays.downDelay}
-                    onChange={(e) => {
-                      updateDelay('downDelay', Number(e.target.value))
-                      onDelayChange('downDelay', Number(e.target.value))
-                    }}
+                    onChange={(e) => updateDelay('downDelay', Number(e.target.value))}
                     className="w-full accent-tisa-purple"
                   />
                   <p className="text-xs text-gray-500 mt-1">Delay before noise level decreases</p>

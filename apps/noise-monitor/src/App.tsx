@@ -1,31 +1,26 @@
 import { useState, useCallback, useEffect } from 'react'
 import { NoiseMonitor } from './components/NoiseMonitor'
 import { SettingsPanel as Settings } from './components/Settings'
+import { useSettings } from './hooks/useSettings'
 import { Theme, Sound, CustomImage, SoundSettings, DEFAULT_SOUND_SETTINGS } from './types'
 
 const STORAGE_KEY = 'quiet-in-class-settings'
 
 interface AppSettings {
   theme: Theme
-  threshold: number
   selectedSound: string
   customSounds: Sound[]
   customImages: CustomImage[]
   isMuted: boolean
-  upDelay: number
-  downDelay: number
   soundSettings: SoundSettings
 }
 
 const defaultSettings: AppSettings = {
   theme: 'egg',
-  threshold: 60,
   selectedSound: 'bell',
   customSounds: [],
   customImages: [],
   isMuted: false,
-  upDelay: 2,
-  downDelay: 4,
   soundSettings: DEFAULT_SOUND_SETTINGS,
 }
 
@@ -46,6 +41,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [noiseLevel, setNoiseLevel] = useState(0)
+  const { thresholds, delays, errors, updateThreshold, updateDelay, resetToWHO, isUsingWHODefaults } = useSettings()
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
@@ -83,29 +79,35 @@ function App() {
     <div className="h-full w-full bg-gradient-to-br from-gray-50 to-gray-100">
       <NoiseMonitor
         theme={settings.theme}
-        threshold={settings.threshold}
+        threshold={thresholds.alarmTrigger}
         selectedSound={settings.selectedSound}
         customSounds={settings.customSounds}
         customImages={settings.customImages}
         isMuted={settings.isMuted}
-        upDelay={settings.upDelay}
-        downDelay={settings.downDelay}
+        upDelay={delays.upDelay}
+        downDelay={delays.downDelay}
         soundSettings={settings.soundSettings}
         onSettingsClick={() => setShowSettings(true)}
         onFullscreenClick={toggleFullscreen}
         onMuteClick={handleMuteToggle}
         isFullscreen={isFullscreen}
-        onNoiseLevelChange={setNoiseLevel}
+        onNoiseLevelChange={showSettings ? setNoiseLevel : undefined}
       />
-      
+
       {showSettings && (
         <Settings
           currentTheme={settings.theme}
           customImages={settings.customImages}
           soundSettings={settings.soundSettings}
           noiseLevel={noiseLevel}
+          thresholds={thresholds}
+          delays={delays}
+          errors={errors}
+          updateThreshold={updateThreshold}
+          updateDelay={updateDelay}
+          resetToWHO={resetToWHO}
+          isUsingWHODefaults={isUsingWHODefaults}
           onThemeChange={(theme) => setSettings(prev => ({ ...prev, theme }))}
-          onDelayChange={(key, value) => setSettings(prev => ({ ...prev, [key]: value }))}
           onSoundSettingsChange={(soundSettings) => setSettings(prev => ({ ...prev, soundSettings }))}
           onClose={() => setShowSettings(false)}
         />

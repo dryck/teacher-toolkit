@@ -19,9 +19,5 @@ coverage/
 .cache
 .vite
 
-# Icons cache
-public/icons/*.png
-!public/icons/favicon.svg
-
 # Sounds (optional, add your own)
 public/sounds/*.mp3
