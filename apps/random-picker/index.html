@@ -386,15 +386,20 @@ Hannah</textarea>
       // Play sound effect
       playSound();
       
+      const SPIN_DURATION = 4000;
+      const REVEAL_PAUSE = 2000;
       setTimeout(() => {
-        showResult(winner);
-        if (equityMode) {
-          remainingNames.splice(randomIndex, 1);
-          pickedNames.push(winner);
-        }
-        updateHistory();
-        isSpinning = false;
-      }, 4000);
+        // Wheel has visually stopped — pause before revealing the name.
+        setTimeout(() => {
+          showResult(winner);
+          if (equityMode) {
+            remainingNames.splice(randomIndex, 1);
+            pickedNames.push(winner);
+          }
+          updateHistory();
+          isSpinning = false;
+        }, REVEAL_PAUSE);
+      }, SPIN_DURATION);
     }
 
     function showResult(name) {
