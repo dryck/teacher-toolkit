@@ -3,6 +3,10 @@
   position: sticky;
   top: 0;
   z-index: 1000;
+  width: 100%;
+  align-self: stretch;
+  flex-shrink: 0;
+  box-sizing: border-box;
   height: var(--tk-nav-height);
   display: flex;
   align-items: center;
