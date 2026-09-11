@@ -380,11 +380,11 @@
   
   <div class="container">
     <h1>🎫 Exit Ticket Express</h1>
-    <p class="subtitle">Быстрая проверка понимания в конце урока</p>
-    
+    <p class="subtitle">A quick check for understanding at the end of the lesson</p>
+
     <!-- SETUP SECTION -->
     <div class="setup-section active" id="setupSection">
-      <div class="section-title">1. Выберите тип вопроса:</div>
+      <div class="section-title">1. Choose a question type:</div>
       <div class="presets">
         <button class="preset-btn" onclick="selectPreset('understanding')">🟢🟡🔴</button>
         <button class="preset-btn" onclick="selectPreset('mood')">😊😐😢</button>
@@ -392,32 +392,32 @@
         <button class="preset-btn" onclick="selectPreset('speed')">🐢🐕🐇</button>
         <button class="preset-btn" onclick="selectPreset('confidence')">💪🤷🙈</button>
       </div>
-      
-      <div class="section-title">2. Введите вопрос:</div>
+
+      <div class="section-title">2. Enter your question:</div>
       <div class="input-group">
         <div class="input-row">
-          <input type="text" id="questionInput" placeholder="Например: Тема сегодня была понятна?">
+          <input type="text" id="questionInput" placeholder="e.g. Was today's topic clear?">
         </div>
       </div>
-      
-      <div class="section-title">3. Сколько учеников в классе?</div>
+
+      <div class="section-title">3. How many students in class?</div>
       <div class="input-group">
         <input type="number" id="studentCount" value="25" min="1" max="50">
       </div>
-      
+
       <div class="controls">
-        <button class="btn btn-primary" onclick="startVoting()">▶️ Начать голосование</button>
+        <button class="btn btn-primary" onclick="startVoting()">▶️ Start Voting</button>
       </div>
     </div>
-    
+
     <!-- VOTING SECTION -->
     <div class="voting-section" id="votingSection">
       <div class="question-display" id="questionDisplay"></div>
-      
+
       <div class="vote-buttons" id="voteButtons"></div>
-      
+
       <div class="counter-box">
-        <div class="counter-text">Проголосовало:</div>
+        <div class="counter-text">Votes:</div>
         <div class="counter-numbers">
           <span id="currentCount">0</span> / <span id="totalCount">25</span>
         </div>
@@ -425,10 +425,10 @@
           <div class="progress-fill" id="progressFill" style="width: 0%"></div>
         </div>
       </div>
-      
+
       <div class="controls">
-        <button class="btn btn-success" id="revealBtn" onclick="revealResults()">👁️ Показать результаты</button>
-        <button class="btn btn-danger hidden" id="resetBtn" onclick="resetAll()">🔄 Новый опрос</button>
+        <button class="btn btn-success" id="revealBtn" onclick="revealResults()">👁️ Show Results</button>
+        <button class="btn btn-danger hidden" id="resetBtn" onclick="resetAll()">🔄 New Poll</button>
       </div>
       
       <div class="results-section hidden" id="resultsSection"></div>
@@ -438,23 +438,23 @@
   <script>
     const presets = {
       understanding: {
-        question: 'Тема сегодня была понятна?',
+        question: 'Was today\'s topic clear?',
         options: [
-          { emoji: '🟢', label: 'Полностью', color: '#28a745' },
-          { emoji: '🟡', label: 'Частично', color: '#ffc107' },
-          { emoji: '🔴', label: 'Не понятно', color: '#dc3545' }
+          { emoji: '🟢', label: 'Completely', color: '#28a745' },
+          { emoji: '🟡', label: 'Partially', color: '#ffc107' },
+          { emoji: '🔴', label: 'Not clear', color: '#dc3545' }
         ]
       },
       mood: {
-        question: 'Как вы себя чувствуете?',
+        question: 'How are you feeling?',
         options: [
-          { emoji: '😊', label: 'Отлично', color: '#28a745' },
-          { emoji: '😐', label: 'Нормально', color: '#ffc107' },
-          { emoji: '😢', label: 'Устал', color: '#dc3545' }
+          { emoji: '😊', label: 'Great', color: '#28a745' },
+          { emoji: '😐', label: 'Okay', color: '#ffc107' },
+          { emoji: '😢', label: 'Tired', color: '#dc3545' }
         ]
       },
       rating: {
-        question: 'Оцените урок от 1 до 5:',
+        question: 'Rate the lesson from 1 to 5:',
         options: [
           { emoji: '⭐', label: '1', color: '#dc3545' },
           { emoji: '⭐⭐', label: '2', color: '#fd7e14' },
@@ -464,19 +464,19 @@
         ]
       },
       speed: {
-        question: 'Какой был темп урока?',
+        question: 'What was the lesson pace?',
         options: [
-          { emoji: '🐢', label: 'Медленно', color: '#28a745' },
-          { emoji: '🐕', label: 'Нормально', color: '#ffc107' },
-          { emoji: '🐇', label: 'Быстро', color: '#dc3545' }
+          { emoji: '🐢', label: 'Slow', color: '#28a745' },
+          { emoji: '🐕', label: 'Okay', color: '#ffc107' },
+          { emoji: '🐇', label: 'Fast', color: '#dc3545' }
         ]
       },
       confidence: {
-        question: 'Насколько вы уверены в знаниях?',
+        question: 'How confident do you feel?',
         options: [
-          { emoji: '💪', label: 'Уверен', color: '#28a745' },
-          { emoji: '🤷', label: 'Не уверен', color: '#ffc107' },
-          { emoji: '🙈', label: 'Путаюсь', color: '#dc3545' }
+          { emoji: '💪', label: 'Confident', color: '#28a745' },
+          { emoji: '🤷', label: 'Not sure', color: '#ffc107' },
+          { emoji: '🙈', label: 'Confused', color: '#dc3545' }
         ]
       }
     };
@@ -496,7 +496,7 @@
     }
     
     function startVoting() {
-      const question = document.getElementById('questionInput').value.trim() || 'Ваш вопрос?';
+      const question = document.getElementById('questionInput').value.trim() || 'Your question?';
       expectedCount = parseInt(document.getElementById('studentCount').value) || 25;
       
       if (!currentPreset) {
