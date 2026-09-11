@@ -388,7 +388,16 @@ Hannah</textarea>
       const anglePerSegment = 360 / wheelEntries.length;
       const winningAngle = wheelPos * anglePerSegment;
       const spins = 5 + Math.floor(Math.random() * 3);
-      const finalAngle = spins * 360 + (360 - winningAngle - anglePerSegment / 2);
+
+      // The wheel rests at currentRotation mod 360 after the previous
+      // spin, NOT at 0 — but the target angle below assumes a wheel
+      // starting from local 0deg. Subtracting off that leftover ensures
+      // the wheel actually lands on the winning segment instead of
+      // drifting by whatever was left over from the last spin.
+      const targetRestingAngle = 360 - winningAngle - anglePerSegment / 2;
+      const baseRotation = currentRotation % 360;
+      const deltaToTarget = ((targetRestingAngle - baseRotation) % 360 + 360) % 360;
+      const finalAngle = spins * 360 + deltaToTarget;
 
       currentRotation += finalAngle;
       // Force a reflow so the browser commits the "visible again" frame
