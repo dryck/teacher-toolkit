@@ -294,31 +294,33 @@ Hannah</textarea>
       return colors[index % colors.length];
     }
 
-    function createWheel() {
+    // entries: array of the names currently shown on the wheel, in
+    // segment order. In equity mode this is only the not-yet-picked
+    // names, so the wheel visibly shrinks as people get picked.
+    function createWheel(entries) {
       const wheel = document.getElementById('wheel');
       wheel.innerHTML = '';
-      
-      if (names.length === 0) return;
-      
-      const anglePerSegment = 360 / names.length;
-      const radius = 150; // half of 300px container
-      
+
+      if (entries.length === 0) return;
+
+      const anglePerSegment = 360 / entries.length;
+
       // Create conic gradient background for the wheel
       let gradientColors = [];
-      names.forEach((_, index) => {
+      entries.forEach((_, index) => {
         const startAngle = index * anglePerSegment;
         const endAngle = (index + 1) * anglePerSegment;
-        gradientColors.push(`${getRandomColor(index, names.length)} ${startAngle}deg ${endAngle}deg`);
+        gradientColors.push(`${getRandomColor(index, entries.length)} ${startAngle}deg ${endAngle}deg`);
       });
       wheel.style.background = `conic-gradient(${gradientColors.join(', ')})`;
-      
+
       // Add text labels
-      names.forEach((name, index) => {
+      entries.forEach((name, index) => {
         const angle = index * anglePerSegment + anglePerSegment / 2;
         const radian = (angle - 90) * Math.PI / 180;
         const x = 50 + 35 * Math.cos(radian); // 35% from center
         const y = 50 + 35 * Math.sin(radian);
-        
+
         const label = document.createElement('div');
         label.className = 'wheel-label';
         label.style.position = 'absolute';
@@ -364,18 +366,27 @@ Hannah</textarea>
         remainingIndices = names.map((_, i) => i);
       }
 
+      // What the wheel actually shows: in equity mode, only names not
+      // yet picked this cycle — the wheel shrinks as people get picked.
+      const wheelIndices = equityMode ? remainingIndices : names.map((_, i) => i);
+      const wheelEntries = wheelIndices.map(i => names[i]);
+
       isSpinning = true;
       document.getElementById('wheelContainer').style.display = 'block';
       document.getElementById('resultContainer').style.display = 'none';
-      createWheel();
+      createWheel(wheelEntries);
 
       const wheel = document.getElementById('wheel');
       const randomPos = Math.floor(Math.random() * remainingIndices.length);
       const winnerIndex = remainingIndices[randomPos];
       const winner = names[winnerIndex];
 
-      const anglePerSegment = 360 / names.length;
-      const winningAngle = winnerIndex * anglePerSegment;
+      // Position on the wheel as currently drawn, not the original list —
+      // wheelEntries/wheelIndices share the same order as remainingIndices
+      // in equity mode, so randomPos doubles as the wheel segment position.
+      const wheelPos = equityMode ? randomPos : winnerIndex;
+      const anglePerSegment = 360 / wheelEntries.length;
+      const winningAngle = wheelPos * anglePerSegment;
       const spins = 5 + Math.floor(Math.random() * 3);
       const finalAngle = spins * 360 + (360 - winningAngle - anglePerSegment / 2);
 
