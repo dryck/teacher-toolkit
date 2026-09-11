@@ -270,8 +270,12 @@ Hannah</textarea>
 
   <script>
     let names = [];
-    let pickedNames = [];
-    let remainingNames = [];
+    // Track *indices* into `names`, not the name strings themselves —
+    // duplicate names (e.g. two students both named "Sam") would make
+    // indexOf-based lookups always resolve to the first occurrence,
+    // spinning the wheel to the wrong segment.
+    let pickedIndices = [];
+    let remainingIndices = [];
     let currentRotation = 0;
     let isSpinning = false;
 
@@ -350,26 +354,26 @@ Hannah</textarea>
       }
       
       const equityMode = document.getElementById('equityMode').checked;
-      
+
       if (equityMode) {
-        if (remainingNames.length === 0) {
-          remainingNames = [...names];
-          pickedNames = [];
+        if (remainingIndices.length === 0) {
+          remainingIndices = names.map((_, i) => i);
+          pickedIndices = [];
         }
       } else {
-        remainingNames = [...names];
+        remainingIndices = names.map((_, i) => i);
       }
-      
+
       isSpinning = true;
       document.getElementById('wheelContainer').style.display = 'block';
       document.getElementById('resultContainer').style.display = 'none';
       createWheel();
 
       const wheel = document.getElementById('wheel');
-      const randomIndex = Math.floor(Math.random() * remainingNames.length);
-      const winner = remainingNames[randomIndex];
-      const winnerIndex = names.indexOf(winner);
-      
+      const randomPos = Math.floor(Math.random() * remainingIndices.length);
+      const winnerIndex = remainingIndices[randomPos];
+      const winner = names[winnerIndex];
+
       const anglePerSegment = 360 / names.length;
       const winningAngle = winnerIndex * anglePerSegment;
       const spins = 5 + Math.floor(Math.random() * 3);
@@ -393,8 +397,8 @@ Hannah</textarea>
         setTimeout(() => {
           showResult(winner);
           if (equityMode) {
-            remainingNames.splice(randomIndex, 1);
-            pickedNames.push(winner);
+            remainingIndices.splice(randomPos, 1);
+            pickedIndices.push(winnerIndex);
           }
           updateHistory();
           isSpinning = false;
@@ -416,21 +420,21 @@ Hannah</textarea>
       const section = document.getElementById('historySection');
       const tags = document.getElementById('historyTags');
       
-      if (pickedNames.length === 0) {
+      if (pickedIndices.length === 0) {
         section.style.display = 'none';
         return;
       }
-      
+
       section.style.display = 'block';
-      tags.innerHTML = names.map(name => {
-        const isPicked = pickedNames.includes(name);
+      tags.innerHTML = names.map((name, i) => {
+        const isPicked = pickedIndices.includes(i);
         return `<span class="tag ${isPicked ? 'picked' : ''}">${name}</span>`;
       }).join('');
     }
 
     function resetPicker() {
-      pickedNames = [];
-      remainingNames = [];
+      pickedIndices = [];
+      remainingIndices = [];
       currentRotation = 0;
       isSpinning = false;
       document.getElementById('wheel').style.transform = 'rotate(0deg)';
