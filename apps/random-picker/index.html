@@ -374,8 +374,13 @@ Hannah</textarea>
       const winningAngle = winnerIndex * anglePerSegment;
       const spins = 5 + Math.floor(Math.random() * 3);
       const finalAngle = spins * 360 + (360 - winningAngle - anglePerSegment / 2);
-      
+
       currentRotation += finalAngle;
+      // Force a reflow so the browser commits the "visible again" frame
+      // before the transform changes — otherwise, since the wheel was
+      // just un-hidden from display:none, this and the un-hide can get
+      // batched into one paint and the rotation snaps instead of animating.
+      void wheel.offsetWidth;
       wheel.style.transform = `rotate(${currentRotation}deg)`;
       
       // Play sound effect
