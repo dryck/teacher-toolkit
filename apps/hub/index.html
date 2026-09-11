@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Toolkit</title>
+  <link rel="stylesheet" href="shell/theme.css">
+  <link rel="stylesheet" href="shell/navbar.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+    header.hero {
+      text-align: center;
+      color: #fff;
+      margin-bottom: 40px;
+    }
+    header.hero h1 {
+      font-size: 2.25rem;
+      margin-bottom: 8px;
+    }
+    header.hero p {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 1.05rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 28px 24px;
+      text-decoration: none;
+      color: var(--tk-text);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: transform 0.15s ease;
+    }
+    .card:hover { transform: translateY(-4px); }
+    .card .icon { font-size: 2rem; }
+    .card h2 { font-size: 1.15rem; }
+    .card p { color: var(--tk-text-muted); font-size: 0.92rem; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <h1>Teacher Toolkit</h1>
+      <p>A shared home for our classroom instruments.</p>
+    </header>
+    <div class="grid">
+      <a class="card" href="noise-monitor/">
+        <span class="icon">🥚</span>
+        <h2>Noise Monitor</h2>
+        <p>Real-time classroom noise level tracker with animated themes.</p>
+      </a>
+      <a class="card" href="quick-poll/">
+        <span class="icon">🗳️</span>
+        <h2>Quick Poll</h2>
+        <p>Instant feedback from students, no devices required.</p>
+      </a>
+      <a class="card" href="random-picker/">
+        <span class="icon">🎡</span>
+        <h2>Random Picker</h2>
+        <p>Spinning wheel name picker with an equity mode.</p>
+      </a>
+      <a class="card" href="visual-timer/">
+        <span class="icon">⏱️</span>
+        <h2>Visual Timer</h2>
+        <p>Countdown timer with an animated mascot and fullscreen mode.</p>
+      </a>
+    </div>
+  </main>
+  <script>window.TK_CURRENT = 'hub';</script>
+  <script src="shell/navbar.js"></script>
+</body>
+</html>

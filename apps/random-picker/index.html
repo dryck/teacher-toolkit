@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random Name Picker | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      resize: vertical;
+      font-family: inherit;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      flex: 1;
+      min-width: 120px;
+      padding: 15px 25px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    .result-container {
+      text-align: center;
+      padding: 40px;
+      min-height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .empty-message {
+      background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+      color: #856404;
+      padding: 20px 30px;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      border: 2px solid #ffeaa7;
+      box-shadow: 0 4px 15px rgba(255, 234, 167, 0.4);
+      animation: gentlePulse 2s ease-in-out infinite;
+    }
+    @keyframes gentlePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    .result {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #667eea;
+      animation: popIn 0.5s ease;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .wheel-container {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      margin: 20px auto;
+    }
+    .wheel {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      position: relative;
+      overflow: hidden;
+      border: 5px solid #667eea;
+      transition: transform 4s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .wheel-label {
+      position: absolute;
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.9), -1px -1px 2px rgba(0,0,0,0.5);
+      white-space: nowrap;
+      z-index: 100;
+      pointer-events: none;
+      background: rgba(0,0,0,0.2);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .wheel-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      background: white;
+      border-radius: 50%;
+      border: 4px solid #667eea;
+      z-index: 10;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .pointer {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-top: 40px solid #ff6b6b;
+      z-index: 20;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    }
+    .history {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 10px;
+    }
+    .history h3 {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .history-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .tag {
+      background: #667eea;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+    }
+    .tag.picked {
+      background: #95a5a6;
+      text-decoration: line-through;
+    }
+    .equity-mode {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 15px 0;
+      padding: 10px;
+      background: #e8f4f8;
+      border-radius: 8px;
+    }
+    .equity-mode input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9rem;
+    }
+    .footer a {
+      color: white;
+      text-decoration: none;
+    }
+  </style>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 Random Name Picker</h1>
+    <p class="subtitle">Fair and fun way to select students</p>
+    
+    <textarea id="nameInput" placeholder="Enter names here, one per line:
+&#10;Alice&#10;Bob&#10;Charlie&#10;Diana&#10;Evan">Alice
+Bob
+Charlie
+Diana
+Evan
+Fiona
+George
+Hannah</textarea>
+    
+    <div class="equity-mode">
+      <input type="checkbox" id="equityMode" checked>
+      <label for="equityMode"><strong>Equity Mode:</strong> Everyone gets picked once before anyone gets picked twice</label>
+    </div>
+    
+    <div class="controls">
+      <button class="btn-primary" onclick="spinWheel()">🎲 Spin</button>
+      <button class="btn-secondary" onclick="resetPicker()">🔄 Reset</button>
+      <button class="btn-secondary" onclick="clearAll()">🗑️ Clear</button>
+    </div>
+    
+    <div class="wheel-container" id="wheelContainer" style="display: none;">
+      <div class="pointer"></div>
+      <div class="wheel" id="wheel"></div>
+      <div class="wheel-center"></div>
+    </div>
+    
+    <div class="result-container" id="resultContainer">
+      <p style="color: #999;">Enter names and click Spin!</p>
+    </div>
+    
+    <div class="history" id="historySection" style="display: none;">
+      <h3>Picked so far:</h3>
+      <div class="history-tags" id="historyTags"></div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    Made for teachers | <a href="index.html">More Tools</a>
+  </div>
+
+  <script>
+    let names = [];
+    let pickedNames = [];
+    let remainingNames = [];
+    let currentRotation = 0;
+
+    function parseNames() {
+      const input = document.getElementById('nameInput').value;
+      names = input.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+      return names;
+    }
+
+    function getRandomColor(index, total) {
+      const colors = [
+        '#667eea', '#764ba2', '#f093fb', '#f5576c',
+        '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+        '#fa709a', '#fee140', '#a8edea', '#fed6e3'
+      ];
+      return colors[index % colors.length];
+    }
+
+    function createWheel() {
+      const wheel = document.getElementById('wheel');
+      wheel.innerHTML = '';
+      
+      if (names.length === 0) return;
+      
+      const anglePerSegment = 360 / names.length;
+      const radius = 150; // half of 300px container
+      
+      // Create conic gradient background for the wheel
+      let gradientColors = [];
+      names.forEach((_, index) => {
+        const startAngle = index * anglePerSegment;
+        const endAngle = (index + 1) * anglePerSegment;
+        gradientColors.push(`${getRandomColor(index, names.length)} ${startAngle}deg ${endAngle}deg`);
+      });
+      wheel.style.background = `conic-gradient(${gradientColors.join(', ')})`;
+      
+      // Add text labels
+      names.forEach((name, index) => {
+        const angle = index * anglePerSegment + anglePerSegment / 2;
+        const radian = (angle - 90) * Math.PI / 180;
+        const x = 50 + 35 * Math.cos(radian); // 35% from center
+        const y = 50 + 35 * Math.sin(radian);
+        
+        const label = document.createElement('div');
+        label.className = 'wheel-label';
+        label.style.position = 'absolute';
+        label.style.left = x + '%';
+        label.style.top = y + '%';
+        label.style.transform = 'translate(-50%, -50%)';
+        label.style.fontSize = '0.85rem';
+        label.style.fontWeight = '600';
+        label.style.color = 'white';
+        label.style.textShadow = '1px 1px 2px rgba(0,0,0,0.8)';
+        label.style.whiteSpace = 'nowrap';
+        label.style.zIndex = '5';
+        label.textContent = name.length > 10 ? name.substring(0, 10) + '...' : name;
+        wheel.appendChild(label);
+      });
+    }
+
+    function spinWheel() {
+      parseNames();
+      
+      if (names.length === 0) {
+        const container = document.getElementById('resultContainer');
+        container.style.display = 'flex';
+        container.innerHTML = '<div class="empty-message">👋 Please add some student names above, then click Spin!</div>';
+        return;
+      }
+      
+      if (names.length === 1) {
+        showResult(names[0]);
+        return;
+      }
+      
+      const equityMode = document.getElementById('equityMode').checked;
+      
+      if (equityMode) {
+        if (remainingNames.length === 0) {
+          remainingNames = [...names];
+          pickedNames = [];
+        }
+      } else {
+        remainingNames = [...names];
+      }
+      
+      document.getElementById('wheelContainer').style.display = 'block';
+      document.getElementById('resultContainer').style.display = 'none';
+      createWheel();
+      
+      const wheel = document.getElementById('wheel');
+      const randomIndex = Math.floor(Math.random() * remainingNames.length);
+      const winner = remainingNames[randomIndex];
+      const winnerIndex = names.indexOf(winner);
+      
+      const anglePerSegment = 360 / names.length;
+      const winningAngle = winnerIndex * anglePerSegment;
+      const spins = 5 + Math.floor(Math.random() * 3);
+      const finalAngle = spins * 360 + (360 - winningAngle - anglePerSegment / 2);
+      
+      currentRotation += finalAngle;
+      wheel.style.transform = `rotate(${currentRotation}deg)`;
+      
+      // Play sound effect
+      playSound();
+      
+      setTimeout(() => {
+        showResult(winner);
+        if (equityMode) {
+          remainingNames.splice(randomIndex, 1);
+          pickedNames.push(winner);
+        }
+        updateHistory();
+      }, 4000);
+    }
+
+    function showResult(name) {
+      document.getElementById('wheelContainer').style.display = 'none';
+      const container = document.getElementById('resultContainer');
+      container.style.display = 'flex';
+      container.innerHTML = `<div class="result">${name}!</div>`;
+      
+      // Celebration effect
+      confetti();
+    }
+
+    function updateHistory() {
+      const section = document.getElementById('historySection');
+      const tags = document.getElementById('historyTags');
+      
+      if (pickedNames.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+      
+      section.style.display = 'block';
+      tags.innerHTML = names.map(name => {
+        const isPicked = pickedNames.includes(name);
+        return `<span class="tag ${isPicked ? 'picked' : ''}">${name}</span>`;
+      }).join('');
+    }
+
+    function resetPicker() {
+      pickedNames = [];
+      remainingNames = [];
+      currentRotation = 0;
+      document.getElementById('wheel').style.transform = 'rotate(0deg)';
+      document.getElementById('resultContainer').innerHTML = '<p style="color: #999;">Enter names and click Spin!</p>';
+      document.getElementById('historySection').style.display = 'none';
+    }
+
+    function clearAll() {
+      document.getElementById('nameInput').value = '';
+      resetPicker();
+      document.getElementById('wheelContainer').style.display = 'none';
+    }
+
+    function playSound() {
+      // Simple beep sound using Web Audio API
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    }
+
+    function confetti() {
+      // Simple visual feedback
+      const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#43e97b'];
+      for (let i = 0; i < 30; i++) {
+        setTimeout(() => {
+          const dot = document.createElement('div');
+          dot.style.position = 'fixed';
+          dot.style.left = Math.random() * 100 + 'vw';
+          dot.style.top = '-10px';
+          dot.style.width = '10px';
+          dot.style.height = '10px';
+          dot.style.background = colors[Math.floor(Math.random() * colors.length)];
+          dot.style.borderRadius = '50%';
+          dot.style.zIndex = '9999';
+          dot.style.transition = 'top 2s ease-in, opacity 2s ease-in';
+          document.body.appendChild(dot);
+          
+          setTimeout(() => {
+            dot.style.top = '100vh';
+            dot.style.opacity = '0';
+          }, 100);
+          
+          setTimeout(() => dot.remove(), 2100);
+        }, i * 50);
+      }
+    }
+
+    // Initialize wheel on page load with demo names
+    window.addEventListener('DOMContentLoaded', function() {
+      parseNames();
+      if (names.length > 0) {
+        document.getElementById('wheelContainer').style.display = 'block';
+        document.getElementById('resultContainer').style.display = 'none';
+        createWheel();
+      }
+    });
+  </script>
+  <script>window.TK_CURRENT = 'random-picker';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+  
+  html, body, #root {
+    @apply h-full w-full m-0 p-0 overflow-hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-tisa-purple text-white rounded-lg font-medium
+           transition-all duration-200 hover:bg-tisa-light active:scale-95
+           focus:outline-none focus:ring-2 focus:ring-tisa-purple focus:ring-offset-2;
+  }
+  
+  .btn-secondary {
+    @apply px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium
+           transition-all duration-200 hover:bg-gray-300 active:scale-95
+           focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2;
+  }
+  
+  .panel {
+    @apply bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50;
+  }
+}
+
+@layer utilities {
+  .fullscreen {
+    @apply fixed inset-0 z-50;
+  }
+}

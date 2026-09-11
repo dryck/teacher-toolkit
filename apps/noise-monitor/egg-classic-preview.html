@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Egg Classic Theme Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: radial-gradient(ellipse at 50% 30%, #1a365ddd 0%, #1a365d 70%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      gap: 2rem;
+    }
+    .stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .egg-wrapper {
+      animation: float 2.5s ease-in-out infinite;
+      filter: drop-shadow(0 20px 30px rgba(0,0,0,0.35));
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .dots {
+      display: flex;
+      gap: 0.75rem;
+    }
+    .dot {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 9999px;
+      background: rgba(255,255,255,0.2);
+    }
+    .dot.active-green { background: #22c55e; }
+    .dot.active-yellow { background: #eab308; }
+    .dot.active-orange { background: #f97316; transform: scale(1.1); }
+    .dot.active-red { background: #ef4444; transform: scale(1.25); }
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    button:hover { background: rgba(255,255,255,0.25); }
+    button.active { background: rgba(255,255,255,0.35); }
+    .label { opacity: 0.8; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="egg-wrapper" id="eggWrapper">
+      <svg width="300" height="400" viewBox="0 0 300 400">
+        <defs>
+          <radialGradient id="eg1" cx="38%" cy="28%" r="68%">
+            <stop offset="0%" stop-color="#FFFEF6"/>
+            <stop offset="55%" stop-color="#F4E9CC"/>
+            <stop offset="100%" stop-color="#D8BE8A"/>
+          </radialGradient>
+          <radialGradient id="eg2" cx="38%" cy="28%" r="68%">
+            <stop offset="0%" stop-color="#FBF6E8"/>
+            <stop offset="55%" stop-color="#EEE0BB"/>
+            <stop offset="100%" stop-color="#C8AA6A"/>
+          </radialGradient>
+          <radialGradient id="eg3" cx="38%" cy="28%" r="68%">
+            <stop offset="0%" stop-color="#F0E8D0"/>
+            <stop offset="45%" stop-color="#DCC882"/>
+            <stop offset="100%" stop-color="#B89040"/>
+          </radialGradient>
+          <radialGradient id="gyolk" cx="50%" cy="45%" r="55%">
+            <stop offset="0%" stop-color="#FFE55A"/>
+            <stop offset="70%" stop-color="#FFA800"/>
+            <stop offset="100%" stop-color="#D47000"/>
+          </radialGradient>
+          <filter id="shadow" x="-20%" y="-10%" width="140%" height="130%">
+            <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000" flood-opacity="0.28"/>
+          </filter>
+        </defs>
+
+        <!-- Shadow -->
+        <ellipse cx="150" cy="360" rx="80" ry="20" fill="rgba(0,0,0,0.2)" />
+
+        <g id="eggContent">
+          <!-- Intact egg (level 1) -->
+          <path d="M150,28 C218,28 262,90 262,178 C262,272 215,352 150,352 C85,352 38,272 38,178 C38,90 82,28 150,28 Z" fill="url(#eg1)" filter="url(#shadow)" />
+          <ellipse cx="112" cy="118" rx="30" ry="44" fill="rgba(255,255,255,0.42)" transform="rotate(-22,112,118)"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="dots" id="dots">
+      <div class="dot active-green"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+
+    <div class="label">Gentle floating animation: 2.5s ease-in-out infinite, ±8px</div>
+  </div>
+
+  <div class="controls">
+    <button class="active" onclick="setLevel(1)">Level 1: Quiet</button>
+    <button onclick="setLevel(2)">Level 2: Hairline cracks</button>
+    <button onclick="setLevel(3)">Level 3: Deep cracks</button>
+    <button onclick="setLevel(4)">Level 4: Shattered</button>
+  </div>
+
+  <script>
+    const EGG_PATH = 'M150,28 C218,28 262,90 262,178 C262,272 215,352 150,352 C85,352 38,272 38,178 C38,90 82,28 150,28 Z';
+    const CRACKS = {
+      2: [
+        '148,75 140,94 153,106 145,124 150,134',
+        '145,124 135,128 130,140',
+        '180,175 172,185 180,196 168,210',
+        '110,230 118,245 108,258',
+      ],
+      3: [
+        '148,72 136,98 152,114 140,138 148,155 138,172',
+        '152,114 168,120 178,135 168,152 178,165',
+        '140,138 124,142 114,156 122,172 110,186',
+        '195,220 208,235 196,250 205,265',
+        '98,265 108,280 96,295',
+        '168,290 178,308 165,320',
+      ],
+    };
+
+    function setLevel(level) {
+      const content = document.getElementById('eggContent');
+      const dots = document.getElementById('dots');
+      const buttons = document.querySelectorAll('button');
+
+      buttons.forEach((btn, i) => btn.classList.toggle('active', i + 1 === level));
+
+      dots.innerHTML = [1,2,3,4].map(l => {
+        let cls = 'dot';
+        if (l <= level) {
+          cls += l === 4 ? ' active-red' : l === 3 ? ' active-orange' : l === 2 ? ' active-yellow' : ' active-green';
+        }
+        return `<div class="${cls}"></div>`;
+      }).join('');
+
+      if (level === 4) {
+        content.innerHTML = `
+          <ellipse cx="150" cy="250" rx="88" ry="40" fill="rgba(255,252,235,0.92)"/>
+          <ellipse cx="120" cy="262" rx="30" ry="16" fill="rgba(255,252,235,0.80)"/>
+          <ellipse cx="185" cy="258" rx="24" ry="13" fill="rgba(255,252,235,0.75)"/>
+          <circle cx="150" cy="240" r="36" fill="url(#gyolk)" filter="url(#shadow)"/>
+          <circle cx="140" cy="230" r="10" fill="rgba(255,255,255,0.28)"/>
+          <path d="M108,30 L155,22 L200,50 L185,105 L148,98 L118,88 Z" fill="#D8C080" stroke="#8B6010" transform="translate(-12,-22) rotate(8,155,65)"/>
+          <path d="M44,110 L90,88 L115,122 L100,168 L62,158 Z" fill="#C8B060" stroke="#7A5010" transform="translate(-28,5) rotate(-14,80,130)"/>
+          <path d="M192,85 L248,98 L260,148 L225,162 L200,138 Z" fill="#D8C080" stroke="#8B6010" transform="translate(22,-8) rotate(16,228,130)"/>
+        `;
+      } else {
+        const gradient = `url(#eg${level})`;
+        const cracks = CRACKS[level] || [];
+        const highlight = level === 1 || level === 2;
+        content.innerHTML = `
+          <path d="${EGG_PATH}" fill="${gradient}" filter="url(#shadow)" />
+          ${cracks.map((c, i) => `<polyline points="${c}" fill="none" stroke="#8B6010" stroke-width="${1 + i * 0.3}" stroke-linecap="round"/>`).join('')}
+          ${highlight ? `<ellipse cx="112" cy="118" rx="30" ry="44" fill="rgba(255,255,255,0.42)" transform="rotate(-22,112,118)"/>` : ''}
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

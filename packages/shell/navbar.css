@@ -1,0 +1,52 @@
+/* Teacher Toolkit — shared top navbar styles */
+.tk-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: var(--tk-nav-height);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 16px;
+  background: rgba(31, 35, 51, 0.92);
+  backdrop-filter: blur(8px);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow-x: auto;
+  white-space: nowrap;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tk-navbar__brand {
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  padding: 8px 12px;
+  margin-right: 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.tk-navbar__link {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.tk-navbar__link:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.tk-navbar__link--active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+body.tk-has-navbar {
+  padding-top: 0;
+}

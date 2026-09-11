@@ -1,0 +1,13 @@
+/* Teacher Toolkit — shared design tokens.
+   Loaded by every app (hub, static tools, and the noise-monitor React app). */
+:root {
+  --tk-primary: #667eea;
+  --tk-primary-dark: #764ba2;
+  --tk-bg-gradient: linear-gradient(135deg, var(--tk-primary) 0%, var(--tk-primary-dark) 100%);
+  --tk-surface: #ffffff;
+  --tk-text: #1f2333;
+  --tk-text-muted: #6b7280;
+  --tk-radius: 16px;
+  --tk-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  --tk-nav-height: 56px;
+}

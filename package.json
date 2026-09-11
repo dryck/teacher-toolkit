@@ -1,0 +1,14 @@
+{
+  "name": "teacher-toolkit",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A shared home for our classroom instruments (noise monitor, quick poll, random picker, visual timer, and more to come).",
+  "workspaces": [
+    "apps/noise-monitor"
+  ],
+  "scripts": {
+    "dev:noise-monitor": "npm run dev --workspace apps/noise-monitor",
+    "build": "bash scripts/build.sh"
+  },
+  "license": "MIT"
+}

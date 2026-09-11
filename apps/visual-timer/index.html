@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visual Timer | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    .timer-display {
+      text-align: center;
+      font-size: 6rem;
+      font-weight: bold;
+      color: #11998e;
+      font-family: 'Courier New', monospace;
+      margin: 20px 0;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+    .timer-display.warning {
+      color: #f39c12;
+    }
+    .timer-display.danger {
+      color: #e74c3c;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .progress-container {
+      width: 100%;
+      height: 30px;
+      background: #ecf0f1;
+      border-radius: 15px;
+      overflow: hidden;
+      margin: 20px 0;
+      position: relative;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+      border-radius: 15px;
+      transition: width 1s linear, background 0.5s ease;
+    }
+    .progress-bar.warning {
+      background: linear-gradient(90deg, #f39c12 0%, #f1c40f 100%);
+    }
+    .progress-bar.danger {
+      background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+    }
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .preset-btn {
+      padding: 12px;
+      border: 2px solid #11998e;
+      background: white;
+      color: #11998e;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    .preset-btn:hover {
+      background: #11998e;
+      color: white;
+      transform: translateY(-2px);
+    }
+    .custom-time {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .custom-time input {
+      width: 80px;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    .custom-time label {
+      font-weight: 600;
+      color: #333;
+    }
+    .controls {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .control-btn {
+      padding: 15px 30px;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      min-width: 120px;
+    }
+    .btn-start {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      color: white;
+    }
+    .btn-start:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(17, 153, 142, 0.4);
+    }
+    .btn-pause {
+      background: #f39c12;
+      color: white;
+    }
+    .btn-reset {
+      background: #e74c3c;
+      color: white;
+    }
+    .btn-fullscreen {
+      background: #3498db;
+      color: white;
+    }
+    .mascot-container {
+      text-align: center;
+      margin: 20px 0;
+      font-size: 4rem;
+      min-height: 80px;
+    }
+    .mascot {
+      animation: bounce 2s infinite;
+    }
+    .mascot.sleepy {
+      animation: none;
+      transform: rotate(90deg);
+      opacity: 0.5;
+    }
+    .mascot.happy {
+      animation: dance 0.5s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    @keyframes dance {
+      0%, 100% { transform: rotate(-10deg); }
+      50% { transform: rotate(10deg); }
+    }
+    .status {
+      text-align: center;
+      font-size: 1.2rem;
+      color: #666;
+      margin-top: 10px;
+    }
+    .sound-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .sound-toggle input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9rem;
+    }
+    .footer a {
+      color: white;
+      text-decoration: none;
+    }
+    /* Fullscreen styles */
+    .fullscreen .container {
+      max-width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .fullscreen .timer-display {
+      font-size: 15vw;
+    }
+    .fullscreen .presets,
+    .fullscreen .custom-time {
+      display: none;
+    }
+  </style>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+</head>
+<body>
+  <div class="container" id="container">
+    <h1>⏱️ Visual Timer</h1>
+    <p class="subtitle">Keep your lessons on track</p>
+    
+    <div class="mascot-container" id="mascotContainer">
+      <span class="mascot" id="mascot">🐢</span>
+    </div>
+    
+    <div class="timer-display" id="timerDisplay">00:00</div>
+    
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    
+    <div class="status" id="status">Ready to start</div>
+    
+    <div class="presets">
+      <button class="preset-btn" onclick="setTimer(5)">5 min</button>
+      <button class="preset-btn" onclick="setTimer(10)">10 min</button>
+      <button class="preset-btn" onclick="setTimer(15)">15 min</button>
+      <button class="preset-btn" onclick="setTimer(20)">20 min</button>
+      <button class="preset-btn" onclick="setTimer(30)">30 min</button>
+      <button class="preset-btn" onclick="setTimer(45)">45 min</button>
+    </div>
+    
+    <div class="custom-time">
+      <label>Custom:</label>
+      <input type="number" id="customMin" min="0" max="180" value="0" placeholder="Min">
+      <span>:</span>
+      <input type="number" id="customSec" min="0" max="59" value="0" placeholder="Sec">
+      <button class="preset-btn" onclick="setCustomTimer()">Set</button>
+    </div>
+    
+    <div class="controls">
+      <button class="control-btn btn-start" id="startBtn" onclick="startTimer()">▶️ Start</button>
+      <button class="control-btn btn-pause" id="pauseBtn" onclick="pauseTimer()" style="display: none;">⏸️ Pause</button>
+      <button class="control-btn btn-reset" onclick="resetTimer()">🔄 Reset</button>
+      <button class="control-btn btn-fullscreen" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+    </div>
+    
+    <div class="sound-toggle">
+      <input type="checkbox" id="soundEnabled" checked>
+      <label for="soundEnabled">Sound enabled</label>
+    </div>
+  </div>
+  
+  <div class="footer">
+    Made for teachers | <a href="index.html">More Tools</a>
+  </div>
+
+  <script>
+    let totalSeconds = 0;
+    let remainingSeconds = 0;
+    let timerInterval = null;
+    let isRunning = false;
+    let isPaused = false;
+    
+    const mascots = ['🐢', '🐰', '🐌', '🚀', '⏰', '🕐', '🎯'];
+    let currentMascot = 0;
+    
+    function setTimer(minutes) {
+      resetTimer();
+      totalSeconds = minutes * 60;
+      remainingSeconds = totalSeconds;
+      updateDisplay();
+      document.getElementById('status').textContent = `${minutes} minutes set`;
+      document.getElementById('mascot').textContent = mascots[minutes % mascots.length];
+    }
+    
+    function setCustomTimer() {
+      const min = parseInt(document.getElementById('customMin').value) || 0;
+      const sec = parseInt(document.getElementById('customSec').value) || 0;
+      resetTimer();
+      totalSeconds = min * 60 + sec;
+      remainingSeconds = totalSeconds;
+      updateDisplay();
+      document.getElementById('status').textContent = 'Custom time set';
+    }
+    
+    function startTimer() {
+      if (remainingSeconds === 0) {
+        alert('Please set a timer first!');
+        return;
+      }
+      
+      if (!isPaused) {
+        totalSeconds = remainingSeconds;
+      }
+      
+      isRunning = true;
+      isPaused = false;
+      
+      document.getElementById('startBtn').style.display = 'none';
+      document.getElementById('pauseBtn').style.display = 'inline-block';
+      document.getElementById('status').textContent = 'Timer running...';
+      document.getElementById('mascot').classList.remove('sleepy');
+      
+      // Play start sound
+      if (document.getElementById('soundEnabled').checked) {
+        playTone(600, 0.2);
+      }
+      
+      timerInterval = setInterval(() => {
+        remainingSeconds--;
+        updateDisplay();
+        
+        // Update mascot every 10 seconds
+        if (remainingSeconds % 10 === 0) {
+          currentMascot = (currentMascot + 1) % mascots.length;
+          document.getElementById('mascot').textContent = mascots[currentMascot];
+        }
+        
+        // Warning at 30% and 10% remaining
+        const percentRemaining = remainingSeconds / totalSeconds;
+        if (percentRemaining <= 0.1) {
+          document.getElementById('timerDisplay').classList.add('danger');
+          document.getElementById('progressBar').classList.add('danger');
+          document.getElementById('status').textContent = '⚠️ Time almost up!';
+        } else if (percentRemaining <= 0.3) {
+          document.getElementById('timerDisplay').classList.add('warning');
+          document.getElementById('progressBar').classList.add('warning');
+          document.getElementById('status').textContent = '⏰ Hurry up!';
+        }
+        
+        if (remainingSeconds <= 0) {
+          timerFinished();
+        }
+      }, 1000);
+    }
+    
+    function pauseTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      isPaused = true;
+      document.getElementById('startBtn').style.display = 'inline-block';
+      document.getElementById('pauseBtn').style.display = 'none';
+      document.getElementById('status').textContent = '⏸️ Paused';
+      document.getElementById('mascot').classList.add('sleepy');
+    }
+    
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      isPaused = false;
+      remainingSeconds = 0;
+      totalSeconds = 0;
+      
+      updateDisplay();
+      
+      document.getElementById('startBtn').style.display = 'inline-block';
+      document.getElementById('pauseBtn').style.display = 'none';
+      document.getElementById('status').textContent = 'Ready to start';
+      
+      document.getElementById('timerDisplay').classList.remove('warning', 'danger');
+      document.getElementById('progressBar').classList.remove('warning', 'danger');
+      document.getElementById('progressBar').style.width = '100%';
+      
+      document.getElementById('mascot').classList.remove('sleepy', 'happy');
+      document.getElementById('mascot').textContent = mascots[0];
+    }
+    
+    function timerFinished() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      
+      document.getElementById('timerDisplay').textContent = 'DONE!';
+      document.getElementById('status').textContent = '🎉 Time is up!';
+      document.getElementById('mascot').textContent = '🎉';
+      document.getElementById('mascot').classList.add('happy');
+      
+      document.getElementById('startBtn').style.display = 'inline-block';
+      document.getElementById('pauseBtn').style.display = 'none';
+      
+      // Play alarm sound
+      if (document.getElementById('soundEnabled').checked) {
+        playAlarm();
+      }
+      
+      // Flash effect
+      let flashes = 0;
+      const flashInterval = setInterval(() => {
+        document.body.style.background = flashes % 2 === 0 ? '#e74c3c' : '';
+        flashes++;
+        if (flashes >= 6) {
+          clearInterval(flashInterval);
+          document.body.style.background = '';
+        }
+      }, 500);
+    }
+    
+    function updateDisplay() {
+      const minutes = Math.floor(remainingSeconds / 60);
+      const seconds = remainingSeconds % 60;
+      document.getElementById('timerDisplay').textContent = 
+        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      
+      if (totalSeconds > 0) {
+        const percent = (remainingSeconds / totalSeconds) * 100;
+        document.getElementById('progressBar').style.width = percent + '%';
+      }
+    }
+    
+    function playTone(frequency, duration) {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+    
+    function playAlarm() {
+      const pattern = [800, 600, 800, 600, 800, 600];
+      pattern.forEach((freq, i) => {
+        setTimeout(() => playTone(freq, 0.3), i * 400);
+      });
+    }
+    
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          document.body.classList.add('fullscreen');
+        });
+      } else {
+        document.exitFullscreen().then(() => {
+          document.body.classList.remove('fullscreen');
+        });
+      }
+    }
+    
+    // Initialize
+    setTimer(10);
+  </script>
+  <script>window.TK_CURRENT = 'visual-timer';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>
