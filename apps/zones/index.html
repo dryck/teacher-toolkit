@@ -4,8 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Zones Check-In</title>
+  <!-- No shared navbar/branding here on purpose: students land on this
+       page directly via a link/QR code their teacher gives them, and
+       should never see (or be able to navigate to) the rest of the
+       teacher-facing toolkit. Only theme.css (CSS variables) is kept. -->
   <link rel="stylesheet" href="../shell/theme.css">
-  <link rel="stylesheet" href="../shell/navbar.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -193,7 +196,5 @@
       showZonePicker();
     }
   </script>
-  <script>window.TK_CURRENT = 'zones';</script>
-  <script src="../shell/navbar.js"></script>
 </body>
 </html>
