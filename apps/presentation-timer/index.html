@@ -141,13 +141,13 @@
       border: none;
       border-radius: 12px;
       cursor: pointer;
-      background: var(--tk-bg-gradient);
+      background: var(--tk-primary);
       color: white;
       transition: all 0.3s ease;
     }
     .btn-start:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 8px 25px rgba(38, 87, 135, 0.4);
     }
 
     /* ---------- Main / stage screen ---------- */
@@ -208,7 +208,7 @@
     .progress-bar {
       height: 100%;
       width: 100%;
-      background: var(--tk-bg-gradient);
+      background: var(--tk-primary);
       border-radius: 15px;
       transition: width 1s linear, background 0.5s ease;
     }
@@ -308,11 +308,11 @@
       background: rgba(0,0,0,0.12);
     }
     .control-bar button.accent {
-      background: rgba(102, 126, 234, 0.15);
+      background: rgba(38, 87, 135, 0.15);
       color: var(--tk-primary-dark);
     }
     .control-bar button.accent:hover {
-      background: rgba(102, 126, 234, 0.25);
+      background: rgba(38, 87, 135, 0.25);
     }
 
     .setup-footer-btn {
@@ -332,11 +332,11 @@
     .footer {
       text-align: center;
       margin-top: 30px;
-      color: rgba(255,255,255,0.8);
+      color: var(--tk-text-muted);
       font-size: 0.9rem;
     }
     .footer a {
-      color: white;
+      color: var(--tk-primary);
       text-decoration: none;
     }
 
@@ -667,7 +667,7 @@
 
     // ---------------- Confetti (same falling-dots pattern as random-picker) ----------------
     function confetti() {
-      const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#43e97b'];
+      const colors = ['#265787', '#1c4368', '#f093fb', '#f5576c', '#43e97b'];
       for (let i = 0; i < 60; i++) {
         setTimeout(() => {
           const dot = document.createElement('div');

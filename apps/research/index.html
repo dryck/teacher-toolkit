@@ -21,7 +21,7 @@
     }
     header.hero {
       text-align: center;
-      color: #fff;
+      color: var(--tk-text);
       margin-bottom: 40px;
     }
     header.hero h1 {
@@ -29,7 +29,7 @@
       margin-bottom: 8px;
     }
     header.hero p {
-      color: rgba(255, 255, 255, 0.85);
+      color: var(--tk-text-muted);
       font-size: 1.05rem;
       max-width: 560px;
       margin: 0 auto;
@@ -43,16 +43,17 @@
       margin-bottom: 44px;
     }
     .toc a {
-      background: rgba(255, 255, 255, 0.16);
-      color: #fff;
+      background: transparent;
+      border: 1.5px solid var(--tk-primary);
+      color: var(--tk-primary);
       text-decoration: none;
       font-size: 0.88rem;
       font-weight: 600;
-      padding: 8px 16px;
+      padding: 7px 16px;
       border-radius: 999px;
-      transition: background 0.15s ease;
+      transition: background 0.15s ease, color 0.15s ease;
     }
-    .toc a:hover { background: rgba(255, 255, 255, 0.28); }
+    .toc a:hover { background: var(--tk-primary); color: #fff; }
 
     article.tool {
       background: var(--tk-surface);

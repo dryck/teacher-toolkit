@@ -1,13 +1,33 @@
 /* Teacher Toolkit — shared design tokens.
-   Loaded by every app (hub, static tools, and the noise-monitor React app). */
+   Loaded by every app (hub, static tools, and the noise-monitor React app).
+   Palette matches hungryteachers.ru/tools (warm cream + navy + terracotta)
+   since the toolkit is meant to live there eventually. */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@300;400;500;700&display=swap');
+
 :root {
-  --tk-primary: #667eea;
-  --tk-primary-dark: #764ba2;
-  --tk-bg-gradient: linear-gradient(135deg, var(--tk-primary) 0%, var(--tk-primary-dark) 100%);
+  --tk-primary: #265787;
+  --tk-primary-dark: #1c4368;
+  --tk-accent: #b86f55;
+  --tk-bg: #f5f3ed;
+  --tk-bg-gradient: var(--tk-bg);
   --tk-surface: #ffffff;
-  --tk-text: #1f2333;
-  --tk-text-muted: #6b7280;
-  --tk-radius: 16px;
-  --tk-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  --tk-text: #265787;
+  --tk-text-muted: #7d7a6e;
+  --tk-radius: 20px;
+  --tk-shadow: 0 12px 32px rgba(38, 87, 135, 0.14);
   --tk-nav-height: 56px;
+  --tk-font-heading: 'Roboto Condensed', 'Segoe UI', Arial, sans-serif;
+  --tk-font-body: 'Ubuntu', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* !important: every app sets its own body font-family in an inline <style>
+   block that loads after this stylesheet, which would otherwise win on
+   source order alone -- this is the one place we override that on purpose
+   so typography stays unified without editing every app file. */
+body {
+  font-family: var(--tk-font-body) !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--tk-font-heading) !important;
 }

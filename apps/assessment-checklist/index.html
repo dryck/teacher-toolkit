@@ -97,12 +97,12 @@
       transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
     .btn-primary {
-      background: var(--tk-bg-gradient);
+      background: var(--tk-primary);
       color: white;
       padding: 14px 22px;
       font-size: 1rem;
     }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(38, 87, 135, 0.4); }
     .btn-secondary {
       background: #f0f0f0;
       color: #333;
@@ -225,7 +225,7 @@
     }
     .level-btn strong { display: block; font-size: 1.1rem; }
     .level-btn.selected {
-      background: var(--tk-bg-gradient);
+      background: var(--tk-primary);
       color: white;
       border-color: transparent;
     }
@@ -291,10 +291,10 @@
     .footer {
       text-align: center;
       margin-top: 30px;
-      color: rgba(255,255,255,0.8);
+      color: var(--tk-text-muted);
       font-size: 0.9rem;
     }
-    .footer a { color: white; text-decoration: none; }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
 
     @media (max-width: 480px) {
       .container { padding: 20px 16px; }

@@ -56,7 +56,7 @@
     .structure-card:hover {
       transform: translateY(-3px);
       border-color: var(--tk-primary);
-      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.25);
+      box-shadow: 0 10px 25px rgba(38, 87, 135, 0.25);
     }
     .structure-card .icon { font-size: 2.2rem; display: block; margin-bottom: 8px; }
     .structure-card h3 { color: var(--tk-text); font-size: 1.1rem; margin-bottom: 4px; }
@@ -125,8 +125,8 @@
     }
     .btn:hover { transform: translateY(-2px); }
     .btn-primary {
-      background: var(--tk-bg-gradient);
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+      background: var(--tk-primary);
+      box-shadow: 0 8px 20px rgba(38, 87, 135, 0.4);
     }
     .btn-secondary {
       background: #6b7280;
@@ -212,7 +212,7 @@
     .progress-bar {
       height: 100%;
       width: 100%;
-      background: var(--tk-bg-gradient);
+      background: var(--tk-primary);
       border-radius: 13px;
       transition: width 1s linear, background 0.4s ease;
     }
@@ -236,10 +236,10 @@
     .footer {
       text-align: center;
       margin-top: 30px;
-      color: rgba(255,255,255,0.85);
+      color: var(--tk-text-muted);
       font-size: 0.9rem;
     }
-    .footer a { color: white; text-decoration: none; }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
 
     @media (max-width: 600px) {
       .instruction { font-size: 1.6rem; }

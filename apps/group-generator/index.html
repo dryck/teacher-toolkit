@@ -225,12 +225,12 @@
       font-weight: 600;
     }
     .btn-primary {
-      background: var(--tk-bg-gradient);
+      background: var(--tk-primary);
       color: white;
     }
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 5px 20px rgba(38, 87, 135, 0.4);
     }
     .btn-secondary {
       background: #f0f0f0;
@@ -280,7 +280,7 @@
       border-radius: 14px;
     }
     .shuffle-chip {
-      background: var(--tk-bg-gradient);
+      background: var(--tk-primary);
       color: white;
       padding: 10px 16px;
       border-radius: 10px;
@@ -355,11 +355,11 @@
     .footer {
       text-align: center;
       margin-top: 30px;
-      color: rgba(255,255,255,0.8);
+      color: var(--tk-text-muted);
       font-size: 0.9rem;
     }
     .footer a {
-      color: white;
+      color: var(--tk-primary);
       text-decoration: none;
     }
     @media (max-width: 480px) {
@@ -511,7 +511,7 @@ Julia</textarea>
 
     function getRandomColor(index) {
       const colors = [
-        '#667eea', '#764ba2', '#f093fb', '#f5576c',
+        '#265787', '#1c4368', '#f093fb', '#f5576c',
         '#4facfe', '#00c9a7', '#43e97b', '#fa709a',
         '#fee140', '#30cfd0', '#a770ef', '#f9748f'
       ];

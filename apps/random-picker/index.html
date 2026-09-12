@@ -8,7 +8,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #265787 0%, #1c4368 100%);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -46,7 +46,7 @@
     }
     textarea:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: #265787;
     }
     .controls {
       display: flex;
@@ -66,12 +66,12 @@
       font-weight: 600;
     }
     .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #265787 0%, #1c4368 100%);
       color: white;
     }
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 5px 20px rgba(38, 87, 135, 0.4);
     }
     .btn-secondary {
       background: #f0f0f0;
@@ -105,7 +105,7 @@
     .result {
       font-size: 3rem;
       font-weight: bold;
-      color: #667eea;
+      color: #265787;
       animation: popIn 0.5s ease;
     }
     @keyframes popIn {
@@ -125,7 +125,7 @@
       border-radius: 50%;
       position: relative;
       overflow: hidden;
-      border: 5px solid #667eea;
+      border: 5px solid #265787;
       transition: transform 4s cubic-bezier(0.23, 1, 0.32, 1);
     }
     .wheel-label {
@@ -151,7 +151,7 @@
       height: 60px;
       background: white;
       border-radius: 50%;
-      border: 4px solid #667eea;
+      border: 4px solid #265787;
       z-index: 10;
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
@@ -185,7 +185,7 @@
       gap: 8px;
     }
     .tag {
-      background: #667eea;
+      background: #265787;
       color: white;
       padding: 5px 12px;
       border-radius: 20px;
@@ -287,7 +287,7 @@ Hannah</textarea>
 
     function getRandomColor(index, total) {
       const colors = [
-        '#667eea', '#764ba2', '#f093fb', '#f5576c',
+        '#265787', '#1c4368', '#f093fb', '#f5576c',
         '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
         '#fa709a', '#fee140', '#a8edea', '#fed6e3'
       ];
@@ -488,7 +488,7 @@ Hannah</textarea>
 
     function confetti() {
       // Simple visual feedback
-      const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#43e97b'];
+      const colors = ['#265787', '#1c4368', '#f093fb', '#f5576c', '#43e97b'];
       for (let i = 0; i < 30; i++) {
         setTimeout(() => {
           const dot = document.createElement('div');

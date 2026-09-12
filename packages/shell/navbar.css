@@ -12,45 +12,98 @@
   height: var(--tk-nav-height);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 4px;
   padding: 0 16px;
-  background: rgba(31, 35, 51, 0.92);
-  backdrop-filter: blur(8px);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  overflow-x: auto;
-  white-space: nowrap;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  background: var(--tk-bg);
+  border-bottom: 1px solid rgba(38, 87, 135, 0.12);
+  font-family: var(--tk-font-body);
 }
 
 .tk-navbar__brand {
-  color: #fff;
+  color: var(--tk-primary);
+  font-family: var(--tk-font-heading);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
   text-decoration: none;
   padding: 8px 12px;
-  margin-right: 8px;
-  border-right: 1px solid rgba(255, 255, 255, 0.2);
   flex-shrink: 0;
 }
 
-.tk-navbar__link {
-  color: rgba(255, 255, 255, 0.75);
+.tk-navbar__dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.tk-navbar__trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tk-primary);
+  background: transparent;
+  border: 1.5px solid var(--tk-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tk-navbar__trigger:hover {
+  background: var(--tk-primary);
+  color: #fff;
+}
+
+.tk-navbar__chevron {
+  font-size: 11px;
+  transition: transform 0.15s ease;
+}
+
+.tk-navbar__dropdown--open .tk-navbar__chevron {
+  transform: rotate(180deg);
+}
+
+.tk-navbar__panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 2px;
+  width: max-content;
+  max-width: min(90vw, 400px);
+  padding: 10px;
+  background: var(--tk-surface);
+  border-radius: var(--tk-radius);
+  box-shadow: var(--tk-shadow);
+}
+
+.tk-navbar__dropdown--open .tk-navbar__panel {
+  display: grid;
+}
+
+.tk-navbar__panel .tk-navbar__link {
+  color: var(--tk-text);
   text-decoration: none;
   font-size: 14px;
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-radius: 8px;
-  transition: background 0.15s ease, color 0.15s ease;
-  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.15s ease;
 }
 
-.tk-navbar__link:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+.tk-navbar__panel .tk-navbar__link:hover {
+  background: rgba(38, 87, 135, 0.08);
 }
 
-.tk-navbar__link--active {
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+.tk-navbar__panel .tk-navbar__link--active {
+  background: rgba(184, 111, 85, 0.12);
+  color: var(--tk-accent);
+  font-weight: 600;
 }
 
 body.tk-has-navbar {

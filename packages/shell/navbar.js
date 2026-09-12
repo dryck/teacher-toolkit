@@ -2,7 +2,11 @@
    Each page sets `window.TK_CURRENT` to its own key ('hub' for the
    landing page, or a tool key) before loading this script. Links are
    built relative to that page so the whole site can be deployed at
-   any base path (e.g. GitHub Pages project sites). */
+   any base path (e.g. GitHub Pages project sites).
+
+   Layout: brand on the left, a single "Tools ▾" dropdown on the right
+   listing every tool — keeps the bar one row at any width instead of
+   forcing a horizontal scroll strip. */
 (function () {
   var TOOLS = [
     { key: 'hub', label: 'Teacher Toolkit', href: '', isBrand: true },
@@ -24,26 +28,74 @@
   ];
 
   var current = window.TK_CURRENT || 'hub';
-  var prefix = current === 'hub' ? '' : '../';
 
   var nav = document.createElement('nav');
   nav.className = 'tk-navbar';
 
-  TOOLS.forEach(function (tool) {
+  // Brand, always top-left, always points at the toolkit root.
+  var brand = document.createElement('a');
+  brand.textContent = 'Teacher Toolkit';
+  brand.href = current === 'hub' ? '#' : '../';
+  brand.className = 'tk-navbar__brand';
+  nav.appendChild(brand);
+
+  // Dropdown: a single trigger button + a panel listing every tool.
+  var currentTool = TOOLS.filter(function (t) { return t.key === current; })[0];
+  var dropdown = document.createElement('div');
+  dropdown.className = 'tk-navbar__dropdown';
+
+  var trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'tk-navbar__trigger';
+  trigger.setAttribute('aria-haspopup', 'true');
+  trigger.setAttribute('aria-expanded', 'false');
+  var triggerLabel = document.createElement('span');
+  triggerLabel.textContent = current === 'hub' ? 'Tools' : (currentTool ? currentTool.label : 'Tools');
+  var triggerChevron = document.createElement('span');
+  triggerChevron.className = 'tk-navbar__chevron';
+  triggerChevron.setAttribute('aria-hidden', 'true');
+  triggerChevron.textContent = '▾';
+  trigger.appendChild(triggerLabel);
+  trigger.appendChild(triggerChevron);
+  dropdown.appendChild(trigger);
+
+  var panel = document.createElement('div');
+  panel.className = 'tk-navbar__panel';
+  panel.setAttribute('role', 'menu');
+
+  TOOLS.filter(function (tool) { return !tool.isBrand; }).forEach(function (tool) {
     var a = document.createElement('a');
     a.textContent = tool.label;
-    // Brand link always points at the toolkit root; every other link is
-    // relative to the current page's own directory.
-    a.href = tool.isBrand
-      ? (current === 'hub' ? '#' : '../')
-      : (current === 'hub' ? tool.href : (tool.key === current ? '#' : '../' + tool.href));
-
-    a.className = tool.isBrand ? 'tk-navbar__brand' : 'tk-navbar__link';
+    a.href = current === 'hub' ? tool.href : (tool.key === current ? '#' : '../' + tool.href);
+    a.className = 'tk-navbar__link';
+    a.setAttribute('role', 'menuitem');
     if (tool.key === current) {
       a.classList.add('tk-navbar__link--active');
       a.setAttribute('aria-current', 'page');
     }
-    nav.appendChild(a);
+    panel.appendChild(a);
+  });
+
+  dropdown.appendChild(panel);
+  nav.appendChild(dropdown);
+
+  function closeDropdown() {
+    dropdown.classList.remove('tk-navbar__dropdown--open');
+    trigger.setAttribute('aria-expanded', 'false');
+  }
+
+  trigger.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var open = dropdown.classList.toggle('tk-navbar__dropdown--open');
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!dropdown.contains(e.target)) closeDropdown();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeDropdown();
   });
 
   document.addEventListener('DOMContentLoaded', function () {
