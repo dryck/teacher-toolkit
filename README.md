@@ -16,6 +16,7 @@ apps/
   quick-poll/     static — exit-ticket style instant polling
   random-picker/  static — spinning-wheel name picker
   visual-timer/   static — countdown timer with mascot
+  research/       static — pedagogical foundation + citations for every tool
 packages/
   shell/          shared navbar + theme (theme.css, navbar.css, navbar.js)
                   included by every app so branding/nav stay in sync
@@ -54,6 +55,7 @@ dist/
   quick-poll/
   random-picker/
   visual-timer/
+  research/
 ```
 
 ## Deploy
@@ -73,3 +75,12 @@ Pushing to `main` builds and deploys `./dist` to GitHub Pages via
    `apps/hub/index.html`.
 3. If it's a build-step app (React/Vite/etc.), add it to `workspaces` in the
    root `package.json` and wire it into `scripts/build.sh`.
+4. **Every new tool needs a description — this is not optional:**
+   - A one-sentence description on its hub card (`apps/hub/index.html`).
+   - A section on `apps/research/index.html` explaining its pedagogical
+     foundation: what learning theory or research it's grounded in, why
+     that matters for the classroom, at least one pull-quote citation, and
+     a "Key research" list of sources. Follow the structure of the
+     existing sections (Noise Monitor / Quick Poll / Random Picker /
+     Visual Timer) and add its anchor to the jump-link nav at the top of
+     the page.
