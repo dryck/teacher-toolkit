@@ -17,7 +17,7 @@ cp -r packages/shell dist/shell
 cp -r apps/hub/. dist/
 
 # Static single-file tools
-for tool in quick-poll random-picker visual-timer; do
+for tool in quick-poll random-picker visual-timer research; do
   mkdir -p "dist/$tool"
   cp "apps/$tool/index.html" "dist/$tool/index.html"
 done

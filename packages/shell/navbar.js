@@ -9,7 +9,8 @@
     { key: 'noise-monitor', label: 'Noise Monitor', href: 'noise-monitor/' },
     { key: 'quick-poll', label: 'Quick Poll', href: 'quick-poll/' },
     { key: 'random-picker', label: 'Random Picker', href: 'random-picker/' },
-    { key: 'visual-timer', label: 'Visual Timer', href: 'visual-timer/' }
+    { key: 'visual-timer', label: 'Visual Timer', href: 'visual-timer/' },
+    { key: 'research', label: 'Research', href: 'research/' }
   ];
 
   var current = window.TK_CURRENT || 'hub';
