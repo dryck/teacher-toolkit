@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Zones Check-In</title>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f4f8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+      color: var(--tk-text);
+      margin: 12px 0 20px;
+    }
+
+    /* Join-by-code screen (shown if no ?session= in the URL) */
+    #joinScreen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #joinScreen p { color: var(--tk-text-muted); }
+    #joinScreen input {
+      font-size: 1.6rem;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 220px;
+    }
+    #joinScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+
+    /* Zone picker */
+    #zoneScreen { display: none; flex: 1; flex-direction: column; gap: 14px; }
+    .zone-btn {
+      flex: 1;
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border: none;
+      border-radius: 18px;
+      padding: 18px 22px;
+      cursor: pointer;
+      color: #fff;
+      text-align: left;
+      transition: transform 0.1s ease;
+    }
+    .zone-btn:active { transform: scale(0.97); }
+    .zone-btn .emoji { font-size: 2.4rem; }
+    .zone-btn .label { font-size: 1.25rem; font-weight: 800; }
+    .zone-btn .examples { font-size: 0.9rem; opacity: 0.9; }
+
+    /* Thanks screen */
+    #thanksScreen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 10px;
+    }
+    #thanksScreen .check { font-size: 4rem; }
+    #thanksScreen h2 { font-size: 1.4rem; color: var(--tk-text); }
+
+    #errorMsg { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>How are you feeling right now?</h1>
+
+    <div id="joinScreen">
+      <p>Enter the code your teacher gave you:</p>
+      <input type="text" id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+      <div id="errorMsg"></div>
+      <button id="joinBtn">Join</button>
+    </div>
+
+    <div id="zoneScreen"></div>
+
+    <div id="thanksScreen">
+      <div class="check">✓</div>
+      <h2>Thanks!</h2>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="zones.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+
+    const joinScreen = document.getElementById('joinScreen');
+    const zoneScreen = document.getElementById('zoneScreen');
+    const thanksScreen = document.getElementById('thanksScreen');
+    const errorMsg = document.getElementById('errorMsg');
+
+    function votedKey(id) { return 'tk-zones-voted-' + id; }
+
+    function showZonePicker() {
+      joinScreen.style.display = 'none';
+
+      if (localStorage.getItem(votedKey(sessionId))) {
+        zoneScreen.style.display = 'none';
+        thanksScreen.style.display = 'flex';
+        return;
+      }
+
+      zoneScreen.style.display = 'flex';
+      zoneScreen.innerHTML = '';
+      TKZones.ZONES.forEach(zone => {
+        const btn = document.createElement('button');
+        btn.className = 'zone-btn';
+        btn.style.background = zone.color;
+        btn.innerHTML = `<span class="emoji">${zone.emoji}</span>
+          <span>
+            <div class="label">${zone.label.toUpperCase()}</div>
+            <div class="examples">${zone.examples}</div>
+          </span>`;
+        btn.onclick = () => submitZone(zone.key, btn);
+        zoneScreen.appendChild(btn);
+      });
+    }
+
+    function submitZone(zoneKey, btn) {
+      zoneScreen.querySelectorAll('.zone-btn').forEach(b => b.disabled = true);
+      const update = {};
+      update[zoneKey] = firebase.firestore.FieldValue.increment(1);
+      TKZones.sessionDocRef(sessionId).set(update, { merge: true })
+        .then(() => {
+          localStorage.setItem(votedKey(sessionId), '1');
+          zoneScreen.style.display = 'none';
+          thanksScreen.style.display = 'flex';
+        })
+        .catch(err => {
+          console.error(err);
+          zoneScreen.querySelectorAll('.zone-btn').forEach(b => b.disabled = false);
+          alert('Could not submit — check your connection and try again.');
+        });
+    }
+
+    document.getElementById('joinBtn').onclick = () => {
+      const code = document.getElementById('codeInput').value.trim().toUpperCase();
+      if (code.length !== 5) {
+        errorMsg.textContent = 'Enter the 5-letter code your teacher gave you.';
+        return;
+      }
+      sessionId = code;
+      const url = new URL(location.href);
+      url.searchParams.set('session', sessionId);
+      history.replaceState(null, '', url);
+      showZonePicker();
+    };
+
+    if (sessionId) {
+      showZonePicker();
+    }
+  </script>
+  <script>window.TK_CURRENT = 'zones';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

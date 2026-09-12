@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zones Check-In — Teacher Dashboard</title>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    h1 {
+      text-align: center;
+      color: #fff;
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+    }
+
+    .join-card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .join-card img { width: 140px; height: 140px; border-radius: 8px; }
+    .join-info { text-align: center; }
+    .join-info .code {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--tk-primary-dark);
+    }
+    .join-info .url {
+      font-size: 0.95rem;
+      color: var(--tk-text-muted);
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .join-info button {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .results-card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 28px;
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .responded-count { font-weight: 700; color: var(--tk-text); }
+    .responded-count input {
+      width: 50px;
+      text-align: center;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 2px 4px;
+      font-weight: 700;
+    }
+
+    .zone-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .zone-row .zone-label { width: 150px; font-weight: 700; flex-shrink: 0; }
+    .zone-row .bar-bg { flex: 1; height: 28px; background: #eee; border-radius: 14px; overflow: hidden; }
+    .zone-row .bar-fill { height: 100%; border-radius: 14px; transition: width 0.4s ease; }
+    .zone-row .count { width: 40px; text-align: right; font-weight: 700; color: var(--tk-text); }
+
+    .hidden-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.96);
+      border-radius: var(--tk-radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .hidden-overlay button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .controls button {
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    #hideBtn { background: #f0f0f0; color: var(--tk-text); }
+    #resetBtn { background: #fee2e2; color: #b91c1c; }
+    #newSessionBtn { background: #e0e7ff; color: #3730a3; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🎯 Zones Check-In — Live Dashboard</h1>
+
+    <div class="join-card">
+      <img id="qrImg" alt="QR code to join">
+      <div class="join-info">
+        <div>Students join at:</div>
+        <div class="code" id="sessionCode"></div>
+        <div class="url" id="joinUrl"></div>
+        <button id="copyBtn">Copy link</button>
+      </div>
+    </div>
+
+    <div class="results-card">
+      <div class="results-header">
+        <span class="responded-count"><span id="totalCount">0</span> responded<span id="classSizeWrap" style="display:none"> / <input type="number" id="classSizeInput" min="1" max="200"></span></span>
+      </div>
+
+      <div id="bars"></div>
+
+      <div id="hiddenOverlay" class="hidden-overlay" style="display:none">
+        <div>Results hidden</div>
+        <button id="revealBtn">Reveal Results</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="hideBtn">🙈 Hide until ready</button>
+      <button id="resetBtn">🔄 Reset (new lesson)</button>
+      <button id="newSessionBtn">🆕 New session code</button>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="zones.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+    if (!sessionId) {
+      sessionId = TKZones.randomSessionCode();
+      const url = new URL(location.href);
+      url.searchParams.set('session', sessionId);
+      history.replaceState(null, '', url);
+    }
+
+    const joinUrl = location.origin + location.pathname.replace('teacher.html', 'index.html') + '?session=' + sessionId;
+    document.getElementById('sessionCode').textContent = sessionId;
+    document.getElementById('joinUrl').textContent = joinUrl;
+    // QR image rendered via a public QR-generation service (api.qrserver.com) --
+    // the join URL contains only a random session code, no student data.
+    document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(joinUrl);
+
+    document.getElementById('copyBtn').onclick = () => {
+      navigator.clipboard.writeText(joinUrl).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    };
+
+    // Build the (initially empty) bar rows once.
+    const barsEl = document.getElementById('bars');
+    TKZones.ZONES.forEach(zone => {
+      const row = document.createElement('div');
+      row.className = 'zone-row';
+      row.innerHTML = `
+        <div class="zone-label">${zone.emoji} ${zone.label}</div>
+        <div class="bar-bg"><div class="bar-fill" id="bar-${zone.key}" style="width:0%;background:${zone.color}"></div></div>
+        <div class="count" id="count-${zone.key}">0</div>
+      `;
+      barsEl.appendChild(row);
+    });
+
+    function render(counts) {
+      const values = TKZones.ZONES.map(z => counts[z.key] || 0);
+      const total = values.reduce((a, b) => a + b, 0);
+      const max = Math.max(1, ...values);
+      TKZones.ZONES.forEach((zone, i) => {
+        const pct = (values[i] / max) * 100;
+        document.getElementById('bar-' + zone.key).style.width = pct + '%';
+        document.getElementById('count-' + zone.key).textContent = values[i];
+      });
+      document.getElementById('totalCount').textContent = total;
+    }
+
+    render(TKZones.emptyCounts());
+
+    TKZones.sessionDocRef(sessionId).onSnapshot(doc => {
+      render(doc.exists ? doc.data() : TKZones.emptyCounts());
+    }, err => console.error(err));
+
+    document.getElementById('resetBtn').onclick = () => {
+      if (!confirm('Reset all counts for this session? (Use this to start a fresh lesson.)')) return;
+      TKZones.sessionDocRef(sessionId).set(TKZones.emptyCounts());
+    };
+
+    document.getElementById('newSessionBtn').onclick = () => {
+      if (!confirm('Start a brand-new session code? Students will need the new link/QR to join.')) return;
+      const url = new URL(location.href);
+      url.searchParams.set('session', TKZones.randomSessionCode());
+      location.href = url.toString();
+    };
+
+    const hiddenOverlay = document.getElementById('hiddenOverlay');
+    document.getElementById('hideBtn').onclick = () => { hiddenOverlay.style.display = 'flex'; };
+    document.getElementById('revealBtn').onclick = () => { hiddenOverlay.style.display = 'none'; };
+
+    // Optional class-size denominator, kept local to this browser only.
+    const classSizeInput = document.getElementById('classSizeInput');
+    const classSizeWrap = document.getElementById('classSizeWrap');
+    const savedClassSize = localStorage.getItem('tk-zones-class-size');
+    if (savedClassSize) {
+      classSizeInput.value = savedClassSize;
+      classSizeWrap.style.display = 'inline';
+    }
+    classSizeInput.addEventListener('input', () => {
+      if (classSizeInput.value) localStorage.setItem('tk-zones-class-size', classSizeInput.value);
+    });
+    document.getElementById('totalCount').addEventListener('click', () => {
+      classSizeWrap.style.display = 'inline';
+      classSizeInput.focus();
+    });
+  </script>
+  <script>window.TK_CURRENT = 'zones';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

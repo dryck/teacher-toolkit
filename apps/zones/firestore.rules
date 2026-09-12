@@ -1,0 +1,22 @@
+// Paste this into Firebase Console -> Firestore Database -> Rules -> Publish.
+//
+// Only allows read/write on documents in `zonesSessions/{sessionId}` (one
+// doc per check-in session, holding just the 4 zone counts as numbers),
+// and only if the written document contains nothing but those 4 fields.
+// No student identity, no other collection, is ever readable or writable.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /zonesSessions/{sessionId} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['blue', 'green', 'yellow', 'red'])
+                   && (!('blue' in request.resource.data) || request.resource.data.blue is number)
+                   && (!('green' in request.resource.data) || request.resource.data.green is number)
+                   && (!('yellow' in request.resource.data) || request.resource.data.yellow is number)
+                   && (!('red' in request.resource.data) || request.resource.data.red is number);
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -10,6 +10,7 @@
     { key: 'quick-poll', label: 'Quick Poll', href: 'quick-poll/' },
     { key: 'random-picker', label: 'Random Picker', href: 'random-picker/' },
     { key: 'visual-timer', label: 'Visual Timer', href: 'visual-timer/' },
+    { key: 'zones', label: 'Zones Check-In', href: 'zones/' },
     { key: 'research', label: 'Research', href: 'research/' }
   ];
 

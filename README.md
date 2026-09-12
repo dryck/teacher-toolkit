@@ -17,6 +17,7 @@ apps/
   random-picker/  static — spinning-wheel name picker
   visual-timer/   static — countdown timer with mascot
   research/       static — pedagogical foundation + citations for every tool
+  zones/          static — anonymous emotional check-in (Firebase-backed)
 packages/
   shell/          shared navbar + theme (theme.css, navbar.css, navbar.js)
                   included by every app so branding/nav stay in sync
@@ -56,7 +57,32 @@ dist/
   random-picker/
   visual-timer/
   research/
+  zones/
 ```
+
+## Zones Check-In (Firebase setup)
+
+Unlike the other tools, Zones Check-In needs a live backend — student
+phones write to it, the teacher's screen watches it update in real time.
+It uses Firebase (Firestore) via the CDN compat SDK, no build step needed.
+
+One-time setup:
+
+1. Create a free project at console.firebase.google.com, enable **Firestore
+   Database** (production mode), and register a **Web app** to get a config
+   object.
+2. Paste that config into `apps/zones/firebase-config.js` (the `apiKey` etc.
+   are public identifiers, safe to commit — security comes from Firestore
+   rules, not from hiding this).
+3. Paste `apps/zones/firestore.rules` into Firebase Console -> Firestore
+   Database -> Rules -> Publish. This restricts reads/writes to only the
+   `zonesSessions/{sessionId}` documents (just the 4 zone counts as
+   numbers) — no student identity is ever stored.
+
+`apps/zones/index.html` is the student check-in screen (join via
+`?session=CODE`); `apps/zones/teacher.html` is the live dashboard (generates
+a session code + QR on load, subscribes to live counts, has Reset/New
+Session/Hide controls).
 
 ## Deploy
 

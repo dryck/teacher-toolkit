@@ -3,7 +3,9 @@
 #   dist/                -> hub landing page
 #   dist/shell/           -> shared navbar/theme assets
 #   dist/noise-monitor/   -> built React/Vite app
-#   dist/quick-poll/, dist/random-picker/, dist/visual-timer/ -> static tools
+#   dist/quick-poll/, dist/random-picker/, dist/visual-timer/, dist/research/
+#                         -> static tools
+#   dist/zones/           -> student check-in + teacher live dashboard (Firebase)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -21,6 +23,10 @@ for tool in quick-poll random-picker visual-timer research; do
   mkdir -p "dist/$tool"
   cp "apps/$tool/index.html" "dist/$tool/index.html"
 done
+
+# Zones Check-In: multiple files (student + teacher pages, shared JS/config)
+mkdir -p dist/zones
+cp apps/zones/index.html apps/zones/teacher.html apps/zones/zones.js apps/zones/firebase-config.js dist/zones/
 
 # React/Vite noise-monitor app
 npm run build --workspace apps/noise-monitor
