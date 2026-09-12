@@ -354,7 +354,7 @@
     /* Fullscreen */
     .fullscreen-btn {
       position: fixed;
-      top: 20px;
+      top: calc(var(--tk-nav-height) + 16px);
       right: 20px;
       background: rgba(255,255,255,0.9);
       border: none;
@@ -362,7 +362,7 @@
       border-radius: 10px;
       cursor: pointer;
       font-size: 1.3rem;
-      z-index: 1000;
+      z-index: 900;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
     
