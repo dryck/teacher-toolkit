@@ -10,6 +10,7 @@
   flex-shrink: 0;
   box-sizing: border-box;
   height: var(--tk-nav-height);
+  margin-bottom: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
