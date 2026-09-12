@@ -164,17 +164,40 @@
 
     function submitZone(zoneKey, btn) {
       zoneScreen.querySelectorAll('.zone-btn').forEach(b => b.disabled = true);
+      btn.style.opacity = '0.6';
+
       const update = {};
       update[zoneKey] = firebase.firestore.FieldValue.increment(1);
+
+      // Without this, a bad connection or misconfigured Firebase project
+      // leaves the write pending forever — Firestore doesn't fail fast,
+      // it just never resolves — so the buttons stay disabled with zero
+      // feedback ("nothing happens" when tapping). Time it out instead.
+      let settled = false;
+      const WRITE_TIMEOUT_MS = 8000;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        console.error('Zone submit timed out after ' + WRITE_TIMEOUT_MS + 'ms');
+        zoneScreen.querySelectorAll('.zone-btn').forEach(b => { b.disabled = false; b.style.opacity = ''; });
+        alert('Could not submit — check your connection and try again.');
+      }, WRITE_TIMEOUT_MS);
+
       TKZones.sessionDocRef(sessionId).set(update, { merge: true })
         .then(() => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
           localStorage.setItem(votedKey(sessionId), '1');
           zoneScreen.style.display = 'none';
           thanksScreen.style.display = 'flex';
         })
         .catch(err => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
           console.error(err);
-          zoneScreen.querySelectorAll('.zone-btn').forEach(b => b.disabled = false);
+          zoneScreen.querySelectorAll('.zone-btn').forEach(b => { b.disabled = false; b.style.opacity = ''; });
           alert('Could not submit — check your connection and try again.');
         });
     }
