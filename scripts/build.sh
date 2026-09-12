@@ -24,9 +24,9 @@ for tool in quick-poll random-picker visual-timer research; do
   cp "apps/$tool/index.html" "dist/$tool/index.html"
 done
 
-# Zones Check-In: multiple files (student + teacher pages, shared JS/config)
+# Zones Check-In: multiple files (student + teacher pages, shared JS)
 mkdir -p dist/zones
-cp apps/zones/index.html apps/zones/teacher.html apps/zones/zones.js apps/zones/firebase-config.js dist/zones/
+cp apps/zones/index.html apps/zones/teacher.html apps/zones/zones.js dist/zones/
 
 # React/Vite noise-monitor app
 npm run build --workspace apps/noise-monitor
