@@ -246,6 +246,7 @@
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
   <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
   <script src="choice-board.js"></script>
   <script>
     const CELL_COUNT = TKChoiceBoard.CELL_COUNT;
@@ -414,7 +415,7 @@
         err => {
           generateBtn.disabled = false;
           console.error(err);
-          alert('Could not create the board — check your connection and try again.');
+          TKToast.show('Could not create the board — check your connection and try again.');
         }
       );
     };
@@ -432,7 +433,7 @@
         err => {
           saveBtn.disabled = false;
           console.error(err);
-          alert('Could not save changes — check your connection and try again.');
+          TKToast.show('Could not save changes — check your connection and try again.');
         }
       );
     };

@@ -125,6 +125,7 @@
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
   <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
   <script src="zones.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
@@ -180,7 +181,7 @@
         settled = true;
         console.error('Zone submit timed out after ' + WRITE_TIMEOUT_MS + 'ms');
         zoneScreen.querySelectorAll('.zone-btn').forEach(b => { b.disabled = false; b.style.opacity = ''; });
-        alert('Could not submit — check your connection and try again.');
+        TKToast.show('Could not submit — check your connection and try again.');
       }, WRITE_TIMEOUT_MS);
 
       TKZones.sessionDocRef(sessionId).set(update, { merge: true })
@@ -198,7 +199,7 @@
           clearTimeout(timeoutId);
           console.error(err);
           zoneScreen.querySelectorAll('.zone-btn').forEach(b => { b.disabled = false; b.style.opacity = ''; });
-          alert('Could not submit — check your connection and try again.');
+          TKToast.show('Could not submit — check your connection and try again.');
         });
     }
 

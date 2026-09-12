@@ -233,6 +233,7 @@
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
   <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
   <script src="growth-mindset.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
@@ -300,7 +301,7 @@
         settled = true;
         submitStatus.textContent = '';
         addToWallBtn.disabled = false;
-        alert('Could not submit — check your connection and try again.');
+        TKToast.show('Could not submit — check your connection and try again.');
       }, WRITE_TIMEOUT_MS);
 
       TKGrowth.entriesRef(sid).add({
@@ -320,7 +321,7 @@
         console.error(err);
         submitStatus.textContent = '';
         addToWallBtn.disabled = false;
-        alert('Could not submit — check your connection and try again.');
+        TKToast.show('Could not submit — check your connection and try again.');
       });
     }
 

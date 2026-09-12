@@ -176,6 +176,7 @@
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
   <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
   <script src="growth-mindset.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
@@ -243,13 +244,13 @@
         queueList.querySelectorAll('.approve-btn').forEach(btn => {
           btn.onclick = () => {
             TKGrowth.entriesRef(sessionId).doc(btn.dataset.id).update({ approved: true })
-              .catch(err => { console.error(err); alert('Could not approve — check your connection and try again.'); });
+              .catch(err => { console.error(err); TKToast.show('Could not approve — check your connection and try again.'); });
           };
         });
         queueList.querySelectorAll('.reject-btn').forEach(btn => {
           btn.onclick = () => {
             TKGrowth.entriesRef(sessionId).doc(btn.dataset.id).delete()
-              .catch(err => { console.error(err); alert('Could not reject — check your connection and try again.'); });
+              .catch(err => { console.error(err); TKToast.show('Could not reject — check your connection and try again.'); });
           };
         });
       }, err => console.error(err));

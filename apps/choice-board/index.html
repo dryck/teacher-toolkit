@@ -226,6 +226,7 @@
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
   <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
   <script src="choice-board.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
@@ -414,7 +415,7 @@
         if (doneSettled) return;
         doneSettled = true;
         btn.disabled = false;
-        alert('Could not save — check your connection and try again.');
+        TKToast.show('Could not save — check your connection and try again.');
       }, 8000);
 
       TKChoiceBoard.progressDocRef(sessionId, studentId).set({
@@ -435,7 +436,7 @@
         clearTimeout(doneTimeoutId);
         btn.disabled = false;
         console.error(err);
-        alert('Could not save — check your connection and try again.');
+        TKToast.show('Could not save — check your connection and try again.');
       });
     };
 
