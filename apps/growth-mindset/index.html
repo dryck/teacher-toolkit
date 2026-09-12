@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Growth Mindset Reframer</title>
+  <!-- No shared navbar/branding here on purpose: students land on this
+       page directly via a link/QR code their teacher gives them, and
+       should never see (or be able to navigate to) the rest of the
+       teacher-facing toolkit. Only theme.css (CSS variables) is kept.
+       The core reframe tool below works fully offline -- no backend, no
+       AI call -- via template-based text transformation. A class code
+       (and the network) is only needed if the student chooses to submit
+       their reframe to the shared "Wall of Yet". -->
+  <link rel="stylesheet" href="../shell/theme.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 20px 60px;
+      max-width: 520px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      color: #fff;
+      margin: 8px 0 4px;
+    }
+    .subtitle {
+      text-align: center;
+      color: rgba(255,255,255,0.85);
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      color: var(--tk-text);
+      margin-bottom: 8px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      font-size: 1rem;
+      font-family: inherit;
+      padding: 12px 14px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      resize: vertical;
+    }
+    textarea:focus { outline: none; border-color: var(--tk-primary); }
+
+    .primary-btn {
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+    }
+    .primary-btn:active { transform: scale(0.98); }
+    .primary-btn:disabled { opacity: 0.5; cursor: default; }
+
+    #resultCard { display: none; }
+    #resultCard .eyebrow {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--tk-primary-dark);
+      margin-bottom: 8px;
+    }
+    #resultText {
+      font-size: 1.15rem;
+      line-height: 1.5;
+      color: var(--tk-text);
+      font-weight: 600;
+    }
+    .result-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .result-actions button {
+      flex: 1;
+      min-width: 130px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+    }
+    #tryAnotherBtn { background: #f0f0f0; color: var(--tk-text); }
+    #addToWallBtn { background: #e0e7ff; color: #3730a3; }
+    #addToWallBtn:disabled { opacity: 0.6; cursor: default; }
+
+    .submit-status {
+      margin-top: 12px;
+      font-size: 0.9rem;
+      color: var(--tk-text-muted);
+      min-height: 1.2em;
+    }
+
+    /* --- Overlays: code entry + thanks, styled like zones' join screen --- */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 20, 30, 0.55);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 10;
+    }
+    .overlay-box {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 28px 24px;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .overlay-box p { color: var(--tk-text-muted); }
+    .overlay-box input {
+      font-size: 1.6rem;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 220px;
+    }
+    .overlay-box .overlay-primary {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 13px 32px;
+      cursor: pointer;
+      width: 100%;
+    }
+    .overlay-box .overlay-secondary {
+      font-size: 0.9rem;
+      color: var(--tk-text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .overlay-box .check { font-size: 3rem; }
+    #codeError { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🌱 Growth Mindset Reframer</h1>
+    <div class="subtitle">Turn a stuck thought into a "yet" thought.</div>
+
+    <div class="card">
+      <label for="thoughtInput">What's the thought?</label>
+      <textarea id="thoughtInput" placeholder="e.g. I'm bad at math"></textarea>
+      <button class="primary-btn" id="reframeBtn">Reframe it</button>
+    </div>
+
+    <div class="card" id="resultCard">
+      <div class="eyebrow">Try thinking of it like this</div>
+      <div id="resultText"></div>
+      <div class="result-actions">
+        <button id="tryAnotherBtn">🔁 Try another</button>
+        <button id="addToWallBtn">🌟 Add to our Wall</button>
+      </div>
+      <div class="submit-status" id="submitStatus"></div>
+    </div>
+  </main>
+
+  <!-- Code-entry overlay: only shown when a student taps "Add to our Wall"
+       and no class/session code is known yet. Same 5-char code format and
+       entry UX as apps/zones/index.html's join screen. -->
+  <div class="overlay" id="codeOverlay">
+    <div class="overlay-box">
+      <p>Enter the code your teacher gave you to add this to your class's Wall:</p>
+      <input type="text" id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+      <div id="codeError"></div>
+      <button class="overlay-primary" id="codeJoinBtn">Join &amp; Submit</button>
+      <button class="overlay-secondary" id="codeCancelBtn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Thanks overlay, shown briefly after a successful submission. -->
+  <div class="overlay" id="thanksOverlay">
+    <div class="overlay-box">
+      <div class="check">✓</div>
+      <p>Thanks — your teacher will review it before it appears!</p>
+      <button class="overlay-primary" id="thanksCloseBtn">Done</button>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="growth-mindset.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+
+    const thoughtInput = document.getElementById('thoughtInput');
+    const reframeBtn = document.getElementById('reframeBtn');
+    const resultCard = document.getElementById('resultCard');
+    const resultText = document.getElementById('resultText');
+    const tryAnotherBtn = document.getElementById('tryAnotherBtn');
+    const addToWallBtn = document.getElementById('addToWallBtn');
+    const submitStatus = document.getElementById('submitStatus');
+
+    const codeOverlay = document.getElementById('codeOverlay');
+    const codeInput = document.getElementById('codeInput');
+    const codeError = document.getElementById('codeError');
+    const thanksOverlay = document.getElementById('thanksOverlay');
+
+    let currentVariants = [];
+    let currentVariantIndex = 0;
+
+    function showResult(variants) {
+      currentVariants = variants;
+      currentVariantIndex = 0;
+      resultText.textContent = currentVariants[0];
+      resultCard.style.display = 'block';
+      submitStatus.textContent = '';
+      addToWallBtn.disabled = false;
+    }
+
+    reframeBtn.onclick = () => {
+      const text = thoughtInput.value.trim();
+      if (!text) {
+        thoughtInput.focus();
+        return;
+      }
+      const { variants } = TKGrowth.reframe(text);
+      showResult(variants);
+    };
+
+    // Also allow pressing Enter (with Shift+Enter for newline) to reframe.
+    thoughtInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        reframeBtn.click();
+      }
+    });
+
+    tryAnotherBtn.onclick = () => {
+      if (currentVariants.length < 2) return;
+      currentVariantIndex = (currentVariantIndex + 1) % currentVariants.length;
+      resultText.textContent = currentVariants[currentVariantIndex];
+    };
+
+    let pendingSubmitText = null;
+
+    function submitToWall(sid, text) {
+      submitStatus.textContent = 'Sending…';
+      addToWallBtn.disabled = true;
+
+      let settled = false;
+      const WRITE_TIMEOUT_MS = 8000;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        submitStatus.textContent = '';
+        addToWallBtn.disabled = false;
+        alert('Could not submit — check your connection and try again.');
+      }, WRITE_TIMEOUT_MS);
+
+      TKGrowth.entriesRef(sid).add({
+        text: text,
+        approved: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        submitStatus.textContent = '';
+        thanksOverlay.style.display = 'flex';
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        console.error(err);
+        submitStatus.textContent = '';
+        addToWallBtn.disabled = false;
+        alert('Could not submit — check your connection and try again.');
+      });
+    }
+
+    addToWallBtn.onclick = () => {
+      const text = currentVariants[currentVariantIndex];
+      if (!text) return;
+
+      if (sessionId) {
+        submitToWall(sessionId, text);
+        return;
+      }
+
+      // No class code yet -- ask for it (mirrors zones' join screen).
+      pendingSubmitText = text;
+      codeError.textContent = '';
+      codeInput.value = '';
+      codeOverlay.style.display = 'flex';
+      codeInput.focus();
+    };
+
+    document.getElementById('codeJoinBtn').onclick = () => {
+      const code = codeInput.value.trim().toUpperCase();
+      if (code.length !== 5) {
+        codeError.textContent = 'Enter the 5-letter code your teacher gave you.';
+        return;
+      }
+      sessionId = code;
+      const url = new URL(location.href);
+      url.searchParams.set('session', sessionId);
+      history.replaceState(null, '', url);
+      codeOverlay.style.display = 'none';
+      if (pendingSubmitText) {
+        submitToWall(sessionId, pendingSubmitText);
+        pendingSubmitText = null;
+      }
+    };
+
+    document.getElementById('codeCancelBtn').onclick = () => {
+      pendingSubmitText = null;
+      codeOverlay.style.display = 'none';
+    };
+
+    document.getElementById('thanksCloseBtn').onclick = () => {
+      thanksOverlay.style.display = 'none';
+    };
+  </script>
+</body>
+</html>

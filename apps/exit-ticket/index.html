@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Exit Ticket</title>
+  <!-- No shared navbar/branding here on purpose: students land on this
+       page directly via a link/QR code their teacher gives them, and
+       should never see (or be able to navigate to) the rest of the
+       teacher-facing toolkit. Only theme.css (CSS variables) is kept. -->
+  <link rel="stylesheet" href="../shell/theme.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+      justify-content: center;
+    }
+    .card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 28px 24px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      color: var(--tk-text);
+      margin-bottom: 20px;
+    }
+
+    /* Join-by-code screen (shown if no ?session= in the URL) */
+    #joinScreen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #joinScreen p { color: var(--tk-text-muted); }
+    #joinScreen input {
+      font-size: 1.6rem;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 220px;
+    }
+    #joinScreen button, #formScreen #submitBtn {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+      width: 100%;
+    }
+    #joinScreen button:disabled, #formScreen #submitBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Question form */
+    #formScreen { display: none; flex-direction: column; gap: 22px; }
+    .q-block label {
+      display: block;
+      font-weight: 700;
+      color: var(--tk-text);
+      margin-bottom: 10px;
+      font-size: 1.05rem;
+    }
+    .q-block textarea {
+      width: 100%;
+      font-family: inherit;
+      font-size: 1rem;
+      padding: 12px 14px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      resize: vertical;
+      min-height: 70px;
+    }
+    .q-block textarea:focus { outline: none; border-color: var(--tk-primary); }
+
+    .confidence-row { display: flex; justify-content: space-between; gap: 8px; }
+    .confidence-btn {
+      flex: 1;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      border: 2px solid #ddd;
+      background: #fff;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--tk-text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .confidence-btn.selected {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+      color: #fff;
+      transform: scale(1.08);
+    }
+    .confidence-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 0.78rem;
+      color: var(--tk-text-muted);
+    }
+
+    #errorMsg { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; }
+
+    /* Thanks / not-found screens */
+    #thanksScreen, #notFoundScreen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 10px;
+    }
+    #thanksScreen .check { font-size: 4rem; }
+    #thanksScreen h2, #notFoundScreen h2 { font-size: 1.4rem; color: var(--tk-text); }
+    #notFoundScreen p { color: var(--tk-text-muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <h1>🎫 Exit Ticket</h1>
+
+      <div id="joinScreen">
+        <p>Enter the code your teacher gave you:</p>
+        <input type="text" id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+        <div id="errorMsg"></div>
+        <button id="joinBtn">Join</button>
+      </div>
+
+      <div id="formScreen">
+        <div class="q-block" id="q1Block">
+          <label id="q1Label"></label>
+          <textarea id="q1Input" maxlength="500" rows="3" placeholder="Type your answer..."></textarea>
+        </div>
+
+        <div class="q-block" id="q2Block">
+          <label id="q2Label"></label>
+          <div class="confidence-row" id="confidenceRow"></div>
+          <div class="confidence-labels"><span>Not confident</span><span>Very confident</span></div>
+        </div>
+
+        <div class="q-block" id="q3Block">
+          <label id="q3Label"></label>
+          <textarea id="q3Input" maxlength="500" rows="3" placeholder="Type your question..."></textarea>
+        </div>
+
+        <div id="submitError" style="color:#dc3545;font-size:0.9rem;min-height:1.2em;"></div>
+        <button id="submitBtn">Submit</button>
+      </div>
+
+      <div id="thanksScreen">
+        <div class="check">✓</div>
+        <h2>Thanks!</h2>
+      </div>
+
+      <div id="notFoundScreen">
+        <h2>Session not found</h2>
+        <p>Double-check the code with your teacher and try again.</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="exit-ticket.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+
+    const joinScreen = document.getElementById('joinScreen');
+    const formScreen = document.getElementById('formScreen');
+    const thanksScreen = document.getElementById('thanksScreen');
+    const notFoundScreen = document.getElementById('notFoundScreen');
+    const errorMsg = document.getElementById('errorMsg');
+    const heading = document.querySelector('main h1');
+
+    function submittedKey(id) { return 'tk-exit-ticket-submitted-' + id; }
+
+    let config = null;
+    let selectedConfidence = null;
+
+    function showScreen(name) {
+      joinScreen.style.display = name === 'join' ? 'flex' : 'none';
+      formScreen.style.display = name === 'form' ? 'flex' : 'none';
+      thanksScreen.style.display = name === 'thanks' ? 'flex' : 'none';
+      notFoundScreen.style.display = name === 'notfound' ? 'flex' : 'none';
+    }
+
+    function buildConfidenceButtons() {
+      const row = document.getElementById('confidenceRow');
+      row.innerHTML = '';
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'confidence-btn';
+        btn.textContent = i;
+        btn.onclick = () => {
+          selectedConfidence = i;
+          row.querySelectorAll('.confidence-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+        };
+        row.appendChild(btn);
+      }
+    }
+
+    function renderForm() {
+      heading.style.display = 'none';
+
+      document.getElementById('q1Block').style.display = config.q1Enabled ? 'block' : 'none';
+      document.getElementById('q1Label').textContent = config.q1Text || TKExitTicket.DEFAULT_Q1_TEXT;
+
+      document.getElementById('q2Block').style.display = config.q2Enabled ? 'block' : 'none';
+      document.getElementById('q2Label').textContent = TKExitTicket.DEFAULT_Q2_TEXT;
+      buildConfidenceButtons();
+
+      document.getElementById('q3Block').style.display = config.q3Enabled ? 'block' : 'none';
+      document.getElementById('q3Label').textContent = config.q3Text || TKExitTicket.DEFAULT_Q3_TEXT;
+
+      showScreen('form');
+    }
+
+    function init() {
+      if (localStorage.getItem(submittedKey(sessionId))) {
+        showScreen('thanks');
+        return;
+      }
+
+      TKExitTicket.sessionDocRef(sessionId).get().then(doc => {
+        if (!doc.exists) {
+          showScreen('notfound');
+          return;
+        }
+        config = doc.data();
+        renderForm();
+      }).catch(err => {
+        console.error(err);
+        showScreen('notfound');
+      });
+    }
+
+    document.getElementById('submitBtn').onclick = () => {
+      const submitBtn = document.getElementById('submitBtn');
+      const submitError = document.getElementById('submitError');
+      submitError.textContent = '';
+
+      const payload = { submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
+      if (config.q1Enabled) payload.q1Answer = document.getElementById('q1Input').value.trim();
+      if (config.q2Enabled) {
+        if (selectedConfidence === null) {
+          submitError.textContent = 'Please pick a confidence level.';
+          return;
+        }
+        payload.confidence = selectedConfidence;
+      }
+      if (config.q3Enabled) payload.q3Answer = document.getElementById('q3Input').value.trim();
+
+      submitBtn.disabled = true;
+
+      // Without this, a bad connection or misconfigured Firebase project
+      // leaves the write pending forever — Firestore doesn't fail fast,
+      // it just never resolves — so the button stays disabled with zero
+      // feedback ("nothing happens" when tapping). Time it out instead.
+      let settled = false;
+      const WRITE_TIMEOUT_MS = 8000;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        console.error('Exit ticket submit timed out after ' + WRITE_TIMEOUT_MS + 'ms');
+        submitBtn.disabled = false;
+        alert('Could not submit — check your connection and try again.');
+      }, WRITE_TIMEOUT_MS);
+
+      TKExitTicket.responsesRef(sessionId).add(payload)
+        .then(() => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
+          localStorage.setItem(submittedKey(sessionId), '1');
+          showScreen('thanks');
+        })
+        .catch(err => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
+          console.error(err);
+          submitBtn.disabled = false;
+          alert('Could not submit — check your connection and try again.');
+        });
+    };
+
+    document.getElementById('joinBtn').onclick = () => {
+      const code = document.getElementById('codeInput').value.trim().toUpperCase();
+      if (code.length !== 5) {
+        errorMsg.textContent = 'Enter the 5-character code your teacher gave you.';
+        return;
+      }
+      sessionId = code;
+      const url = new URL(location.href);
+      url.searchParams.set('session', sessionId);
+      history.replaceState(null, '', url);
+      init();
+    };
+
+    if (sessionId) {
+      init();
+    }
+  </script>
+</body>
+</html>

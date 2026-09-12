@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Assessment Checklist | Teacher Tools</title>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 760px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 1.6rem;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 22px;
+      border-bottom: 2px solid #eee;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      flex: 1;
+      min-width: 100px;
+      padding: 12px 10px;
+      border: none;
+      background: transparent;
+      color: var(--tk-text-muted);
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+    .tab-btn:hover { color: var(--tk-text); }
+    .tab-btn.active {
+      color: var(--tk-primary-dark);
+      border-bottom-color: var(--tk-primary);
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    label { display: block; font-weight: 600; color: var(--tk-text); margin-bottom: 6px; font-size: 0.92rem; }
+
+    .field-row { margin-bottom: 18px; }
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      background: #fff;
+      color: var(--tk-text);
+    }
+    input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    textarea { resize: vertical; }
+
+    button {
+      font-family: inherit;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    .btn-primary {
+      background: var(--tk-bg-gradient);
+      color: white;
+      padding: 14px 22px;
+      font-size: 1rem;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4); }
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+      padding: 14px 22px;
+      font-size: 1rem;
+    }
+    .btn-secondary:hover { background: #e2e2e2; }
+    .btn-danger {
+      background: #fdecea;
+      color: #c0392b;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+    }
+    .btn-danger:hover { background: #f8d3ce; }
+
+    /* Rubric editor */
+    .criterion-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .criterion-row input[type="text"] { flex: 1; }
+    .criterion-row .max-input { width: 76px; flex: none; text-align: center; }
+    .criterion-row .max-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; }
+    .criterion-row .max-wrap span { font-size: 0.7rem; color: var(--tk-text-muted); font-weight: 600; }
+
+    #addCriterionBtn { width: 100%; margin-bottom: 18px; }
+
+    .total-line {
+      text-align: center;
+      font-size: 1.1rem;
+      color: var(--tk-text);
+      margin-bottom: 18px;
+      padding: 12px;
+      background: #f0f4ff;
+      border-radius: 10px;
+    }
+
+    .saved-msg {
+      text-align: center;
+      color: #1e7e34;
+      font-weight: 600;
+      min-height: 1.4em;
+      margin-top: 10px;
+    }
+
+    .empty-msg {
+      text-align: center;
+      color: var(--tk-text-muted);
+      padding: 30px 10px;
+      font-size: 1rem;
+    }
+    .empty-msg a { color: var(--tk-primary-dark); font-weight: 600; }
+
+    /* Score screen */
+    .team-chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .team-chip {
+      padding: 8px 14px;
+      border-radius: 20px;
+      background: #f0f0f0;
+      color: #333;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+    .team-chip.active {
+      background: var(--tk-primary);
+      color: white;
+    }
+    .add-team-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .add-team-row input { flex: 1; }
+    .add-team-row button { flex: none; }
+
+    .current-team-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--tk-text);
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .criterion-score-block {
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid #eee;
+    }
+    .criterion-score-block:last-child { border-bottom: none; }
+    .criterion-score-block h3 {
+      font-size: 1rem;
+      color: var(--tk-text);
+      margin-bottom: 10px;
+    }
+    .level-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 8px;
+    }
+    .level-btn {
+      padding: 12px 6px;
+      border: 2px solid #ddd;
+      background: #fff;
+      color: var(--tk-text);
+      border-radius: 10px;
+      font-size: 0.82rem;
+      line-height: 1.3;
+      text-align: center;
+    }
+    .level-btn strong { display: block; font-size: 1.1rem; }
+    .level-btn.selected {
+      background: var(--tk-bg-gradient);
+      color: white;
+      border-color: transparent;
+    }
+
+    .notes-label { margin-top: 4px; }
+    #teamNotes { margin-bottom: 18px; }
+
+    .running-total {
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--tk-primary-dark);
+      margin-bottom: 18px;
+      padding: 12px;
+      background: #f0f4ff;
+      border-radius: 10px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .controls button { flex: 1; min-width: 130px; }
+
+    /* Summary screen */
+    .summary-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .summary-actions button { flex: 1; min-width: 140px; }
+
+    .print-title { text-align: center; margin-bottom: 14px; color: var(--tk-text); font-size: 1.2rem; }
+
+    table#summaryTable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    table#summaryTable th, table#summaryTable td {
+      border: 1px solid #ddd;
+      padding: 8px 6px;
+      text-align: center;
+    }
+    table#summaryTable th {
+      background: #f0f4ff;
+      color: var(--tk-text);
+    }
+    table#summaryTable td.team-name-cell { text-align: left; font-weight: 600; }
+    table#summaryTable td.notes-cell { text-align: left; color: var(--tk-text-muted); font-size: 0.78rem; max-width: 160px; }
+    .stars { color: #f39c12; white-space: nowrap; }
+
+    .table-scroll { overflow-x: auto; margin-bottom: 20px; }
+
+    /* Presentation ("show to class") mode */
+    .container.presentation-mode { max-width: 100%; }
+    .container.presentation-mode table#summaryTable { font-size: 1.3rem; }
+    .container.presentation-mode .stars { font-size: 1.4rem; }
+    .container.presentation-mode h1, .container.presentation-mode .subtitle, .container.presentation-mode .tabs { display: none; }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9rem;
+    }
+    .footer a { color: white; text-decoration: none; }
+
+    @media (max-width: 480px) {
+      .container { padding: 20px 16px; }
+      .controls button, .summary-actions button { min-width: 100%; }
+    }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .tk-navbar, .tabs, .footer, .no-print, h1, .subtitle { display: none !important; }
+      .container { box-shadow: none; max-width: 100%; padding: 0; }
+      .screen { display: none !important; }
+      #summaryScreen.print-active { display: block !important; }
+      table#summaryTable { font-size: 0.8rem; }
+      table#summaryTable th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="mainContainer">
+    <h1>📋 Project Assessment Checklist</h1>
+    <p class="subtitle">Build a rubric, score teams on the go, print or export results</p>
+
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-tab="rubric">1. Rubric</button>
+      <button class="tab-btn" data-tab="score">2. Score Teams</button>
+      <button class="tab-btn" data-tab="summary">3. Summary</button>
+    </div>
+
+    <!-- ===== Screen 1: Rubric editor ===== -->
+    <section id="rubricScreen" class="screen active">
+      <div class="field-row">
+        <label for="templateSelect">Use template</label>
+        <select id="templateSelect">
+          <option value="">-- Start from scratch or pick a template --</option>
+        </select>
+      </div>
+
+      <div class="field-row">
+        <label for="projectTitle">Project title</label>
+        <input type="text" id="projectTitle" placeholder="e.g. Solar System Diorama Project">
+      </div>
+
+      <label>Criteria (0 to max points each)</label>
+      <div id="criteriaList"></div>
+      <button id="addCriterionBtn" class="btn-secondary">+ Add criterion</button>
+
+      <div class="total-line">Total possible: <strong id="totalPossible">0</strong> points</div>
+
+      <button id="saveRubricBtn" class="btn-primary" style="width:100%;">💾 Save rubric</button>
+      <div class="saved-msg" id="rubricSavedMsg"></div>
+    </section>
+
+    <!-- ===== Screen 2: Team scoring ===== -->
+    <section id="scoreScreen" class="screen">
+      <div id="noRubricMsg" class="empty-msg" style="display:none;">
+        No rubric saved yet. Go to the <a href="#" data-tab-link="rubric">Rubric</a> tab, build your criteria, and save it first.
+      </div>
+
+      <div id="scoreContent" style="display:none;">
+        <div class="team-chip-row" id="teamChipRow"></div>
+        <div class="add-team-row">
+          <input type="text" id="newTeamName" placeholder="New team name, e.g. Team 1 — Robot Builders">
+          <button id="addTeamBtn" class="btn-secondary">+ Add team</button>
+        </div>
+
+        <div class="current-team-name" id="currentTeamName"></div>
+
+        <div id="criteriaScoring"></div>
+
+        <label class="notes-label" for="teamNotes">Notes (optional)</label>
+        <textarea id="teamNotes" rows="3" placeholder="Notes for this team..."></textarea>
+
+        <div class="running-total" id="runningTotal">Total: 0 / 0</div>
+
+        <div class="controls">
+          <button id="saveTeamBtn" class="btn-secondary">💾 Save</button>
+          <button id="nextTeamBtn" class="btn-primary">Next team →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Screen 3: Summary ===== -->
+    <section id="summaryScreen" class="screen">
+      <div id="summaryEmptyMsg" class="empty-msg" style="display:none;">
+        No teams scored yet. Head to the <a href="#" data-tab-link="score">Score Teams</a> tab to get started.
+      </div>
+
+      <div id="summaryContent" style="display:none;">
+        <div class="summary-actions no-print">
+          <button id="presentBtn" class="btn-secondary">📽️ Show results to class</button>
+          <button id="exportCsvBtn" class="btn-secondary">⬇️ Export CSV</button>
+          <button id="printBtn" class="btn-secondary">🖨️ Print</button>
+        </div>
+
+        <h2 class="print-title" id="summaryTitle"></h2>
+
+        <div class="table-scroll">
+          <table id="summaryTable">
+            <thead><tr id="summaryHeadRow"></tr></thead>
+            <tbody id="summaryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------
+    // Storage
+    // ---------------------------------------------------------------
+    const RUBRIC_KEY = 'tk-assessment-checklist-rubric';
+    const TEAMS_KEY = 'tk-assessment-checklist-teams';
+
+    function loadRubric() {
+      try {
+        const raw = localStorage.getItem(RUBRIC_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.criteria)) return null;
+        return parsed;
+      } catch (e) {
+        console.error('Failed to load rubric', e);
+        return null;
+      }
+    }
+    function saveRubricToStorage(rubric) {
+      localStorage.setItem(RUBRIC_KEY, JSON.stringify(rubric));
+    }
+    function loadTeams() {
+      try {
+        const raw = localStorage.getItem(TEAMS_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.error('Failed to load teams', e);
+        return [];
+      }
+    }
+    function saveTeamsToStorage(teams) {
+      localStorage.setItem(TEAMS_KEY, JSON.stringify(teams));
+    }
+
+    function makeId() {
+      return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    }
+
+    // ---------------------------------------------------------------
+    // Built-in rubric templates
+    // ---------------------------------------------------------------
+    const TEMPLATES = {
+      general: {
+        label: 'General Project Rubric',
+        title: 'Project Rubric',
+        criteria: [
+          { name: 'Content Understanding', max: 4 },
+          { name: 'Creativity', max: 4 },
+          { name: 'Teamwork', max: 4 },
+          { name: 'Presentation', max: 4 }
+        ]
+      },
+      scienceFair: {
+        label: 'Science Fair',
+        title: 'Science Fair Rubric',
+        criteria: [
+          { name: 'Hypothesis & Method', max: 4 },
+          { name: 'Data & Analysis', max: 4 },
+          { name: 'Presentation', max: 4 },
+          { name: 'Creativity', max: 4 }
+        ]
+      },
+      debate: {
+        label: 'Debate / Persuasive Speech',
+        title: 'Debate Rubric',
+        criteria: [
+          { name: 'Argument Clarity', max: 4 },
+          { name: 'Evidence & Research', max: 4 },
+          { name: 'Delivery & Confidence', max: 4 },
+          { name: 'Rebuttal & Listening', max: 4 }
+        ]
+      }
+    };
+
+    // ---------------------------------------------------------------
+    // Level descriptor labels — for each criterion max, produce a
+    // 0..max set of short labels. A handful of common maxes are
+    // curated by hand to read naturally; anything larger falls back
+    // to a proportional spread across a generic quality spectrum.
+    // ---------------------------------------------------------------
+    const CURATED_LEVELS = {
+      1: ['Excellent'],
+      2: ['Developing', 'Good'],
+      3: ['Needs work', 'Good', 'Excellent'],
+      4: ['Needs work', 'Developing', 'Good', 'Excellent'],
+      5: ['Needs work', 'Developing', 'Good', 'Very good', 'Excellent'],
+      6: ['Needs work', 'Developing', 'Good', 'Very good', 'Excellent', 'Outstanding']
+    };
+    const SPECTRUM = ['Needs work', 'Developing', 'Good', 'Very good', 'Excellent', 'Outstanding'];
+
+    function levelLabel(max, level) {
+      if (level === 0) return 'Not shown';
+      const curated = CURATED_LEVELS[max];
+      if (curated) return curated[level - 1];
+      // Generic fallback for unusually large max values: spread the
+      // non-zero levels proportionally across the fixed spectrum.
+      const idx = max > 1
+        ? Math.round((level - 1) * (SPECTRUM.length - 1) / (max - 1))
+        : SPECTRUM.length - 1;
+      return SPECTRUM[idx];
+    }
+
+    // ---------------------------------------------------------------
+    // State
+    // ---------------------------------------------------------------
+    let rubric = loadRubric() || { title: '', criteria: [] };
+    let teams = loadTeams();
+    let currentTeamIndex = -1; // index into `teams` for the score screen
+
+    // ---------------------------------------------------------------
+    // Tabs
+    // ---------------------------------------------------------------
+    function showTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === name);
+      });
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(name + 'Screen').classList.add('active');
+      if (name === 'score') renderScoreScreen();
+      if (name === 'summary') renderSummaryScreen();
+    }
+    document.getElementById('tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab-btn');
+      if (btn) showTab(btn.dataset.tab);
+    });
+    document.querySelectorAll('[data-tab-link]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        showTab(a.dataset.tabLink);
+      });
+    });
+
+    // ---------------------------------------------------------------
+    // Screen 1: Rubric editor
+    // ---------------------------------------------------------------
+    const templateSelect = document.getElementById('templateSelect');
+    Object.keys(TEMPLATES).forEach(key => {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = TEMPLATES[key].label;
+      templateSelect.appendChild(opt);
+    });
+
+    templateSelect.addEventListener('change', () => {
+      const key = templateSelect.value;
+      if (!key) return;
+      const tpl = TEMPLATES[key];
+      rubric = {
+        title: tpl.title,
+        criteria: tpl.criteria.map(c => ({ id: makeId(), name: c.name, max: c.max }))
+      };
+      document.getElementById('projectTitle').value = rubric.title;
+      renderCriteriaEditor();
+      templateSelect.value = '';
+    });
+
+    document.getElementById('projectTitle').addEventListener('input', (e) => {
+      rubric.title = e.target.value;
+    });
+
+    function renderCriteriaEditor() {
+      const list = document.getElementById('criteriaList');
+      list.innerHTML = '';
+      rubric.criteria.forEach((crit) => {
+        const row = document.createElement('div');
+        row.className = 'criterion-row';
+
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.placeholder = 'Criterion name';
+        nameInput.value = crit.name;
+        nameInput.addEventListener('input', () => { crit.name = nameInput.value; });
+
+        const maxWrap = document.createElement('div');
+        maxWrap.className = 'max-wrap';
+        const maxLabel = document.createElement('span');
+        maxLabel.textContent = 'max pts';
+        const maxInput = document.createElement('input');
+        maxInput.type = 'number';
+        maxInput.className = 'max-input';
+        maxInput.min = '1';
+        maxInput.max = '20';
+        maxInput.value = crit.max;
+        maxInput.addEventListener('input', () => {
+          const val = parseInt(maxInput.value, 10);
+          crit.max = (Number.isFinite(val) && val > 0) ? val : 1;
+          updateTotalPossible();
+        });
+        maxWrap.appendChild(maxInput);
+        maxWrap.appendChild(maxLabel);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn-danger';
+        removeBtn.textContent = '✕';
+        removeBtn.title = 'Remove criterion';
+        removeBtn.addEventListener('click', () => {
+          rubric.criteria = rubric.criteria.filter(c => c.id !== crit.id);
+          renderCriteriaEditor();
+        });
+
+        row.appendChild(nameInput);
+        row.appendChild(maxWrap);
+        row.appendChild(removeBtn);
+        list.appendChild(row);
+      });
+      updateTotalPossible();
+    }
+
+    function updateTotalPossible() {
+      const total = rubric.criteria.reduce((sum, c) => sum + (Number(c.max) || 0), 0);
+      document.getElementById('totalPossible').textContent = total;
+    }
+
+    document.getElementById('addCriterionBtn').addEventListener('click', () => {
+      rubric.criteria.push({ id: makeId(), name: '', max: 4 });
+      renderCriteriaEditor();
+    });
+
+    document.getElementById('saveRubricBtn').addEventListener('click', () => {
+      // Drop fully-blank criteria (no name typed) to keep saved data tidy.
+      rubric.criteria = rubric.criteria.filter(c => c.name && c.name.trim().length > 0);
+      rubric.criteria.forEach(c => {
+        c.max = (Number.isFinite(Number(c.max)) && Number(c.max) > 0) ? Math.round(Number(c.max)) : 1;
+      });
+      saveRubricToStorage(rubric);
+      renderCriteriaEditor();
+      const msg = document.getElementById('rubricSavedMsg');
+      msg.textContent = '✓ Rubric saved (' + rubric.criteria.length + ' criteria, ' +
+        rubric.criteria.reduce((s, c) => s + c.max, 0) + ' points total)';
+      setTimeout(() => { msg.textContent = ''; }, 4000);
+    });
+
+    // ---------------------------------------------------------------
+    // Screen 2: Team scoring
+    // ---------------------------------------------------------------
+    function blankScoresForRubric() {
+      const scores = {};
+      rubric.criteria.forEach(c => { scores[c.id] = null; });
+      return scores;
+    }
+
+    function renderTeamChips() {
+      const row = document.getElementById('teamChipRow');
+      row.innerHTML = '';
+      teams.forEach((team, idx) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'team-chip' + (idx === currentTeamIndex ? ' active' : '');
+        chip.textContent = team.name || '(unnamed team)';
+        chip.addEventListener('click', () => {
+          saveCurrentTeamScores();
+          currentTeamIndex = idx;
+          renderScoreScreen();
+        });
+        row.appendChild(chip);
+      });
+    }
+
+    function renderCriteriaScoring() {
+      const wrap = document.getElementById('criteriaScoring');
+      wrap.innerHTML = '';
+      const team = teams[currentTeamIndex];
+      if (!team) return;
+
+      rubric.criteria.forEach(crit => {
+        const block = document.createElement('div');
+        block.className = 'criterion-score-block';
+
+        const h3 = document.createElement('h3');
+        h3.textContent = crit.name + ' (0–' + crit.max + ')';
+        block.appendChild(h3);
+
+        const btnRow = document.createElement('div');
+        btnRow.className = 'level-buttons';
+
+        for (let level = 0; level <= crit.max; level++) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'level-btn';
+          if (team.scores[crit.id] === level) btn.classList.add('selected');
+          btn.innerHTML = '<strong>' + level + '</strong>' + levelLabel(crit.max, level);
+          btn.addEventListener('click', () => {
+            team.scores[crit.id] = level;
+            renderCriteriaScoring();
+            updateRunningTotal();
+          });
+          btnRow.appendChild(btn);
+        }
+
+        block.appendChild(btnRow);
+        wrap.appendChild(block);
+      });
+    }
+
+    function updateRunningTotal() {
+      const team = teams[currentTeamIndex];
+      const totalPossible = rubric.criteria.reduce((s, c) => s + c.max, 0);
+      let total = 0;
+      if (team) {
+        rubric.criteria.forEach(c => { total += (team.scores[c.id] || 0); });
+      }
+      document.getElementById('runningTotal').textContent = 'Total: ' + total + ' / ' + totalPossible;
+    }
+
+    function saveCurrentTeamScores() {
+      const team = teams[currentTeamIndex];
+      if (!team) return;
+      team.notes = document.getElementById('teamNotes').value;
+      saveTeamsToStorage(teams);
+    }
+
+    function renderScoreScreen() {
+      const hasRubric = rubric.criteria.length > 0;
+      document.getElementById('noRubricMsg').style.display = hasRubric ? 'none' : 'block';
+      document.getElementById('scoreContent').style.display = hasRubric ? 'block' : 'none';
+      if (!hasRubric) return;
+
+      // Reconcile every team's score map against the current rubric so
+      // criteria added/removed after teams already exist don't crash
+      // the scoring UI or silently drop data for criteria still present.
+      teams.forEach(team => {
+        const reconciled = {};
+        rubric.criteria.forEach(c => {
+          reconciled[c.id] = Object.prototype.hasOwnProperty.call(team.scores || {}, c.id)
+            ? team.scores[c.id]
+            : null;
+        });
+        team.scores = reconciled;
+      });
+
+      if (teams.length === 0) {
+        currentTeamIndex = -1;
+      } else if (currentTeamIndex < 0 || currentTeamIndex >= teams.length) {
+        currentTeamIndex = 0;
+      }
+
+      renderTeamChips();
+
+      const team = teams[currentTeamIndex];
+      document.getElementById('currentTeamName').textContent = team ? team.name : 'Add a team to begin scoring';
+      document.getElementById('teamNotes').value = team ? (team.notes || '') : '';
+      document.getElementById('teamNotes').disabled = !team;
+      renderCriteriaScoring();
+      updateRunningTotal();
+    }
+
+    document.getElementById('addTeamBtn').addEventListener('click', () => {
+      const input = document.getElementById('newTeamName');
+      const name = input.value.trim();
+      if (!name) return;
+      saveCurrentTeamScores();
+      teams.push({ id: makeId(), name: name, scores: blankScoresForRubric(), notes: '' });
+      saveTeamsToStorage(teams);
+      currentTeamIndex = teams.length - 1;
+      input.value = '';
+      renderScoreScreen();
+    });
+    document.getElementById('newTeamName').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('addTeamBtn').click();
+    });
+
+    document.getElementById('saveTeamBtn').addEventListener('click', () => {
+      saveCurrentTeamScores();
+      renderTeamChips();
+    });
+
+    document.getElementById('nextTeamBtn').addEventListener('click', () => {
+      saveCurrentTeamScores();
+      if (currentTeamIndex < teams.length - 1) {
+        currentTeamIndex++;
+      } else {
+        // At the end of the list — create a fresh blank team to move into.
+        const nextNumber = teams.length + 1;
+        teams.push({ id: makeId(), name: 'Team ' + nextNumber, scores: blankScoresForRubric(), notes: '' });
+        saveTeamsToStorage(teams);
+        currentTeamIndex = teams.length - 1;
+      }
+      renderScoreScreen();
+    });
+
+    // ---------------------------------------------------------------
+    // Screen 3: Summary
+    // ---------------------------------------------------------------
+    function starsForPercent(pct) {
+      if (pct >= 90) return '★★★★★';
+      if (pct >= 75) return '★★★★☆';
+      if (pct >= 60) return '★★★☆☆';
+      if (pct >= 40) return '★★☆☆☆';
+      return '★☆☆☆☆';
+    }
+
+    function renderSummaryScreen() {
+      document.getElementById('summaryTitle').textContent = rubric.title || 'Project Assessment Summary';
+      const hasTeams = teams.length > 0 && rubric.criteria.length > 0;
+      document.getElementById('summaryEmptyMsg').style.display = hasTeams ? 'none' : 'block';
+      document.getElementById('summaryContent').style.display = hasTeams ? 'block' : 'none';
+      if (!hasTeams) return;
+
+      const totalPossible = rubric.criteria.reduce((s, c) => s + c.max, 0);
+
+      // Header row
+      const headRow = document.getElementById('summaryHeadRow');
+      headRow.innerHTML = '';
+      ['Team'].concat(rubric.criteria.map(c => c.name), ['Total', 'Rating', 'Notes']).forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headRow.appendChild(th);
+      });
+
+      // Sort by total score, descending; ties keep original entry order.
+      const rows = teams.map((team, idx) => {
+        const total = rubric.criteria.reduce((s, c) => s + (team.scores[c.id] || 0), 0);
+        const pct = totalPossible > 0 ? (total / totalPossible) * 100 : 0;
+        return { team, total, pct, idx };
+      }).sort((a, b) => b.total - a.total || a.idx - b.idx);
+
+      const body = document.getElementById('summaryBody');
+      body.innerHTML = '';
+      rows.forEach(({ team, total, pct }) => {
+        const tr = document.createElement('tr');
+
+        const nameTd = document.createElement('td');
+        nameTd.className = 'team-name-cell';
+        nameTd.textContent = team.name;
+        tr.appendChild(nameTd);
+
+        rubric.criteria.forEach(c => {
+          const td = document.createElement('td');
+          const val = team.scores[c.id];
+          td.textContent = (val === null || val === undefined) ? '—' : (val + '/' + c.max);
+          tr.appendChild(td);
+        });
+
+        const totalTd = document.createElement('td');
+        totalTd.innerHTML = '<strong>' + total + ' / ' + totalPossible + '</strong>';
+        tr.appendChild(totalTd);
+
+        const starsTd = document.createElement('td');
+        starsTd.className = 'stars';
+        starsTd.textContent = starsForPercent(pct);
+        tr.appendChild(starsTd);
+
+        const notesTd = document.createElement('td');
+        notesTd.className = 'notes-cell';
+        notesTd.textContent = team.notes || '';
+        tr.appendChild(notesTd);
+
+        body.appendChild(tr);
+      });
+    }
+
+    document.getElementById('presentBtn').addEventListener('click', () => {
+      const container = document.getElementById('mainContainer');
+      const btn = document.getElementById('presentBtn');
+      const active = container.classList.toggle('presentation-mode');
+      btn.textContent = active ? '↩️ Exit presentation mode' : '📽️ Show results to class';
+    });
+
+    document.getElementById('printBtn').addEventListener('click', () => {
+      document.getElementById('summaryScreen').classList.add('print-active');
+      window.print();
+    });
+    window.addEventListener('afterprint', () => {
+      document.getElementById('summaryScreen').classList.remove('print-active');
+    });
+
+    function csvEscape(value) {
+      const str = String(value === undefined || value === null ? '' : value);
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+
+    document.getElementById('exportCsvBtn').addEventListener('click', () => {
+      const totalPossible = rubric.criteria.reduce((s, c) => s + c.max, 0);
+      const header = ['Team'].concat(rubric.criteria.map(c => c.name), ['Total', 'Total Possible', 'Percentage', 'Notes']);
+      const lines = [header.map(csvEscape).join(',')];
+
+      teams.forEach(team => {
+        const total = rubric.criteria.reduce((s, c) => s + (team.scores[c.id] || 0), 0);
+        const pct = totalPossible > 0 ? Math.round((total / totalPossible) * 100) : 0;
+        const row = [team.name]
+          .concat(rubric.criteria.map(c => (team.scores[c.id] === null || team.scores[c.id] === undefined) ? '' : team.scores[c.id]))
+          .concat([total, totalPossible, pct + '%', team.notes || '']);
+        lines.push(row.map(csvEscape).join(','));
+      });
+
+      const csvContent = lines.join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeTitle = (rubric.title || 'assessment').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+      a.download = safeTitle + '-results.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // ---------------------------------------------------------------
+    // Init
+    // ---------------------------------------------------------------
+    document.getElementById('projectTitle').value = rubric.title || '';
+    if (rubric.criteria.length === 0) {
+      // Nothing saved yet — start with one blank criterion row so the
+      // "+ Add criterion" button isn't the only way to see how it works.
+      rubric.criteria.push({ id: makeId(), name: '', max: 4 });
+    }
+    renderCriteriaEditor();
+  </script>
+  <script>window.TK_CURRENT = 'assessment-checklist';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

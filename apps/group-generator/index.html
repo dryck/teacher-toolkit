@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group Generator | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    label.field-label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+    textarea {
+      width: 100%;
+      height: 140px;
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      resize: vertical;
+      font-family: inherit;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .section {
+      margin: 22px 0;
+    }
+    .settings-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .mode-toggle {
+      display: flex;
+      background: #f0f0f0;
+      border-radius: 10px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .mode-toggle label {
+      flex: 1;
+      text-align: center;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #555;
+      user-select: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .mode-toggle input[type="radio"] {
+      display: none;
+    }
+    .mode-toggle input[type="radio"]:checked + span {
+      color: inherit;
+    }
+    .mode-toggle label.active {
+      background: var(--tk-surface);
+      color: var(--tk-primary-dark);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .mode-value-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .mode-value-wrap input[type="number"] {
+      width: 80px;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+    .mode-value-wrap input[type="number"]:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .mode-hint {
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: #e8f4f8;
+      border-radius: 8px;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .checkbox-row label {
+      font-size: 0.9rem;
+      color: #333;
+    }
+    details.pins-section {
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    details.pins-section summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--tk-text);
+      font-size: 0.95rem;
+    }
+    .pin-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .pin-row select {
+      flex: 1;
+      min-width: 140px;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+    .pin-row button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      background: var(--tk-primary);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .pin-row button:hover {
+      background: var(--tk-primary-dark);
+    }
+    .pin-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .pin-chip {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      color: #856404;
+      padding: 6px 10px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pin-chip button {
+      border: none;
+      background: none;
+      color: #856404;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.95rem;
+      line-height: 1;
+      padding: 0;
+    }
+    .pin-empty-note {
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 22px 0 6px;
+      flex-wrap: wrap;
+    }
+    button.btn-primary,
+    button.btn-secondary {
+      flex: 1;
+      min-width: 150px;
+      padding: 15px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+    .btn-primary {
+      background: var(--tk-bg-gradient);
+      color: white;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .save-status {
+      display: none;
+      text-align: center;
+      color: #1e7e34;
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .error-message {
+      display: none;
+      background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+      color: #856404;
+      padding: 16px 20px;
+      border-radius: 12px;
+      font-size: 1rem;
+      border: 2px solid #ffeaa7;
+      text-align: center;
+      margin: 16px 0;
+    }
+    .shuffle-box {
+      display: none;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      min-height: 160px;
+      padding: 24px;
+      margin: 16px 0;
+      background: #f8f9fa;
+      border-radius: 14px;
+    }
+    .shuffle-chip {
+      background: var(--tk-bg-gradient);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      animation-name: shuffleCard;
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: 1;
+    }
+    @keyframes shuffleCard {
+      0%   { transform: translate(0,0) rotate(0deg); opacity: 1; }
+      20%  { transform: translate(var(--dx1), var(--dy1)) rotate(var(--r1)); }
+      45%  { transform: translate(var(--dx2), var(--dy2)) rotate(var(--r2)); }
+      70%  { transform: translate(var(--dx3), var(--dy3)) rotate(var(--r3)); }
+      90%  { transform: translate(0,0) rotate(0deg); opacity: 0.4; }
+      100% { transform: translate(0,0) rotate(0deg); opacity: 1; }
+    }
+    .shuffle-label {
+      width: 100%;
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .results-empty {
+      text-align: center;
+      color: #999;
+      padding: 30px;
+      font-size: 1.05rem;
+    }
+    .groups-grid {
+      display: none;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-top: 16px;
+    }
+    .group-card {
+      background: #f8f9fa;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      animation: groupFadeIn 0.5s ease both;
+    }
+    @keyframes groupFadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .group-header {
+      color: white;
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: 0.03em;
+      text-align: center;
+      padding: 14px 10px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.25);
+    }
+    .group-members {
+      list-style: none;
+      padding: 14px 16px 18px;
+    }
+    .group-members li {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #333;
+      padding: 8px 4px;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .group-members li:last-child {
+      border-bottom: none;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9rem;
+    }
+    .footer a {
+      color: white;
+      text-decoration: none;
+    }
+    @media (max-width: 480px) {
+      .settings-row { flex-direction: column; align-items: stretch; }
+      .mode-value-wrap { justify-content: center; }
+    }
+  </style>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🧩 Group Generator</h1>
+    <p class="subtitle">Split your class into fair, shuffled groups in seconds</p>
+
+    <div class="section">
+      <label class="field-label" for="nameInput">Class list (one name per line)</label>
+      <textarea id="nameInput" placeholder="Enter names here, one per line:&#10;&#10;Alice&#10;Bob&#10;Charlie&#10;Diana&#10;Evan">Alice
+Bob
+Charlie
+Diana
+Evan
+Fiona
+George
+Hannah
+Ivan
+Julia</textarea>
+    </div>
+
+    <div class="section settings-row">
+      <div>
+        <label class="field-label">Group by</label>
+        <div class="mode-toggle">
+          <label id="modeLabelCount" class="active">
+            <input type="radio" name="mode" value="count" checked>
+            <span>Number of groups</span>
+          </label>
+          <label id="modeLabelSize">
+            <input type="radio" name="mode" value="size">
+            <span>Size of group</span>
+          </label>
+        </div>
+      </div>
+      <div class="mode-value-wrap">
+        <input type="number" id="modeValue" min="1" value="3">
+        <span id="modeUnitLabel">groups</span>
+      </div>
+    </div>
+    <div class="mode-hint" id="modeHint"></div>
+
+    <div class="section checkbox-row">
+      <input type="checkbox" id="avoidRepeat">
+      <label for="avoidRepeat"><strong>Avoid repeating recent pairings</strong> — tries not to put the same two students together as last time (checks the last 3 groupings)</label>
+    </div>
+
+    <div class="section">
+      <details class="pins-section" id="pinsSection">
+        <summary>📌 Pin students to specific groups (optional)</summary>
+        <div class="pin-row">
+          <select id="pinNameSelect"></select>
+          <select id="pinGroupSelect"></select>
+          <button type="button" onclick="addPin()">+ Add Pin</button>
+        </div>
+        <div class="pin-list" id="pinList"></div>
+        <p class="pin-empty-note" id="pinEmptyNote">No students pinned yet — everyone will be placed randomly.</p>
+      </details>
+    </div>
+
+    <div class="controls">
+      <button class="btn-primary" onclick="generateGroups()">🎲 Generate Groups</button>
+      <button class="btn-secondary" id="regenerateBtn" onclick="generateGroups()" disabled>🔄 Regenerate</button>
+      <button class="btn-secondary" id="saveBtn" onclick="saveGrouping()" disabled>💾 Save this grouping</button>
+    </div>
+
+    <div class="save-status" id="saveStatus">✓ Saved — this grouping stays on screen until you click Regenerate</div>
+    <div class="error-message" id="errorMessage"></div>
+
+    <div class="shuffle-box" id="shuffleBox"></div>
+
+    <div id="resultsWrap">
+      <div class="results-empty" id="resultsEmpty">Enter your class list, choose your settings, then click Generate Groups!</div>
+      <div class="groups-grid" id="groupsGrid"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    const NAMES_KEY = 'tk-group-generator-names';
+    const HISTORY_KEY = 'tk-group-generator-history';
+    const MAX_HISTORY = 3;
+    const AVOID_REPEAT_ATTEMPTS = 40;
+    const SHUFFLE_ANIMATION_MS = 1300;
+
+    let currentStudents = []; // [{index, name, label}]
+    let pins = [];            // [{studentIndex, group}] (group is 1-based)
+    let isSaved = false;
+
+    // ---------- Persistence ----------
+
+    function loadSavedNames() {
+      const saved = localStorage.getItem(NAMES_KEY);
+      if (saved !== null) {
+        document.getElementById('nameInput').value = saved;
+      }
+    }
+
+    function persistNames() {
+      localStorage.setItem(NAMES_KEY, document.getElementById('nameInput').value);
+    }
+
+    function loadHistory() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(HISTORY_KEY));
+        return Array.isArray(raw) ? raw : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveToHistory(groups) {
+      const history = loadHistory();
+      const snapshot = groups.map(g => g.map(s => s.name));
+      history.push(snapshot);
+      while (history.length > MAX_HISTORY) history.shift();
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    }
+
+    // ---------- Parsing students ----------
+
+    // Students are tracked by their line index (not just name) so that
+    // two students who happen to share a name (e.g. two "Sam"s) are still
+    // distinguishable when pinning them to groups — mirrors the same
+    // index-based approach random-picker uses for duplicate names.
+    function parseStudents() {
+      const raw = document.getElementById('nameInput').value;
+      const names = raw.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+      const totalCounts = {};
+      names.forEach(n => { totalCounts[n] = (totalCounts[n] || 0) + 1; });
+      const runningCounts = {};
+      return names.map((name, index) => {
+        runningCounts[name] = (runningCounts[name] || 0) + 1;
+        const label = totalCounts[name] > 1 ? `${name} (${runningCounts[name]})` : name;
+        return { index, name, label };
+      });
+    }
+
+    function getRandomColor(index) {
+      const colors = [
+        '#667eea', '#764ba2', '#f093fb', '#f5576c',
+        '#4facfe', '#00c9a7', '#43e97b', '#fa709a',
+        '#fee140', '#30cfd0', '#a770ef', '#f9748f'
+      ];
+      return colors[index % colors.length];
+    }
+
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // ---------- Mode / group count ----------
+
+    function getMode() {
+      return document.querySelector('input[name="mode"]:checked').value;
+    }
+
+    function computeNumGroups(studentCount) {
+      if (studentCount === 0) return 0;
+      const val = Math.max(1, parseInt(document.getElementById('modeValue').value, 10) || 1);
+      if (getMode() === 'count') {
+        return Math.max(1, Math.min(val, studentCount));
+      }
+      return Math.max(1, Math.ceil(studentCount / val));
+    }
+
+    function updateModeUI() {
+      const mode = getMode();
+      document.getElementById('modeLabelCount').classList.toggle('active', mode === 'count');
+      document.getElementById('modeLabelSize').classList.toggle('active', mode === 'size');
+      document.getElementById('modeUnitLabel').textContent = mode === 'count' ? 'groups' : 'students / group';
+      updateModeHint();
+      updatePinGroupOptions();
+    }
+
+    function updateModeHint() {
+      const students = parseStudents();
+      const hint = document.getElementById('modeHint');
+      if (students.length === 0) {
+        hint.textContent = '';
+        return;
+      }
+      const numGroups = computeNumGroups(students.length);
+      const base = Math.floor(students.length / numGroups);
+      const extra = students.length % numGroups;
+      const sizeText = extra === 0
+        ? `${base} student${base === 1 ? '' : 's'} each`
+        : `${base}-${base + 1} students each`;
+      hint.textContent = `→ ${numGroups} group${numGroups === 1 ? '' : 's'}, ${sizeText}`;
+    }
+
+    // ---------- Pins ----------
+
+    function refreshPinNameOptions() {
+      const select = document.getElementById('pinNameSelect');
+      const pinnedIndices = new Set(pins.map(p => p.studentIndex));
+      const available = currentStudents.filter(s => !pinnedIndices.has(s.index));
+      select.innerHTML = available.length === 0
+        ? '<option value="">No students available</option>'
+        : available.map(s => `<option value="${s.index}">${escapeHtml(s.label)}</option>`).join('');
+    }
+
+    function updatePinGroupOptions() {
+      const select = document.getElementById('pinGroupSelect');
+      const numGroups = computeNumGroups(currentStudents.length) || 1;
+      const options = [];
+      for (let g = 1; g <= numGroups; g++) options.push(`<option value="${g}">Group ${g}</option>`);
+      select.innerHTML = options.join('');
+    }
+
+    function addPin() {
+      const nameSelect = document.getElementById('pinNameSelect');
+      const groupSelect = document.getElementById('pinGroupSelect');
+      if (!nameSelect.value || !groupSelect.value) return;
+      pins.push({ studentIndex: parseInt(nameSelect.value, 10), group: parseInt(groupSelect.value, 10) });
+      renderPinList();
+      refreshPinNameOptions();
+    }
+
+    function removePin(studentIndex) {
+      pins = pins.filter(p => p.studentIndex !== studentIndex);
+      renderPinList();
+      refreshPinNameOptions();
+    }
+
+    function renderPinList() {
+      const list = document.getElementById('pinList');
+      const emptyNote = document.getElementById('pinEmptyNote');
+      if (pins.length === 0) {
+        list.innerHTML = '';
+        emptyNote.style.display = 'block';
+        return;
+      }
+      emptyNote.style.display = 'none';
+      list.innerHTML = pins.map(p => {
+        const student = currentStudents.find(s => s.index === p.studentIndex);
+        const label = student ? student.label : '(unknown)';
+        return `<span class="pin-chip">${escapeHtml(label)} → Group ${p.group}
+          <button type="button" onclick="removePin(${p.studentIndex})" title="Remove pin">×</button>
+        </span>`;
+      }).join('');
+    }
+
+    // Pins reference a student's position in the current roster. If the
+    // teacher edits the class list afterward, those positions can point to
+    // a different (or no) student, so we clear pins whenever the roster
+    // changes rather than risk silently mis-pinning the wrong person.
+    function onRosterChanged() {
+      currentStudents = parseStudents();
+      pins = [];
+      renderPinList();
+      refreshPinNameOptions();
+      updatePinGroupOptions();
+      updateModeHint();
+    }
+
+    // ---------- Grouping algorithm ----------
+
+    function buildGrouping(students, numGroups) {
+      const groups = Array.from({ length: numGroups }, () => []);
+      const pinnedIndices = new Set();
+
+      pins.forEach(p => {
+        const g = Math.min(Math.max(p.group - 1, 0), numGroups - 1);
+        const student = students.find(s => s.index === p.studentIndex);
+        if (student) {
+          groups[g].push(student);
+          pinnedIndices.add(student.index);
+        }
+      });
+
+      const floaters = shuffleArray(students.filter(s => !pinnedIndices.has(s.index)));
+
+      // Greedily drop each remaining student into whichever group is
+      // currently smallest (ties broken randomly). This keeps groups
+      // balanced even when pins have already loaded some groups up front.
+      floaters.forEach(student => {
+        const minSize = Math.min(...groups.map(g => g.length));
+        const candidates = groups.map((g, i) => i).filter(i => groups[i].length === minSize);
+        const idx = candidates[Math.floor(Math.random() * candidates.length)];
+        groups[idx].push(student);
+      });
+
+      return groups;
+    }
+
+    function pairKey(a, b) {
+      return [a, b].sort().join('|');
+    }
+
+    function buildRecentPairsSet(history) {
+      const set = new Set();
+      history.forEach(grouping => {
+        grouping.forEach(group => {
+          for (let i = 0; i < group.length; i++) {
+            for (let j = i + 1; j < group.length; j++) {
+              set.add(pairKey(group[i], group[j]));
+            }
+          }
+        });
+      });
+      return set;
+    }
+
+    function scoreOverlap(groups, recentPairsSet) {
+      let score = 0;
+      groups.forEach(group => {
+        for (let i = 0; i < group.length; i++) {
+          for (let j = i + 1; j < group.length; j++) {
+            if (recentPairsSet.has(pairKey(group[i].name, group[j].name))) score++;
+          }
+        }
+      });
+      return score;
+    }
+
+    function showError(message) {
+      const el = document.getElementById('errorMessage');
+      el.textContent = message;
+      el.style.display = message ? 'block' : 'none';
+    }
+
+    function generateGroups() {
+      showError('');
+      currentStudents = parseStudents();
+      const students = currentStudents;
+
+      if (students.length === 0) {
+        showError('👋 Please add some student names above, then click Generate Groups!');
+        return;
+      }
+
+      const numGroups = computeNumGroups(students.length);
+      if (numGroups < 1) {
+        showError('Please enter a valid number of groups or group size.');
+        return;
+      }
+
+      const avoidRepeat = document.getElementById('avoidRepeat').checked;
+      const recentPairs = avoidRepeat ? buildRecentPairsSet(loadHistory()) : null;
+
+      let best = null;
+      let bestScore = Infinity;
+      const attempts = avoidRepeat ? AVOID_REPEAT_ATTEMPTS : 1;
+
+      for (let a = 0; a < attempts; a++) {
+        const candidate = buildGrouping(students, numGroups);
+        if (!avoidRepeat) {
+          best = candidate;
+          break;
+        }
+        const score = scoreOverlap(candidate, recentPairs);
+        if (score < bestScore) {
+          bestScore = score;
+          best = candidate;
+        }
+        if (bestScore === 0) break;
+      }
+
+      saveToHistory(best);
+      isSaved = false;
+      document.getElementById('saveStatus').style.display = 'none';
+      document.getElementById('saveBtn').disabled = false;
+      document.getElementById('regenerateBtn').disabled = false;
+
+      animateShuffleThenReveal(students, best);
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function animateShuffleThenReveal(students, groups) {
+      const shuffleBox = document.getElementById('shuffleBox');
+      const resultsWrap = document.getElementById('resultsWrap');
+
+      resultsWrap.style.display = 'none';
+      shuffleBox.style.display = 'flex';
+      shuffleBox.innerHTML = '<div class="shuffle-label">Shuffling…</div>';
+
+      const rand = (min, max) => (Math.random() * (max - min) + min);
+
+      students.forEach(s => {
+        const chip = document.createElement('div');
+        chip.className = 'shuffle-chip';
+        chip.textContent = s.name;
+        chip.style.setProperty('--dx1', rand(-60, 60).toFixed(0) + 'px');
+        chip.style.setProperty('--dy1', rand(-40, 40).toFixed(0) + 'px');
+        chip.style.setProperty('--r1', rand(-20, 20).toFixed(0) + 'deg');
+        chip.style.setProperty('--dx2', rand(-60, 60).toFixed(0) + 'px');
+        chip.style.setProperty('--dy2', rand(-40, 40).toFixed(0) + 'px');
+        chip.style.setProperty('--r2', rand(-20, 20).toFixed(0) + 'deg');
+        chip.style.setProperty('--dx3', rand(-60, 60).toFixed(0) + 'px');
+        chip.style.setProperty('--dy3', rand(-40, 40).toFixed(0) + 'px');
+        chip.style.setProperty('--r3', rand(-20, 20).toFixed(0) + 'deg');
+        chip.style.animationDuration = rand(1.0, 1.3).toFixed(2) + 's';
+        shuffleBox.appendChild(chip);
+      });
+
+      setTimeout(() => {
+        shuffleBox.style.display = 'none';
+        renderGroups(groups);
+        resultsWrap.style.display = 'block';
+      }, SHUFFLE_ANIMATION_MS);
+    }
+
+    function renderGroups(groups) {
+      const grid = document.getElementById('groupsGrid');
+      document.getElementById('resultsEmpty').style.display = 'none';
+      grid.style.display = 'grid';
+      grid.innerHTML = groups.map((group, i) => {
+        const color = getRandomColor(i);
+        const members = group
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map(s => `<li>${escapeHtml(s.name)}</li>`)
+          .join('');
+        return `
+          <div class="group-card" style="animation-delay:${(i * 0.1).toFixed(2)}s">
+            <div class="group-header" style="background:${color}">GROUP ${i + 1}</div>
+            <ul class="group-members">${members}</ul>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function saveGrouping() {
+      isSaved = true;
+      document.getElementById('saveStatus').style.display = 'block';
+    }
+
+    // ---------- Wiring ----------
+
+    document.getElementById('nameInput').addEventListener('input', () => {
+      persistNames();
+      onRosterChanged();
+    });
+
+    document.querySelectorAll('input[name="mode"]').forEach(radio => {
+      radio.addEventListener('change', updateModeUI);
+    });
+
+    document.getElementById('modeValue').addEventListener('input', () => {
+      updateModeHint();
+      updatePinGroupOptions();
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSavedNames();
+      onRosterChanged();
+      updateModeUI();
+    });
+  </script>
+  <script>window.TK_CURRENT = 'group-generator';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

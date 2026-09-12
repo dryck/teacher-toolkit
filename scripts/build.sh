@@ -3,9 +3,7 @@
 #   dist/                -> hub landing page
 #   dist/shell/           -> shared navbar/theme assets
 #   dist/noise-monitor/   -> built React/Vite app
-#   dist/quick-poll/, dist/random-picker/, dist/visual-timer/, dist/research/
-#                         -> static tools
-#   dist/zones/           -> student check-in + teacher live dashboard (Firebase)
+#   dist/<tool>/          -> every other tool, copied wholesale (no build step)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -18,15 +16,15 @@ cp -r packages/shell dist/shell
 # Hub landing page
 cp -r apps/hub/. dist/
 
-# Static single-file tools
-for tool in quick-poll random-picker visual-timer research; do
+# Static tools (single- or multi-file: HTML pages + any shared per-tool JS).
+# Each just needs its whole apps/<tool>/ directory copied as-is.
+for tool in quick-poll random-picker visual-timer research zones \
+            exit-ticket group-generator behaviour-tracker restorative-circle \
+            growth-mindset kagan-timer choice-board presentation-timer \
+            assessment-checklist; do
   mkdir -p "dist/$tool"
-  cp "apps/$tool/index.html" "dist/$tool/index.html"
+  cp -r "apps/$tool/." "dist/$tool/"
 done
-
-# Zones Check-In: multiple files (student + teacher pages, shared JS)
-mkdir -p dist/zones
-cp apps/zones/index.html apps/zones/teacher.html apps/zones/zones.js dist/zones/
 
 # React/Vite noise-monitor app
 npm run build --workspace apps/noise-monitor

@@ -11,6 +11,15 @@
     { key: 'random-picker', label: 'Random Picker', href: 'random-picker/' },
     { key: 'visual-timer', label: 'Visual Timer', href: 'visual-timer/' },
     { key: 'zones', label: 'Zones Check-In', href: 'zones/teacher.html' },
+    { key: 'exit-ticket', label: 'Exit Ticket', href: 'exit-ticket/teacher.html' },
+    { key: 'group-generator', label: 'Group Generator', href: 'group-generator/' },
+    { key: 'behaviour-tracker', label: 'Behaviour Tracker', href: 'behaviour-tracker/' },
+    { key: 'restorative-circle', label: 'Restorative Circle', href: 'restorative-circle/' },
+    { key: 'growth-mindset', label: 'Growth Mindset', href: 'growth-mindset/wall.html' },
+    { key: 'kagan-timer', label: 'Kagan Timer', href: 'kagan-timer/' },
+    { key: 'choice-board', label: 'Choice Board', href: 'choice-board/teacher.html' },
+    { key: 'presentation-timer', label: 'Presentation Timer', href: 'presentation-timer/' },
+    { key: 'assessment-checklist', label: 'Assessment Checklist', href: 'assessment-checklist/' },
     { key: 'research', label: 'Research', href: 'research/' }
   ];
 

@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presentation Timer | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    /* ---------- Setup screen ---------- */
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    .section-title {
+      font-weight: 700;
+      color: #333;
+      margin: 20px 0 10px;
+      font-size: 1rem;
+    }
+    #teamRows { display: flex; flex-direction: column; gap: 10px; }
+    .team-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .team-row input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      padding: 12px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .team-row input[type="number"] {
+      width: 90px;
+      padding: 12px 8px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      text-align: center;
+    }
+    .team-row input:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .team-row .remove-row-btn {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border: none;
+      border-radius: 10px;
+      background: #f0f0f0;
+      color: #999;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .team-row .remove-row-btn:hover {
+      background: #e74c3c;
+      color: white;
+    }
+    .add-row-btn {
+      margin-top: 12px;
+      width: 100%;
+      padding: 12px;
+      border: 2px dashed #c9c9e8;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--tk-primary-dark);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .add-row-btn:hover {
+      background: #f5f4ff;
+      border-color: var(--tk-primary);
+    }
+    .setup-options {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .option-field {
+      flex: 1;
+      min-width: 180px;
+    }
+    .option-field label {
+      display: block;
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .option-field input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .option-field input:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .btn-start {
+      display: block;
+      width: 100%;
+      margin-top: 28px;
+      padding: 16px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--tk-bg-gradient);
+      color: white;
+      transition: all 0.3s ease;
+    }
+    .btn-start:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    /* ---------- Main / stage screen ---------- */
+    .hidden { display: none !important; }
+
+    .stage-wrap {
+      max-width: 900px;
+      width: 100%;
+    }
+    .stage {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: clamp(24px, 5vw, 56px);
+      text-align: center;
+      transition: background 0.5s ease;
+    }
+    .phase-badge {
+      display: inline-block;
+      font-size: clamp(1rem, 2.2vw, 1.4rem);
+      font-weight: 700;
+      color: var(--tk-primary-dark);
+      background: #f0efff;
+      padding: 8px 20px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+      letter-spacing: 0.3px;
+    }
+    .team-name {
+      font-size: clamp(1.6rem, 5vw, 3rem);
+      font-weight: 800;
+      color: #222;
+      margin-bottom: 8px;
+      word-break: break-word;
+    }
+    .qna-target {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      color: #666;
+      margin-bottom: 12px;
+    }
+    .timer-display {
+      font-family: 'Courier New', monospace;
+      font-weight: 800;
+      font-size: clamp(4.5rem, 20vw, 11rem);
+      color: var(--tk-primary);
+      line-height: 1;
+      margin: 10px 0 20px;
+      transition: color 0.4s ease;
+    }
+    .progress-container {
+      width: 100%;
+      height: 26px;
+      background: #ecf0f1;
+      border-radius: 15px;
+      overflow: hidden;
+      margin: 10px 0 20px;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 100%;
+      background: var(--tk-bg-gradient);
+      border-radius: 15px;
+      transition: width 1s linear, background 0.5s ease;
+    }
+    .status-line {
+      font-size: clamp(0.95rem, 2vw, 1.15rem);
+      color: #555;
+      margin-bottom: 6px;
+    }
+    .next-line {
+      font-size: clamp(0.85rem, 1.8vw, 1.05rem);
+      color: #888;
+    }
+    .warning-message {
+      font-size: clamp(1rem, 2.6vw, 1.5rem);
+      font-weight: 700;
+      color: #b8860b;
+      margin: 6px 0 4px;
+      display: none;
+    }
+
+    /* Warning state — presentation time almost up */
+    .stage.phase-warning {
+      background: linear-gradient(135deg, #fff8e1 0%, #ffe6a7 100%);
+    }
+    .stage.phase-warning .timer-display {
+      color: #d9820b;
+      animation: warnPulse 1s infinite;
+    }
+    .stage.phase-warning .progress-bar {
+      background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
+    }
+    .stage.phase-warning .phase-badge {
+      background: #fff0cc;
+      color: #a86400;
+    }
+    .stage.phase-warning .warning-message {
+      display: block;
+    }
+    @keyframes warnPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.06); opacity: 0.75; }
+    }
+
+    /* Q&A state — distinct color scheme */
+    .stage.phase-qna {
+      background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+    }
+    .stage.phase-qna .timer-display {
+      color: #00838f;
+    }
+    .stage.phase-qna .progress-bar {
+      background: linear-gradient(90deg, #00acc1 0%, #00838f 100%);
+    }
+    .stage.phase-qna .phase-badge {
+      background: #d0f2f5;
+      color: #006064;
+    }
+    /* Q&A can also enter its own warning countdown */
+    .stage.phase-qna.phase-warning {
+      background: linear-gradient(135deg, #fff3d6 0%, #ffe0a0 100%);
+    }
+    .stage.phase-qna.phase-warning .timer-display {
+      color: #d9820b;
+    }
+
+    /* Complete state */
+    .stage.phase-complete {
+      background: linear-gradient(135deg, #e8f8ee 0%, #c9f0d8 100%);
+    }
+    .stage.phase-complete .complete-message {
+      font-size: clamp(1.6rem, 5vw, 2.6rem);
+      font-weight: 800;
+      color: #1e7e42;
+      padding: 30px 0;
+    }
+
+    /* ---------- Control bar (deliberately unobtrusive) ---------- */
+    .control-bar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+    .control-bar button {
+      padding: 9px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: rgba(0,0,0,0.06);
+      color: #444;
+      transition: all 0.2s ease;
+    }
+    .control-bar button:hover {
+      background: rgba(0,0,0,0.12);
+    }
+    .control-bar button.accent {
+      background: rgba(102, 126, 234, 0.15);
+      color: var(--tk-primary-dark);
+    }
+    .control-bar button.accent:hover {
+      background: rgba(102, 126, 234, 0.25);
+    }
+
+    .setup-footer-btn {
+      display: block;
+      margin: 20px auto 0;
+      padding: 10px 18px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #f0f0f0;
+      color: #555;
+    }
+    .setup-footer-btn:hover { background: #e4e4e4; }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9rem;
+    }
+    .footer a {
+      color: white;
+      text-decoration: none;
+    }
+
+    /* Fullscreen tweaks */
+    body.fullscreen .stage-wrap { max-width: 100%; }
+    body.fullscreen .footer { display: none; }
+  </style>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+</head>
+<body>
+
+  <!-- ============ SETUP SCREEN ============ -->
+  <div class="container" id="setupScreen">
+    <h1>🎤 Presentation Timer</h1>
+    <p class="subtitle">Keep student presentations and Q&amp;A on schedule</p>
+
+    <div class="section-title">Presenting teams</div>
+    <div id="teamRows"></div>
+    <button class="add-row-btn" id="addRowBtn">+ Add Team</button>
+
+    <div class="setup-options">
+      <div class="option-field">
+        <label for="qnaMinutesInput">Q&amp;A time after each (minutes)</label>
+        <input type="number" id="qnaMinutesInput" min="0" step="0.5" value="2">
+      </div>
+      <div class="option-field">
+        <label for="warningSecondsInput">Warning at N seconds remaining</label>
+        <input type="number" id="warningSecondsInput" min="0" step="5" value="30">
+      </div>
+    </div>
+
+    <button class="btn-start" id="startBtn">▶️ Start Presentations</button>
+  </div>
+
+  <!-- ============ MAIN / STAGE SCREEN ============ -->
+  <div class="stage-wrap hidden" id="stageScreen">
+    <div class="stage" id="stage">
+
+      <div id="activeView">
+        <div class="phase-badge" id="phaseBadge">Presenting</div>
+        <div class="team-name" id="teamNameDisplay">Team Name</div>
+        <div class="qna-target hidden" id="qnaTargetLine"></div>
+        <div class="timer-display" id="timerDisplay">00:00</div>
+        <div class="warning-message" id="warningMessage">⏰ Wrap up your presentation!</div>
+        <div class="progress-container">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="status-line" id="statusLine">Team 1 of 1</div>
+        <div class="next-line" id="nextLine"></div>
+      </div>
+
+      <div id="completeView" class="hidden">
+        <div class="complete-message">🎉 All presentations complete! 🎉</div>
+      </div>
+
+      <div class="control-bar" id="activeControls">
+        <button class="accent" id="pauseBtn">⏸ Pause</button>
+        <button id="skipBtn">⏭ Skip to next phase</button>
+        <button id="plusThirtyBtn">+30 sec</button>
+        <button id="fullscreenBtn">⛶ Fullscreen</button>
+      </div>
+      <div class="control-bar hidden" id="completeControls">
+        <button class="accent" id="backToSetupBtn">↩ Back to Setup</button>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    // ---------------- State ----------------
+    let teams = [];          // [{ name, minutes }]
+    let qnaSeconds = 0;
+    let warnThreshold = 30;
+
+    let curIndex = 0;              // index into teams
+    let curPhase = 'presenting';   // 'presenting' | 'qna' | 'complete'
+    let remaining = 0;             // seconds left in the current phase
+    let total = 0;                 // seconds the current phase started with (for the progress bar)
+    let isPaused = false;
+    let tickHandle = null;
+
+    // ---------------- Setup screen: team rows ----------------
+    function addTeamRow(name, minutes) {
+      const row = document.createElement('div');
+      row.className = 'team-row';
+      row.innerHTML = `
+        <input type="text" class="team-name-input" placeholder="Team or student name" value="${name || ''}">
+        <input type="number" class="team-minutes-input" min="0.5" step="0.5" value="${minutes != null ? minutes : 5}">
+        <button class="remove-row-btn" title="Remove row">✕</button>
+      `;
+      row.querySelector('.remove-row-btn').addEventListener('click', () => row.remove());
+      document.getElementById('teamRows').appendChild(row);
+    }
+
+    document.getElementById('addRowBtn').addEventListener('click', () => addTeamRow('', 5));
+
+    function collectTeams() {
+      const rows = document.querySelectorAll('#teamRows .team-row');
+      const result = [];
+      rows.forEach(row => {
+        const name = row.querySelector('.team-name-input').value.trim();
+        const minutes = parseFloat(row.querySelector('.team-minutes-input').value);
+        if (name && minutes > 0) {
+          result.push({ name, minutes });
+        }
+      });
+      return result;
+    }
+
+    // ---------------- Start / transition to stage screen ----------------
+    document.getElementById('startBtn').addEventListener('click', () => {
+      teams = collectTeams();
+      if (teams.length === 0) {
+        alert('Please add at least one team with a name and a duration in minutes.');
+        return;
+      }
+      qnaSeconds = Math.max(0, Math.round((parseFloat(document.getElementById('qnaMinutesInput').value) || 0) * 60));
+      warnThreshold = Math.max(0, parseInt(document.getElementById('warningSecondsInput').value) || 0);
+
+      document.getElementById('setupScreen').classList.add('hidden');
+      document.getElementById('stageScreen').classList.remove('hidden');
+
+      beginPhase(0, 'presenting');
+    });
+
+    document.getElementById('backToSetupBtn').addEventListener('click', () => {
+      stopTicking();
+      document.getElementById('stageScreen').classList.add('hidden');
+      document.getElementById('setupScreen').classList.remove('hidden');
+      document.getElementById('completeView').classList.add('hidden');
+      document.getElementById('activeView').classList.remove('hidden');
+      document.getElementById('completeControls').classList.add('hidden');
+      document.getElementById('activeControls').classList.remove('hidden');
+    });
+
+    // ---------------- Phase engine ----------------
+    function beginPhase(index, phase) {
+      curIndex = index;
+      curPhase = phase;
+      isPaused = false;
+
+      const stage = document.getElementById('stage');
+      stage.classList.remove('phase-warning', 'phase-qna');
+
+      const team = teams[curIndex];
+
+      if (phase === 'presenting') {
+        total = Math.round(team.minutes * 60);
+        remaining = total;
+        document.getElementById('phaseBadge').textContent = '🎤 Presenting';
+        document.getElementById('teamNameDisplay').textContent = team.name;
+        document.getElementById('qnaTargetLine').classList.add('hidden');
+        document.getElementById('warningMessage').textContent = '⏰ Wrap up your presentation!';
+      } else if (phase === 'qna') {
+        total = qnaSeconds;
+        remaining = total;
+        stage.classList.add('phase-qna');
+        document.getElementById('phaseBadge').textContent = '❓ Q&A Time';
+        document.getElementById('teamNameDisplay').textContent = '❓ Q&A Time';
+        document.getElementById('qnaTargetLine').textContent = `Questions for ${team.name}`;
+        document.getElementById('qnaTargetLine').classList.remove('hidden');
+        document.getElementById('warningMessage').textContent = '⏰ Wrap up the questions!';
+      }
+
+      updatePauseButton();
+      updateStatusLines();
+      renderTime();
+      startTicking();
+    }
+
+    function updateStatusLines() {
+      document.getElementById('statusLine').textContent = `Team ${curIndex + 1} of ${teams.length}`;
+      const nextLine = document.getElementById('nextLine');
+      if (curPhase === 'presenting') {
+        if (qnaSeconds > 0) {
+          nextLine.textContent = 'Next: Q&A time';
+        } else if (curIndex + 1 < teams.length) {
+          nextLine.textContent = `Next: ${teams[curIndex + 1].name}`;
+        } else {
+          nextLine.textContent = 'Last team — no more after this!';
+        }
+      } else if (curPhase === 'qna') {
+        if (curIndex + 1 < teams.length) {
+          nextLine.textContent = `Next: ${teams[curIndex + 1].name}`;
+        } else {
+          nextLine.textContent = 'Last team — all done after this!';
+        }
+      }
+    }
+
+    function startTicking() {
+      stopTicking();
+      tickHandle = setInterval(tick, 1000);
+    }
+    function stopTicking() {
+      if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
+    }
+
+    function tick() {
+      if (isPaused) return;
+      remaining--;
+      if (remaining <= 0) {
+        remaining = 0;
+        renderTime();
+        playAlarm();
+        stopTicking();
+        setTimeout(advancePhase, 400); // brief beat so the 00:00 is visible
+      } else {
+        renderTime();
+      }
+    }
+
+    function advancePhase() {
+      if (curPhase === 'presenting') {
+        if (qnaSeconds > 0) {
+          beginPhase(curIndex, 'qna');
+        } else if (curIndex + 1 < teams.length) {
+          beginPhase(curIndex + 1, 'presenting');
+        } else {
+          showComplete();
+        }
+      } else if (curPhase === 'qna') {
+        if (curIndex + 1 < teams.length) {
+          beginPhase(curIndex + 1, 'presenting');
+        } else {
+          showComplete();
+        }
+      }
+    }
+
+    function renderTime() {
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      document.getElementById('timerDisplay').textContent =
+        `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+      const pct = total > 0 ? (remaining / total) * 100 : 0;
+      document.getElementById('progressBar').style.width = pct + '%';
+
+      const stage = document.getElementById('stage');
+      if (remaining <= warnThreshold && remaining > 0) {
+        stage.classList.add('phase-warning');
+      } else {
+        stage.classList.remove('phase-warning');
+      }
+    }
+
+    function showComplete() {
+      curPhase = 'complete';
+      stopTicking();
+      const stage = document.getElementById('stage');
+      stage.classList.remove('phase-warning', 'phase-qna');
+      stage.classList.add('phase-complete');
+      document.getElementById('activeView').classList.add('hidden');
+      document.getElementById('completeView').classList.remove('hidden');
+      document.getElementById('activeControls').classList.add('hidden');
+      document.getElementById('completeControls').classList.remove('hidden');
+      confetti();
+    }
+
+    // ---------------- Controls ----------------
+    function updatePauseButton() {
+      document.getElementById('pauseBtn').textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+    }
+
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      if (curPhase === 'complete') return;
+      isPaused = !isPaused;
+      updatePauseButton();
+    });
+
+    document.getElementById('skipBtn').addEventListener('click', () => {
+      if (curPhase === 'complete') return;
+      stopTicking();
+      advancePhase();
+    });
+
+    document.getElementById('plusThirtyBtn').addEventListener('click', () => {
+      if (curPhase === 'complete') return;
+      remaining += 30;
+      total = Math.max(total, remaining);
+      renderTime();
+    });
+
+    document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          document.body.classList.add('fullscreen');
+        }).catch(() => {});
+      } else {
+        document.exitFullscreen().then(() => {
+          document.body.classList.remove('fullscreen');
+        }).catch(() => {});
+      }
+    }
+
+    // ---------------- Sound cues (Web Audio API, no audio files) ----------------
+    function playTone(frequency, duration, delay) {
+      delay = delay || 0;
+      setTimeout(() => {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = frequency;
+          osc.type = 'sine';
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + duration);
+        } catch (e) { /* audio not supported */ }
+      }, delay);
+    }
+
+    function playAlarm() {
+      const pattern = [800, 600, 800, 600];
+      pattern.forEach((freq, i) => playTone(freq, 0.3, i * 250));
+    }
+
+    // ---------------- Confetti (same falling-dots pattern as random-picker) ----------------
+    function confetti() {
+      const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#43e97b'];
+      for (let i = 0; i < 60; i++) {
+        setTimeout(() => {
+          const dot = document.createElement('div');
+          dot.style.position = 'fixed';
+          dot.style.left = Math.random() * 100 + 'vw';
+          dot.style.top = '-10px';
+          dot.style.width = '10px';
+          dot.style.height = '10px';
+          dot.style.background = colors[Math.floor(Math.random() * colors.length)];
+          dot.style.borderRadius = '50%';
+          dot.style.zIndex = '9999';
+          dot.style.transition = 'top 2.5s ease-in, opacity 2.5s ease-in';
+          document.body.appendChild(dot);
+
+          setTimeout(() => {
+            dot.style.top = '100vh';
+            dot.style.opacity = '0';
+          }, 100);
+
+          setTimeout(() => dot.remove(), 2700);
+        }, i * 40);
+      }
+    }
+
+    // ---------------- Init ----------------
+    addTeamRow('', 5);
+    addTeamRow('', 5);
+    addTeamRow('', 5);
+  </script>
+  <script>window.TK_CURRENT = 'presentation-timer';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

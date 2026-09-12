@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restorative Circle | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+      margin-bottom: 20px;
+    }
+
+    .hidden { display: none !important; }
+
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 25px;
+      font-size: 0.9rem;
+    }
+
+    .section-title {
+      font-weight: 700;
+      color: var(--tk-text);
+      margin-bottom: 12px;
+      font-size: 1.05rem;
+    }
+
+    /* --- Setup: circle type cards --- */
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 25px;
+    }
+
+    .type-btn {
+      text-align: left;
+      padding: 16px;
+      border: 2px solid var(--tk-primary);
+      background: white;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .type-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.25);
+    }
+
+    .type-btn .type-label {
+      display: block;
+      font-weight: 700;
+      color: var(--tk-primary);
+      font-size: 1.05rem;
+      margin-bottom: 4px;
+    }
+
+    .type-btn .type-desc {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--tk-text-muted);
+    }
+
+    .type-btn.selected {
+      background: var(--tk-bg-gradient);
+      border-color: transparent;
+    }
+
+    .type-btn.selected .type-label,
+    .type-btn.selected .type-desc {
+      color: white;
+    }
+
+    .question-preview {
+      background: #f7f7fb;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 25px;
+    }
+
+    .question-preview ol {
+      margin: 8px 0 0 20px;
+      color: var(--tk-text);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .question-preview p.empty-note {
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+      font-style: italic;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .input-row .field {
+      flex: 1;
+      min-width: 160px;
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e8e8e8;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.12);
+    }
+
+    .btn {
+      padding: 15px 30px;
+      font-size: 1.05rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      color: white;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--tk-bg-gradient);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #e9ecef;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #dde1e5;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      box-shadow: 0 8px 25px rgba(40, 167, 69, 0.35);
+    }
+
+    .btn-success:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-block {
+      width: 100%;
+      display: block;
+      text-align: center;
+    }
+
+    /* --- Main circle screen --- */
+    .circle-container {
+      max-width: 900px;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .circle-meta {
+      color: var(--tk-text-muted);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .question-text {
+      font-size: clamp(1.6rem, 4vw, 2.6rem);
+      font-weight: 700;
+      color: var(--tk-text);
+      line-height: 1.35;
+      margin-bottom: 28px;
+    }
+
+    .speaker-info {
+      font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+      font-weight: 700;
+      color: var(--tk-primary);
+      margin-bottom: 24px;
+    }
+
+    .timer-number {
+      font-size: clamp(3.5rem, 12vw, 6rem);
+      font-weight: bold;
+      font-family: 'Courier New', monospace;
+      color: var(--tk-primary);
+      margin-bottom: 14px;
+      transition: color 0.3s ease;
+    }
+
+    .timer-number.warning { color: #f39c12; }
+    .timer-number.danger {
+      color: #e74c3c;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .timer-bar-container {
+      width: 100%;
+      height: 22px;
+      background: #ecf0f1;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 22px;
+    }
+
+    .timer-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: var(--tk-bg-gradient);
+      border-radius: 12px;
+      transition: width 1s linear, background 0.4s ease;
+    }
+
+    .timer-bar-fill.warning { background: linear-gradient(90deg, #f39c12, #f1c40f); }
+    .timer-bar-fill.danger { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+
+    .listen-reminder {
+      color: var(--tk-text-muted);
+      font-size: 1rem;
+      font-style: italic;
+      margin-bottom: 30px;
+    }
+
+    .circle-controls {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    body.circle-mode .footer { display: none; }
+
+    /* --- Final screen --- */
+    .final-check {
+      text-align: center;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+    }
+
+    .final-subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 25px;
+      font-size: 0.95rem;
+    }
+
+    textarea#outcomeInput {
+      width: 100%;
+      min-height: 140px;
+      padding: 16px;
+      border: 2px solid #e8e8e8;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-family: inherit;
+      resize: vertical;
+      margin-bottom: 20px;
+    }
+
+    textarea#outcomeInput:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.12);
+    }
+
+    .outcome-display {
+      background: #f7f7fb;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      white-space: pre-wrap;
+      color: var(--tk-text);
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+
+    .outcome-display-label {
+      font-weight: 700;
+      color: var(--tk-primary);
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .final-controls {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .copy-feedback {
+      text-align: center;
+      color: #28a745;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 10px;
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 0.9rem;
+    }
+
+    .footer a {
+      color: white;
+      text-decoration: none;
+    }
+
+    @media (max-width: 600px) {
+      .container { padding: 22px; }
+      .circle-container { padding: 26px; }
+    }
+  </style>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+</head>
+<body>
+
+  <!-- SETUP SCREEN -->
+  <div class="container" id="setupScreen">
+    <h1>🗣️ Restorative Circle</h1>
+    <p class="subtitle">Set up a guided discussion circle for your class</p>
+
+    <div class="section-title">1. Choose a circle type</div>
+    <div class="type-grid" id="typeGrid"></div>
+
+    <div class="question-preview" id="questionPreview">
+      <div class="section-title" style="margin-bottom:0;">Questions</div>
+      <p class="empty-note">Choose a circle type above to see its questions.</p>
+    </div>
+
+    <div class="input-group">
+      <label for="customQuestionInput">2. Add one custom question (optional, added to the end)</label>
+      <input type="text" id="customQuestionInput" placeholder="e.g. Is there anything else you'd like the group to know?">
+    </div>
+
+    <div class="input-group">
+      <div class="input-row">
+        <div class="field">
+          <label for="participantsInput">3. Number of participants</label>
+          <input type="number" id="participantsInput" min="1" max="60" value="10">
+        </div>
+        <div class="field">
+          <label for="timeInput">Time per person (seconds)</label>
+          <input type="number" id="timeInput" min="5" max="600" value="45">
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-block" id="beginBtn" onclick="beginCircle()" disabled>Begin Circle</button>
+  </div>
+
+  <!-- MAIN CIRCLE SCREEN -->
+  <div class="container circle-container hidden" id="circleScreen">
+    <div class="circle-meta" id="questionMeta">Question 1 of 3</div>
+    <div class="question-text" id="questionText">Question goes here</div>
+    <div class="speaker-info" id="speakerInfo">Now speaking: Person 1 of 10</div>
+
+    <div class="timer-number" id="timerNumber">0:45</div>
+    <div class="timer-bar-container">
+      <div class="timer-bar-fill" id="timerBar"></div>
+    </div>
+
+    <div class="listen-reminder">🤫 Everyone else listens</div>
+
+    <div class="circle-controls">
+      <button class="btn btn-primary" onclick="nextPerson()">Next person →</button>
+      <button class="btn btn-secondary" onclick="skipQuestion()">Skip question</button>
+    </div>
+  </div>
+
+  <!-- FINAL SCREEN -->
+  <div class="container hidden" id="finalScreen">
+    <div class="final-check">Circle complete ✓</div>
+    <p class="final-subtitle">Capture what the group agreed on before everyone heads out.</p>
+
+    <div id="outcomeEditSection">
+      <textarea id="outcomeInput" placeholder="What did the group agree on? Any next steps or follow-up?"></textarea>
+      <button class="btn btn-success btn-block" onclick="saveOutcome()">Save</button>
+    </div>
+
+    <div id="outcomeDisplaySection" class="hidden">
+      <div class="outcome-display">
+        <div class="outcome-display-label">What we agreed</div>
+        <div id="outcomeDisplayText"></div>
+      </div>
+      <div class="final-controls">
+        <button class="btn btn-secondary" onclick="copyOutcome()">📋 Copy to clipboard</button>
+        <button class="btn btn-primary" onclick="newCircle()">New Circle</button>
+      </div>
+      <p class="copy-feedback" id="copyFeedback"></p>
+    </div>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    const QUESTION_SETS = {
+      checkin: {
+        label: 'Check-in',
+        description: 'A quick daily connection circle',
+        questions: [
+          "How are you feeling today, and why?",
+          "What's one thing that happened since we last met — good or bad?",
+          "What's one thing you're looking forward to?"
+        ]
+      },
+      problem: {
+        label: 'Problem-Solving',
+        description: 'A restorative process for resolving conflict',
+        questions: [
+          "What happened, and how did it affect you?",
+          "What were you thinking about at the time?",
+          "Who has been affected by what happened, and how?",
+          "What needs to happen to make things right?"
+        ]
+      },
+      community: {
+        label: 'Community',
+        description: 'Building connection and appreciation',
+        questions: [
+          "What's something good that happened this week?",
+          "What's one thing you appreciate about this class or a classmate?",
+          "What's a challenge you're facing that this group could help with?"
+        ]
+      }
+    };
+
+    let selectedType = null;
+    let questions = [];
+    let participants = 10;
+    let timePerPerson = 45;
+    let currentQuestionIndex = 0;
+    let currentPerson = 0; // 0-indexed
+    let remainingSeconds = 0;
+    let totalForBar = 0;
+    let timerInterval = null;
+
+    function buildTypeGrid() {
+      const grid = document.getElementById('typeGrid');
+      grid.innerHTML = '';
+      Object.keys(QUESTION_SETS).forEach(key => {
+        const set = QUESTION_SETS[key];
+        const btn = document.createElement('button');
+        btn.className = 'type-btn';
+        btn.id = 'type-' + key;
+        btn.innerHTML = `<span class="type-label">${set.label}</span><span class="type-desc">${set.description}</span>`;
+        btn.onclick = () => selectType(key);
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectType(key) {
+      selectedType = key;
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+      document.getElementById('type-' + key).classList.add('selected');
+      renderQuestionPreview();
+      document.getElementById('beginBtn').disabled = false;
+    }
+
+    function renderQuestionPreview() {
+      const container = document.getElementById('questionPreview');
+      if (!selectedType) {
+        container.innerHTML = '<div class="section-title" style="margin-bottom:0;">Questions</div><p class="empty-note">Choose a circle type above to see its questions.</p>';
+        return;
+      }
+      const custom = document.getElementById('customQuestionInput').value.trim();
+      const list = [...QUESTION_SETS[selectedType].questions];
+      if (custom) list.push(custom);
+      const items = list.map(q => `<li>${escapeHtml(q)}</li>`).join('');
+      container.innerHTML = `<div class="section-title" style="margin-bottom:0;">Questions</div><ol>${items}</ol>`;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      buildTypeGrid();
+      document.getElementById('customQuestionInput').addEventListener('input', renderQuestionPreview);
+    });
+
+    function beginCircle() {
+      if (!selectedType) return;
+
+      participants = parseInt(document.getElementById('participantsInput').value) || 1;
+      if (participants < 1) participants = 1;
+      timePerPerson = parseInt(document.getElementById('timeInput').value) || 45;
+      if (timePerPerson < 5) timePerPerson = 5;
+
+      questions = [...QUESTION_SETS[selectedType].questions];
+      const custom = document.getElementById('customQuestionInput').value.trim();
+      if (custom) questions.push(custom);
+
+      currentQuestionIndex = 0;
+      currentPerson = 0;
+
+      document.getElementById('setupScreen').classList.add('hidden');
+      document.getElementById('circleScreen').classList.remove('hidden');
+      document.body.classList.add('circle-mode');
+
+      updateQuestionDisplay();
+      updateSpeakerDisplay();
+      startPersonTimer();
+    }
+
+    function updateQuestionDisplay() {
+      document.getElementById('questionMeta').textContent = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
+      document.getElementById('questionText').textContent = questions[currentQuestionIndex];
+    }
+
+    function updateSpeakerDisplay() {
+      document.getElementById('speakerInfo').textContent = `Now speaking: Person ${currentPerson + 1} of ${participants}`;
+    }
+
+    function startPersonTimer() {
+      clearInterval(timerInterval);
+      remainingSeconds = timePerPerson;
+      totalForBar = timePerPerson;
+      updateTimerDisplay();
+      timerInterval = setInterval(tick, 1000);
+    }
+
+    function tick() {
+      remainingSeconds--;
+      if (remainingSeconds <= 0) {
+        remainingSeconds = 0;
+        updateTimerDisplay();
+        clearInterval(timerInterval);
+        playTimeUpSound();
+      } else {
+        updateTimerDisplay();
+      }
+    }
+
+    function updateTimerDisplay() {
+      const minutes = Math.floor(remainingSeconds / 60);
+      const seconds = remainingSeconds % 60;
+      document.getElementById('timerNumber').textContent = `${minutes}:${String(seconds).padStart(2, '0')}`;
+
+      const percent = totalForBar > 0 ? (remainingSeconds / totalForBar) * 100 : 0;
+      const bar = document.getElementById('timerBar');
+      bar.style.width = percent + '%';
+
+      const numberEl = document.getElementById('timerNumber');
+      numberEl.classList.remove('warning', 'danger');
+      bar.classList.remove('warning', 'danger');
+      if (percent <= 10) {
+        numberEl.classList.add('danger');
+        bar.classList.add('danger');
+      } else if (percent <= 30) {
+        numberEl.classList.add('warning');
+        bar.classList.add('warning');
+      }
+    }
+
+    function nextPerson() {
+      clearInterval(timerInterval);
+      currentPerson++;
+
+      if (currentPerson >= participants) {
+        currentPerson = 0;
+        currentQuestionIndex++;
+        if (currentQuestionIndex >= questions.length) {
+          finishCircle();
+          return;
+        }
+        playQuestionChangeSound();
+        updateQuestionDisplay();
+      }
+
+      updateSpeakerDisplay();
+      startPersonTimer();
+    }
+
+    function skipQuestion() {
+      clearInterval(timerInterval);
+      currentQuestionIndex++;
+      currentPerson = 0;
+
+      if (currentQuestionIndex >= questions.length) {
+        finishCircle();
+        return;
+      }
+
+      playQuestionChangeSound();
+      updateQuestionDisplay();
+      updateSpeakerDisplay();
+      startPersonTimer();
+    }
+
+    function finishCircle() {
+      clearInterval(timerInterval);
+      document.getElementById('circleScreen').classList.add('hidden');
+      document.body.classList.remove('circle-mode');
+
+      document.getElementById('outcomeInput').value = '';
+      document.getElementById('outcomeEditSection').classList.remove('hidden');
+      document.getElementById('outcomeDisplaySection').classList.add('hidden');
+      document.getElementById('copyFeedback').textContent = '';
+
+      document.getElementById('finalScreen').classList.remove('hidden');
+    }
+
+    function saveOutcome() {
+      const text = document.getElementById('outcomeInput').value.trim() || 'No outcome recorded.';
+      document.getElementById('outcomeDisplayText').textContent = text;
+      document.getElementById('outcomeEditSection').classList.add('hidden');
+      document.getElementById('outcomeDisplaySection').classList.remove('hidden');
+    }
+
+    function copyOutcome() {
+      const text = document.getElementById('outcomeDisplayText').textContent;
+      const feedback = document.getElementById('copyFeedback');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          feedback.textContent = 'Copied to clipboard!';
+          setTimeout(() => { feedback.textContent = ''; }, 2000);
+        }).catch(() => {
+          feedback.textContent = 'Could not copy — please copy manually.';
+        });
+      } else {
+        feedback.textContent = 'Clipboard not supported in this browser.';
+      }
+    }
+
+    function newCircle() {
+      clearInterval(timerInterval);
+      selectedType = null;
+      questions = [];
+      currentQuestionIndex = 0;
+      currentPerson = 0;
+
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+      document.getElementById('customQuestionInput').value = '';
+      document.getElementById('beginBtn').disabled = true;
+      renderQuestionPreview();
+
+      document.getElementById('finalScreen').classList.add('hidden');
+      document.getElementById('setupScreen').classList.remove('hidden');
+    }
+
+    // --- Sound cues (Web Audio API oscillator beeps, same approach as
+    // Visual Timer / Quick Poll — no audio files needed) ---
+    function playTone(frequency, duration) {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+
+    function playQuestionChangeSound() {
+      playTone(523.25, 0.15);
+      setTimeout(() => playTone(659.25, 0.2), 150);
+    }
+
+    function playTimeUpSound() {
+      playTone(392, 0.3);
+      setTimeout(() => playTone(392, 0.3), 350);
+    }
+  </script>
+  <script>window.TK_CURRENT = 'restorative-circle';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

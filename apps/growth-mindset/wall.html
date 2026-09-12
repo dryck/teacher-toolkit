@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Growth Mindset Reframer — Wall of Yet</title>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    h1 {
+      text-align: center;
+      color: #fff;
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+    }
+    h2 {
+      color: #fff;
+      font-size: 1.3rem;
+      margin: 32px 0 14px;
+      text-align: center;
+    }
+
+    .join-card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .join-card img { width: 140px; height: 140px; border-radius: 8px; }
+    .join-info { text-align: center; }
+    .join-info .code {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--tk-primary-dark);
+    }
+    .join-info .url {
+      font-size: 0.95rem;
+      color: var(--tk-text-muted);
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .join-info button {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .section-card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    #queueEmpty, #wallEmpty {
+      color: var(--tk-text-muted);
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    .queue-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+      flex-wrap: wrap;
+    }
+    .queue-item:last-child { border-bottom: none; }
+    .queue-item .queue-text {
+      flex: 1;
+      min-width: 200px;
+      color: var(--tk-text);
+      font-weight: 600;
+    }
+    .queue-item .queue-actions { display: flex; gap: 8px; }
+    .queue-item button {
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+    .approve-btn { background: #dcfce7; color: #15803d; }
+    .reject-btn { background: #fee2e2; color: #b91c1c; }
+
+    .wall-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .wall-card {
+      background: linear-gradient(135deg, #fef9c3, #fde68a);
+      border-radius: 14px;
+      padding: 18px;
+      font-weight: 700;
+      color: #1f2333;
+      line-height: 1.4;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .controls button {
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    #newSessionBtn { background: #e0e7ff; color: #3730a3; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🌱 Growth Mindset Reframer — Wall of "Yet"</h1>
+
+    <div class="join-card">
+      <img id="qrImg" alt="QR code to join">
+      <div class="join-info">
+        <div>Students join at:</div>
+        <div class="code" id="sessionCode"></div>
+        <div class="url" id="joinUrl"></div>
+        <button id="copyBtn">Copy link</button>
+      </div>
+    </div>
+
+    <h2>🕓 Waiting for approval</h2>
+    <div class="section-card">
+      <div id="queueEmpty">No submissions waiting right now.</div>
+      <div id="queueList"></div>
+    </div>
+
+    <h2>🌟 OUR WALL OF "YET" 🌱</h2>
+    <div class="section-card">
+      <div id="wallEmpty">Nothing approved yet — approve entries above to add them here.</div>
+      <div class="wall-grid" id="wallGrid"></div>
+    </div>
+
+    <div class="controls">
+      <button id="newSessionBtn">🆕 New session code</button>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="growth-mindset.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+    if (!sessionId) {
+      sessionId = TKGrowth.randomSessionCode();
+      const url = new URL(location.href);
+      url.searchParams.set('session', sessionId);
+      history.replaceState(null, '', url);
+    }
+
+    const joinUrl = location.origin + location.pathname.replace('wall.html', 'index.html') + '?session=' + sessionId;
+    document.getElementById('sessionCode').textContent = sessionId;
+    document.getElementById('joinUrl').textContent = joinUrl;
+    // QR image rendered via a public QR-generation service (api.qrserver.com) --
+    // the join URL contains only a random session code, no student data.
+    document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(joinUrl);
+
+    document.getElementById('copyBtn').onclick = () => {
+      navigator.clipboard.writeText(joinUrl).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    };
+
+    document.getElementById('newSessionBtn').onclick = () => {
+      if (!confirm('Start a brand-new session code? Students will need the new link/QR to join, and this Wall will show a fresh (empty) session.')) return;
+      const url = new URL(location.href);
+      url.searchParams.set('session', TKGrowth.randomSessionCode());
+      location.href = url.toString();
+    };
+
+    const queueList = document.getElementById('queueList');
+    const queueEmpty = document.getElementById('queueEmpty');
+    const wallGrid = document.getElementById('wallGrid');
+    const wallEmpty = document.getElementById('wallEmpty');
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // Moderation queue: pending (not-yet-approved) entries.
+    TKGrowth.entriesRef(sessionId).where('approved', '==', false)
+      .onSnapshot(snap => {
+        queueList.innerHTML = '';
+        queueEmpty.style.display = snap.empty ? 'block' : 'none';
+        snap.forEach(doc => {
+          const data = doc.data();
+          const row = document.createElement('div');
+          row.className = 'queue-item';
+          row.innerHTML = `
+            <div class="queue-text">${escapeHtml(data.text || '')}</div>
+            <div class="queue-actions">
+              <button class="approve-btn" data-id="${doc.id}">✓ Approve</button>
+              <button class="reject-btn" data-id="${doc.id}">✕ Reject</button>
+            </div>
+          `;
+          queueList.appendChild(row);
+        });
+
+        queueList.querySelectorAll('.approve-btn').forEach(btn => {
+          btn.onclick = () => {
+            TKGrowth.entriesRef(sessionId).doc(btn.dataset.id).update({ approved: true })
+              .catch(err => { console.error(err); alert('Could not approve — check your connection and try again.'); });
+          };
+        });
+        queueList.querySelectorAll('.reject-btn').forEach(btn => {
+          btn.onclick = () => {
+            TKGrowth.entriesRef(sessionId).doc(btn.dataset.id).delete()
+              .catch(err => { console.error(err); alert('Could not reject — check your connection and try again.'); });
+          };
+        });
+      }, err => console.error(err));
+
+    // Public wall: approved entries only. This is the part meant to be
+    // projected for the whole class.
+    TKGrowth.entriesRef(sessionId).where('approved', '==', true)
+      .onSnapshot(snap => {
+        wallGrid.innerHTML = '';
+        wallEmpty.style.display = snap.empty ? 'block' : 'none';
+        snap.forEach(doc => {
+          const data = doc.data();
+          const card = document.createElement('div');
+          card.className = 'wall-card';
+          card.textContent = data.text || '';
+          wallGrid.appendChild(card);
+        });
+      }, err => console.error(err));
+  </script>
+  <script>window.TK_CURRENT = 'growth-mindset';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

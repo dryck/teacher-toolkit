@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Behaviour Tracker | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      padding-bottom: 100px; /* room for the fixed banner + undo bar on small screens */
+    }
+    .page-wrap {
+      width: 100%;
+      max-width: 900px;
+    }
+    header {
+      text-align: center;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    header .subtitle {
+      margin-top: 4px;
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      font-family: inherit;
+    }
+    .btn:active { transform: translateY(1px) scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--tk-bg-gradient);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { box-shadow: 0 6px 18px rgba(102,126,234,0.4); }
+    .btn-secondary {
+      background: var(--tk-surface);
+      color: var(--tk-text);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .btn-secondary:hover:not(:disabled) { background: #f0f0f0; }
+    .btn-danger {
+      background: #e74c3c;
+      color: #fff;
+    }
+    .btn-danger:hover { background: #c0392b; }
+    .btn-block { width: 100%; }
+
+    .settings-panel {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .settings-panel h2 {
+      color: var(--tk-text);
+      font-size: 1.2rem;
+      margin-bottom: 14px;
+    }
+    .settings-panel label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      font-size: 0.9rem;
+      margin-bottom: 14px;
+    }
+    .settings-panel textarea,
+    .settings-panel input[type="text"],
+    .settings-panel input[type="number"],
+    .settings-panel select {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      font-weight: normal;
+      color: var(--tk-text);
+    }
+    .settings-panel textarea:focus,
+    .settings-panel input:focus,
+    .settings-panel select:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .settings-panel textarea { resize: vertical; min-height: 120px; }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 4px 16px;
+    }
+    .settings-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .settings-panel .hint {
+      font-size: 0.8rem;
+      color: var(--tk-text-muted);
+      margin-top: 10px;
+      font-weight: normal;
+      line-height: 1.4;
+    }
+
+    .empty-state {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 30px;
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-size: 1.05rem;
+    }
+
+    .student-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 14px;
+    }
+    .student-tile {
+      position: relative;
+      background: var(--tk-surface);
+      border: 3px solid transparent;
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 18px 12px;
+      min-height: 130px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+      transition: transform 0.1s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .student-tile:active { transform: scale(0.97); }
+    .student-tile .name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--tk-text);
+      text-align: center;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+    .student-tile .dots {
+      font-size: 1.5rem;
+      letter-spacing: 4px;
+      color: var(--tk-primary-dark);
+    }
+    .student-tile .dots .extra {
+      font-size: 0.9rem;
+      letter-spacing: normal;
+      color: #e74c3c;
+      font-weight: 700;
+      margin-left: 4px;
+    }
+    .student-tile.flagged {
+      border-color: #e74c3c;
+      background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
+    }
+    .student-tile .warn-badge {
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      font-size: 1.4rem;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+    }
+    .student-tile .positive-badge {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #f1c40f;
+      color: #4a3b00;
+      border-radius: 20px;
+      padding: 3px 9px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+
+    /* Confirmation banner for reaching the warning threshold */
+    .banner {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1500;
+      background: #fff3cd;
+      border-top: 4px solid #f39c12;
+      box-shadow: 0 -6px 20px rgba(0,0,0,0.25);
+      padding: 16px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .banner-text {
+      font-weight: 600;
+      color: #6b4b00;
+      flex: 1;
+      min-width: 200px;
+      font-size: 1rem;
+    }
+    .banner-actions {
+      display: flex;
+      gap: 10px;
+    }
+    /* The `hidden` attribute alone loses to the `.banner`/`.modal-overlay`
+       class's own `display: flex` (a class selector beats the browser's
+       built-in [hidden] rule on specificity), so both stayed visible on
+       load despite being marked hidden. Restate it explicitly here. */
+    .banner[hidden], .modal-overlay[hidden] { display: none; }
+
+    /* Generic modal (context menu / add note / history) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 16px;
+    }
+    .modal {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 22px;
+      width: 100%;
+      max-width: 420px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal h3 {
+      color: var(--tk-text);
+      margin-bottom: 14px;
+      font-size: 1.15rem;
+    }
+    .modal-option-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .modal-option-list button {
+      text-align: left;
+      padding: 16px;
+    }
+    .modal textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      resize: vertical;
+      margin-bottom: 14px;
+    }
+    .modal textarea:focus { outline: none; border-color: var(--tk-primary); }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .history-entry {
+      border-left: 3px solid var(--tk-primary);
+      padding: 6px 10px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+    .history-entry.warning-removed,
+    .history-entry.reset { border-left-color: #95a5a6; }
+    .history-entry.positive { border-left-color: #f1c40f; }
+    .history-entry.note { border-left-color: #3498db; }
+    .history-entry .ts {
+      font-size: 0.75rem;
+      color: var(--tk-text-muted);
+      display: block;
+    }
+    .history-entry .detail {
+      font-size: 0.95rem;
+      color: var(--tk-text);
+    }
+    .history-empty {
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+      margin-top: 10px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9rem;
+    }
+    .footer a {
+      color: white;
+      text-decoration: none;
+    }
+
+    @media (max-width: 480px) {
+      .student-tile { min-height: 110px; padding: 14px 8px; }
+      .student-tile .name { font-size: 1.1rem; }
+      .banner { flex-direction: column; align-items: stretch; }
+      .banner-actions { justify-content: stretch; }
+      .banner-actions .btn { flex: 1; }
+    }
+  </style>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+</head>
+<body>
+  <div class="page-wrap">
+    <header>
+      <h1>🧭 Behaviour Tracker</h1>
+      <p class="subtitle">Tap a student for a warning. Long-press (or right-click) a tile for more options.</p>
+    </header>
+
+    <div class="toolbar">
+      <button id="toggleSettingsBtn" class="btn btn-secondary" type="button">⚙️ Settings</button>
+      <button id="undoBtn" class="btn btn-secondary" type="button" disabled>↩️ Undo last action</button>
+    </div>
+
+    <section id="settingsPanel" class="settings-panel" hidden>
+      <h2>Settings</h2>
+      <label for="rosterInput">Class roster (one name per line)
+        <textarea id="rosterInput" rows="8" placeholder="Alice&#10;Bob&#10;Charlie"></textarea>
+      </label>
+      <div class="settings-grid">
+        <label for="thresholdInput">Warnings before consequence
+          <input type="number" id="thresholdInput" min="1" max="10" value="3">
+        </label>
+        <label for="consequenceInput">Consequence text
+          <input type="text" id="consequenceInput" placeholder="e.g. loses LEGO privilege">
+        </label>
+        <label for="showWarningsInput">Show warnings to student
+          <select id="showWarningsInput">
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+        <label for="resetCadenceInput">Reset warnings
+          <select id="resetCadenceInput">
+            <option value="lesson">Each lesson</option>
+            <option value="day">Each day</option>
+          </select>
+        </label>
+      </div>
+      <div class="settings-actions">
+        <button id="saveSettingsBtn" class="btn btn-primary" type="button">Save settings</button>
+        <button id="resetWarningsBtn" class="btn btn-danger" type="button">Reset all warnings now</button>
+      </div>
+      <p class="hint">"Reset warnings" cadence is just a reminder of your own routine — this tool doesn't auto-reset on a schedule yet. Tap "Reset all warnings now" yourself at the start of each lesson/day.</p>
+    </section>
+
+    <div id="emptyState" class="empty-state" hidden>Add student names in Settings above to get started.</div>
+
+    <div id="studentGrid" class="student-grid"></div>
+  </div>
+
+  <div id="banner" class="banner" hidden>
+    <div class="banner-text" id="bannerText"></div>
+    <div class="banner-actions">
+      <button id="bannerConfirmBtn" class="btn btn-primary" type="button">Confirm</button>
+      <button id="bannerUndoBtn" class="btn btn-secondary" type="button">Undo</button>
+    </div>
+  </div>
+
+  <div id="modalOverlay" class="modal-overlay" hidden>
+    <div class="modal" id="modalContent"></div>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------
+    // Storage
+    // ---------------------------------------------------------------
+    const LS_KEY = 'tk-behaviour-tracker-state-v1';
+
+    const DEFAULT_STATE = {
+      settings: {
+        warningsBeforeConsequence: 3,
+        consequenceText: 'loses LEGO privilege',
+        showWarningsToStudent: 'yes',
+        resetCadence: 'lesson'
+      },
+      rosterText: 'Alice\nBob\nCharlie\nDiana\nEvan',
+      // students: { [name]: { warnings, positives, history: [{ts, type, detail}] } }
+      students: {}
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        const parsed = JSON.parse(raw);
+        // Merge with defaults so new settings fields don't break old saves.
+        return {
+          settings: Object.assign({}, DEFAULT_STATE.settings, parsed.settings || {}),
+          rosterText: typeof parsed.rosterText === 'string' ? parsed.rosterText : DEFAULT_STATE.rosterText,
+          students: parsed.students || {}
+        };
+      } catch (e) {
+        console.warn('Behaviour Tracker: could not read saved state, starting fresh.', e);
+        return JSON.parse(JSON.stringify(DEFAULT_STATE));
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+    }
+
+    let state = loadState();
+
+    // Global undo — a deep snapshot of `state.students` taken right before
+    // the most recent mutating action. Undo just restores it. This is a
+    // single-slot undo (only the last action), refreshed on every new action.
+    let lastAction = null; // { label, snapshot }
+
+    function getStudent(name) {
+      if (!state.students[name]) {
+        state.students[name] = { warnings: 0, positives: 0, history: [] };
+      }
+      return state.students[name];
+    }
+
+    function getRosterNames() {
+      return state.rosterText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+    }
+
+    function withUndo(label, mutateFn) {
+      lastAction = {
+        label: label,
+        snapshot: JSON.parse(JSON.stringify(state.students))
+      };
+      mutateFn();
+      saveState();
+      renderGrid();
+      updateUndoButton();
+    }
+
+    function performUndo() {
+      if (!lastAction) return;
+      state.students = lastAction.snapshot;
+      lastAction = null;
+      saveState();
+      renderGrid();
+      updateUndoButton();
+      hideBanner();
+    }
+
+    function updateUndoButton() {
+      const btn = document.getElementById('undoBtn');
+      btn.disabled = !lastAction;
+      btn.title = lastAction ? ('Undo: ' + lastAction.label) : '';
+    }
+
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str == null ? '' : String(str);
+      return div.innerHTML;
+    }
+
+    function ordinal(n) {
+      const s = ['th', 'st', 'nd', 'rd'];
+      const v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    }
+
+    function formatTs(ts) {
+      const d = new Date(ts);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+        ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function pushHistory(student, type, detail) {
+      student.history.push({ ts: Date.now(), type: type, detail: detail });
+    }
+
+    // ---------------------------------------------------------------
+    // Actions
+    // ---------------------------------------------------------------
+    function addWarning(name) {
+      const threshold = Math.max(1, parseInt(state.settings.warningsBeforeConsequence, 10) || 1);
+      let reachedThreshold = false;
+      let newCount = 0;
+      withUndo('Warning for ' + name, () => {
+        const s = getStudent(name);
+        s.warnings += 1;
+        newCount = s.warnings;
+        reachedThreshold = (newCount === threshold);
+        const detail = reachedThreshold
+          ? ordinal(newCount) + ' warning — consequence: ' + (state.settings.consequenceText || '(none set)')
+          : ordinal(newCount) + ' warning';
+        pushHistory(s, 'warning', detail);
+      });
+      if (reachedThreshold) {
+        showBanner(name, newCount);
+      }
+    }
+
+    function removeWarning(name) {
+      withUndo('Removed a warning for ' + name, () => {
+        const s = getStudent(name);
+        if (s.warnings <= 0) return;
+        s.warnings -= 1;
+        pushHistory(s, 'warning-removed', 'Warning removed (now ' + s.warnings + ')');
+      });
+    }
+
+    function addPositive(name) {
+      withUndo('Positive point for ' + name, () => {
+        const s = getStudent(name);
+        s.positives += 1;
+        pushHistory(s, 'positive', 'Positive point (+1, total ' + s.positives + ')');
+      });
+    }
+
+    function addNote(name, text) {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      withUndo('Note for ' + name, () => {
+        const s = getStudent(name);
+        pushHistory(s, 'note', trimmed);
+      });
+    }
+
+    function resetAllWarnings() {
+      withUndo('Reset all warnings', () => {
+        getRosterNames().forEach(name => {
+          const s = getStudent(name);
+          if (s.warnings > 0) {
+            pushHistory(s, 'reset', 'Warnings reset to 0 (was ' + s.warnings + ')');
+          }
+          s.warnings = 0;
+        });
+      });
+    }
+
+    // ---------------------------------------------------------------
+    // Rendering
+    // ---------------------------------------------------------------
+    function renderGrid() {
+      const grid = document.getElementById('studentGrid');
+      const empty = document.getElementById('emptyState');
+      const names = getRosterNames();
+      const threshold = Math.max(1, parseInt(state.settings.warningsBeforeConsequence, 10) || 1);
+
+      if (names.length === 0) {
+        grid.innerHTML = '';
+        empty.hidden = false;
+        return;
+      }
+      empty.hidden = true;
+
+      grid.innerHTML = names.map(name => {
+        const s = getStudent(name);
+        const filled = Math.min(s.warnings, threshold);
+        const dots = '●'.repeat(filled) + '○'.repeat(Math.max(threshold - filled, 0));
+        const extra = s.warnings > threshold ? '<span class="extra">+' + (s.warnings - threshold) + '</span>' : '';
+        const flagged = s.warnings >= threshold;
+        return (
+          '<div class="student-tile' + (flagged ? ' flagged' : '') + '" data-name="' + escapeHtml(name) + '">' +
+            (flagged ? '<span class="warn-badge">⚠️</span>' : '') +
+            (s.positives > 0 ? '<span class="positive-badge">★ ' + s.positives + '</span>' : '') +
+            '<div class="name">' + escapeHtml(name) + '</div>' +
+            '<div class="dots">' + dots + extra + '</div>' +
+          '</div>'
+        );
+      }).join('');
+
+      // Save the (possibly newly-initialized) student records for any
+      // roster names that didn't exist in state.students yet.
+      saveState();
+
+      attachTileHandlers();
+    }
+
+    function attachTileHandlers() {
+      const LONG_PRESS_MS = 550;
+      const MOVE_TOLERANCE = 12;
+
+      document.querySelectorAll('.student-tile').forEach(tile => {
+        const name = tile.getAttribute('data-name');
+        let pressTimer = null;
+        let longPressFired = false;
+        let startX = 0, startY = 0;
+
+        function clearPressTimer() {
+          if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        }
+
+        tile.addEventListener('pointerdown', e => {
+          longPressFired = false;
+          startX = e.clientX; startY = e.clientY;
+          clearPressTimer();
+          pressTimer = setTimeout(() => {
+            longPressFired = true;
+            openContextMenu(name);
+          }, LONG_PRESS_MS);
+        });
+        tile.addEventListener('pointermove', e => {
+          if (pressTimer && (Math.abs(e.clientX - startX) > MOVE_TOLERANCE || Math.abs(e.clientY - startY) > MOVE_TOLERANCE)) {
+            clearPressTimer();
+          }
+        });
+        tile.addEventListener('pointerup', clearPressTimer);
+        tile.addEventListener('pointercancel', clearPressTimer);
+        tile.addEventListener('pointerleave', clearPressTimer);
+
+        tile.addEventListener('contextmenu', e => {
+          e.preventDefault();
+          if (!longPressFired) openContextMenu(name);
+        });
+
+        tile.addEventListener('click', () => {
+          if (longPressFired) { longPressFired = false; return; }
+          addWarning(name);
+        });
+      });
+    }
+
+    // ---------------------------------------------------------------
+    // Confirmation banner (shown when a student hits the warning threshold)
+    // ---------------------------------------------------------------
+    function showBanner(name, nth) {
+      const banner = document.getElementById('banner');
+      const text = document.getElementById('bannerText');
+      text.textContent = name + ' — ' + ordinal(nth) + ' warning. Consequence: ' + (state.settings.consequenceText || '(none set)');
+      banner.hidden = false;
+    }
+    function hideBanner() {
+      document.getElementById('banner').hidden = true;
+    }
+    document.getElementById('bannerConfirmBtn').addEventListener('click', hideBanner);
+    document.getElementById('bannerUndoBtn').addEventListener('click', () => {
+      performUndo();
+    });
+
+    // ---------------------------------------------------------------
+    // Modal system (context menu / add note / history)
+    // ---------------------------------------------------------------
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalContent = document.getElementById('modalContent');
+
+    function openModal(html) {
+      modalContent.innerHTML = html;
+      modalOverlay.hidden = false;
+    }
+    function closeModal() {
+      modalOverlay.hidden = true;
+      modalContent.innerHTML = '';
+    }
+    modalOverlay.addEventListener('click', e => {
+      if (e.target === modalOverlay) closeModal();
+    });
+
+    function openContextMenu(name) {
+      openModal(
+        '<h3>' + escapeHtml(name) + '</h3>' +
+        '<div class="modal-option-list">' +
+          '<button class="btn btn-secondary" type="button" data-action="remove-warning">➖ Remove one warning</button>' +
+          '<button class="btn btn-secondary" type="button" data-action="add-positive">★ Add a positive point</button>' +
+          '<button class="btn btn-secondary" type="button" data-action="add-note">📝 Add a note</button>' +
+          '<button class="btn btn-secondary" type="button" data-action="view-history">📜 View history</button>' +
+          '<button class="btn btn-secondary" type="button" data-action="close">Cancel</button>' +
+        '</div>'
+      );
+      modalContent.querySelector('[data-action="remove-warning"]').addEventListener('click', () => { removeWarning(name); closeModal(); });
+      modalContent.querySelector('[data-action="add-positive"]').addEventListener('click', () => { addPositive(name); closeModal(); });
+      modalContent.querySelector('[data-action="add-note"]').addEventListener('click', () => { openAddNoteModal(name); });
+      modalContent.querySelector('[data-action="view-history"]').addEventListener('click', () => { openHistoryModal(name); });
+      modalContent.querySelector('[data-action="close"]').addEventListener('click', closeModal);
+    }
+
+    function openAddNoteModal(name) {
+      openModal(
+        '<h3>Add a note — ' + escapeHtml(name) + '</h3>' +
+        '<textarea id="noteText" placeholder="e.g. Struggled to focus during group work"></textarea>' +
+        '<div class="modal-actions">' +
+          '<button class="btn btn-secondary" type="button" data-action="cancel">Cancel</button>' +
+          '<button class="btn btn-primary" type="button" data-action="save">Save note</button>' +
+        '</div>'
+      );
+      const textarea = document.getElementById('noteText');
+      textarea.focus();
+      modalContent.querySelector('[data-action="cancel"]').addEventListener('click', closeModal);
+      modalContent.querySelector('[data-action="save"]').addEventListener('click', () => {
+        addNote(name, textarea.value);
+        closeModal();
+      });
+    }
+
+    function openHistoryModal(name) {
+      const s = getStudent(name);
+      const entries = s.history.slice().reverse();
+      const list = entries.length === 0
+        ? '<p class="history-empty">No history yet for ' + escapeHtml(name) + '.</p>'
+        : '<div class="history-list">' + entries.map(entry =>
+            '<div class="history-entry ' + escapeHtml(entry.type) + '">' +
+              '<span class="ts">' + formatTs(entry.ts) + ' · ' + escapeHtml(entry.type.replace('-', ' ')) + '</span>' +
+              '<span class="detail">' + escapeHtml(entry.detail) + '</span>' +
+            '</div>'
+          ).join('') + '</div>';
+
+      openModal(
+        '<h3>History — ' + escapeHtml(name) + '</h3>' +
+        list +
+        '<div class="modal-actions">' +
+          '<button class="btn btn-secondary" type="button" data-action="close">Close</button>' +
+        '</div>'
+      );
+      modalContent.querySelector('[data-action="close"]').addEventListener('click', closeModal);
+    }
+
+    // ---------------------------------------------------------------
+    // Settings panel
+    // ---------------------------------------------------------------
+    const settingsPanel = document.getElementById('settingsPanel');
+    document.getElementById('toggleSettingsBtn').addEventListener('click', () => {
+      settingsPanel.hidden = !settingsPanel.hidden;
+    });
+
+    function populateSettingsForm() {
+      document.getElementById('rosterInput').value = state.rosterText;
+      document.getElementById('thresholdInput').value = state.settings.warningsBeforeConsequence;
+      document.getElementById('consequenceInput').value = state.settings.consequenceText;
+      document.getElementById('showWarningsInput').value = state.settings.showWarningsToStudent;
+      document.getElementById('resetCadenceInput').value = state.settings.resetCadence;
+    }
+
+    document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+      state.rosterText = document.getElementById('rosterInput').value;
+      state.settings.warningsBeforeConsequence = Math.max(1, parseInt(document.getElementById('thresholdInput').value, 10) || 1);
+      state.settings.consequenceText = document.getElementById('consequenceInput').value;
+      state.settings.showWarningsToStudent = document.getElementById('showWarningsInput').value;
+      state.settings.resetCadence = document.getElementById('resetCadenceInput').value;
+      saveState();
+      renderGrid();
+    });
+
+    document.getElementById('resetWarningsBtn').addEventListener('click', () => {
+      resetAllWarnings();
+    });
+
+    document.getElementById('undoBtn').addEventListener('click', performUndo);
+
+    // ---------------------------------------------------------------
+    // Init
+    // ---------------------------------------------------------------
+    populateSettingsForm();
+    renderGrid();
+    updateUndoButton();
+  </script>
+  <script>window.TK_CURRENT = 'behaviour-tracker';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

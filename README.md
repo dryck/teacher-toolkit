@@ -11,16 +11,28 @@ https://dryck.github.io/teacher-toolkit/
 
 ```
 apps/
-  hub/            static landing page (cards linking to each tool)
-  noise-monitor/  React + Vite + TS — classroom noise level monitor
-  quick-poll/     static — exit-ticket style instant polling
-  random-picker/  static — spinning-wheel name picker
-  visual-timer/   static — countdown timer with mascot
-  research/       static — pedagogical foundation + citations for every tool
-  zones/          static — anonymous emotional check-in (Firebase-backed)
+  hub/                   static landing page (cards linking to each tool)
+  noise-monitor/         React + Vite + TS — classroom noise level monitor
+  quick-poll/            static — exit-ticket style instant polling
+  random-picker/         static — spinning-wheel name picker
+  visual-timer/          static — countdown timer with mascot
+  research/              static — pedagogical foundation + citations for every tool
+  zones/                 static — anonymous emotional check-in (Firebase-backed)
+  exit-ticket/           static — 3-question end-of-lesson check (Firebase-backed)
+  group-generator/       static — random/fair group generator
+  behaviour-tracker/     static — per-student warning tracker (local only)
+  restorative-circle/    static — guided turn-taking circle facilitator
+  growth-mindset/        static — thought reframer + "Wall of Yet" (Firebase-backed)
+  kagan-timer/           static — structured pair/team talk facilitator
+  choice-board/          static — 3x3 task board with live progress (Firebase-backed)
+  presentation-timer/    static — per-team presentation + Q&A timer
+  assessment-checklist/  static — rubric-based team scoring (local only)
 packages/
-  shell/          shared navbar + theme (theme.css, navbar.css, navbar.js)
-                  included by every app so branding/nav stay in sync
+  shell/          shared navbar + theme (theme.css, navbar.css, navbar.js),
+                  plus the shared Firebase config + Firestore rules
+                  (firebase-config.js, firestore.rules) used by every
+                  Firebase-backed tool — included by every app so
+                  branding/nav/backend all stay in sync
 ```
 
 The static tools (`quick-poll`, `random-picker`, `visual-timer`) are plain
@@ -51,38 +63,45 @@ Produces a single deployable site in `./dist`:
 ```
 dist/
   index.html          hub
-  shell/               shared navbar/theme assets
+  shell/               shared navbar/theme/Firebase assets
   noise-monitor/       built React app
-  quick-poll/
-  random-picker/
-  visual-timer/
-  research/
-  zones/
+  <every other tool>/  copied as-is from apps/<tool>/ (no build step)
 ```
 
-## Zones Check-In (Firebase setup)
+## Firebase setup
 
-Unlike the other tools, Zones Check-In needs a live backend — student
-phones write to it, the teacher's screen watches it update in real time.
-It uses Firebase (Firestore) via the CDN compat SDK, no build step needed.
+Four tools need a live backend — student phones/devices write to it, a
+teacher screen watches it update in real time — and they all share **one**
+Firebase project via `packages/shell/firebase-config.js`:
 
-One-time setup:
+- **Zones Check-In** — anonymous zone counters (`zonesSessions`)
+- **Exit Ticket** — end-of-lesson responses (`exitTicketSessions`)
+- **Choice Board** — per-student task progress (`choiceBoardSessions`)
+- **Growth Mindset** — the moderated "Wall of Yet" (`growthWallSessions`)
+
+Every other tool is fully local (localStorage only), no backend needed.
+
+One-time setup (do this once, it covers all four tools above):
 
 1. Create a free project at console.firebase.google.com, enable **Firestore
    Database** (production mode), and register a **Web app** to get a config
    object.
-2. Paste that config into `apps/zones/firebase-config.js` (the `apiKey` etc.
-   are public identifiers, safe to commit — security comes from Firestore
-   rules, not from hiding this).
-3. Paste `apps/zones/firestore.rules` into Firebase Console -> Firestore
-   Database -> Rules -> Publish. This restricts reads/writes to only the
-   `zonesSessions/{sessionId}` documents (just the 4 zone counts as
-   numbers) — no student identity is ever stored.
+2. Paste that config into `packages/shell/firebase-config.js` (the `apiKey`
+   etc. are public identifiers, safe to commit — security comes from
+   Firestore rules, not from hiding this).
+3. Paste `packages/shell/firestore.rules` into Firebase Console -> Firestore
+   Database -> Rules -> Publish. This scopes reads/writes to only each
+   tool's own collection/subcollections (and, for Exit Ticket/Choice
+   Board/Growth Mindset, only the fields each is expected to write) — no
+   student identity is ever required or stored. See the comments at the
+   top of that file for the exact schema each tool uses.
 
-`apps/zones/index.html` is the student check-in screen (join via
-`?session=CODE`); `apps/zones/teacher.html` is the live dashboard (generates
-a session code + QR on load, subscribes to live counts, has Reset/New
-Session/Hide controls).
+Each backend-dependent tool follows the same student-page/teacher-page
+split: a bare, standalone student page with no toolkit navbar (joined via
+`?session=CODE` from a link/QR code — students never see or can navigate
+the rest of the toolkit) and a `teacher.html` (or `wall.html`) page with
+the full navbar that generates the session code + QR and shows the live
+dashboard.
 
 ## Deploy
 

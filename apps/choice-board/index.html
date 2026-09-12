@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Choice Board</title>
+  <!-- No shared navbar/branding here on purpose: students land on this
+       page directly via a link/QR code their teacher gives them, and
+       should never see (or be able to navigate to) the rest of the
+       teacher-facing toolkit. Only theme.css (CSS variables) is kept. -->
+  <link rel="stylesheet" href="../shell/theme.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f4f8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+      color: var(--tk-text);
+      margin: 12px 0 4px;
+    }
+
+    /* Join-by-code screen (shown if no ?session= in the URL) */
+    #joinScreen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #joinScreen p { color: var(--tk-text-muted); }
+    #joinScreen input {
+      font-size: 1.6rem;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 220px;
+    }
+    #joinScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+
+    /* Nickname screen */
+    #nicknameScreen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #nicknameScreen p { color: var(--tk-text-muted); }
+    #nicknameScreen input {
+      font-size: 1.2rem;
+      text-align: center;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 240px;
+    }
+    #nicknameScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+
+    /* Board screen */
+    #boardScreen { display: none; flex: 1; flex-direction: column; gap: 14px; }
+    #boardTitle { text-align: center; font-size: 1.3rem; font-weight: 800; color: var(--tk-text); }
+    #progressLine { text-align: center; font-weight: 700; color: var(--tk-primary-dark); }
+    #minRequiredLine { text-align: center; font-size: 0.85rem; color: var(--tk-text-muted); min-height: 1.2em; }
+
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .board-cell {
+      aspect-ratio: 1 / 1;
+      border-radius: 14px;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 6px;
+      cursor: pointer;
+      background: var(--tk-surface);
+      box-shadow: var(--tk-shadow);
+      color: var(--tk-text);
+      text-align: center;
+    }
+    .board-cell .emoji { font-size: 1.8rem; }
+    .board-cell .label { font-size: 0.75rem; font-weight: 700; line-height: 1.15; }
+    .board-cell.empty {
+      background: transparent;
+      box-shadow: none;
+      cursor: default;
+    }
+    .board-cell.done {
+      background: #22c55e;
+      color: #fff;
+    }
+    .board-cell.done .check { font-size: 1.6rem; }
+
+    /* Task modal */
+    #modalOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 10;
+    }
+    #modalCard {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+    }
+    #modalCard .emoji { font-size: 2.6rem; }
+    #modalCard h2 { font-size: 1.2rem; margin: 10px 0 8px; color: var(--tk-text); }
+    #modalCard p { color: var(--tk-text-muted); margin-bottom: 18px; }
+    #modalDoneBtn {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      background: #22c55e;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 28px;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    #modalDoneBtn:disabled { opacity: 0.7; cursor: default; }
+    #modalCloseBtn {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--tk-text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+    }
+    #modalCompletedTag { color: #16a34a; font-weight: 700; margin-bottom: 10px; display: none; }
+
+    #errorMsg { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🧩 Choice Board</h1>
+
+    <div id="joinScreen">
+      <p>Enter the code your teacher gave you:</p>
+      <input type="text" id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+      <div id="errorMsg"></div>
+      <button id="joinBtn">Join</button>
+    </div>
+
+    <div id="nicknameScreen">
+      <p>What should we call you?</p>
+      <input type="text" id="nicknameInput" maxlength="24" placeholder="Your name" autocomplete="off">
+      <div id="nicknameError" style="color:#dc3545;font-size:0.9rem;min-height:1.2em"></div>
+      <button id="nicknameBtn">Let's go</button>
+    </div>
+
+    <div id="boardScreen">
+      <div id="boardTitle"></div>
+      <div id="progressLine"></div>
+      <div id="minRequiredLine"></div>
+      <div class="board-grid" id="boardGrid"></div>
+    </div>
+  </main>
+
+  <div id="modalOverlay">
+    <div id="modalCard">
+      <div class="emoji" id="modalEmoji"></div>
+      <h2 id="modalTitle"></h2>
+      <p id="modalDesc"></p>
+      <div id="modalCompletedTag">✓ Completed</div>
+      <button id="modalDoneBtn">Mark as Done ✓</button>
+      <button id="modalCloseBtn">Close</button>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="choice-board.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+
+    const joinScreen = document.getElementById('joinScreen');
+    const nicknameScreen = document.getElementById('nicknameScreen');
+    const boardScreen = document.getElementById('boardScreen');
+    const errorMsg = document.getElementById('errorMsg');
+
+    function nicknameKey(id) { return 'tk-choice-board-nickname-' + id; }
+    function studentIdKey(id) { return 'tk-choice-board-studentid-' + id; }
+
+    let studentId = null;
+    let nickname = null;
+    let boardConfig = null;
+    let completed = TKChoiceBoard.emptyCompleted();
+    let openCellIndex = null;
+
+    function startSession() {
+      joinScreen.style.display = 'none';
+      nickname = localStorage.getItem(nicknameKey(sessionId));
+      studentId = localStorage.getItem(studentIdKey(sessionId));
+
+      if (nickname && studentId) {
+        enterBoard();
+      } else {
+        nicknameScreen.style.display = 'flex';
+      }
+    }
+
+    document.getElementById('nicknameBtn').onclick = () => {
+      const val = document.getElementById('nicknameInput').value.trim();
+      const errEl = document.getElementById('nicknameError');
+      if (!val) {
+        errEl.textContent = 'Please enter a name.';
+        return;
+      }
+      nickname = val;
+      studentId = TKChoiceBoard.randomStudentId();
+      localStorage.setItem(nicknameKey(sessionId), nickname);
+      localStorage.setItem(studentIdKey(sessionId), studentId);
+
+      // Without a timeout, a bad connection/config leaves this write
+      // pending forever and the "Join" button never does anything —
+      // same failure mode fixed in Zones' student page.
+      let joinSettled = false;
+      const joinTimeoutId = setTimeout(() => {
+        if (joinSettled) return;
+        joinSettled = true;
+        errEl.textContent = 'Could not join — check your connection and try again.';
+      }, 8000);
+
+      TKChoiceBoard.progressDocRef(sessionId, studentId).set({
+        nickname,
+        completed: TKChoiceBoard.emptyCompleted(),
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).then(() => {
+        if (joinSettled) return;
+        joinSettled = true;
+        clearTimeout(joinTimeoutId);
+        nicknameScreen.style.display = 'none';
+        enterBoard();
+      }).catch(err => {
+        if (joinSettled) return;
+        joinSettled = true;
+        clearTimeout(joinTimeoutId);
+        console.error(err);
+        errEl.textContent = 'Could not join — check your connection and try again.';
+      });
+    };
+
+    function enterBoard() {
+      nicknameScreen.style.display = 'none';
+      boardScreen.style.display = 'flex';
+
+      // Own progress: load once, then keep local + writes on each change.
+      // Timeout guard: without it, a bad connection/config leaves this
+      // read pending forever and the board never renders at all.
+      let progressLoadSettled = false;
+      setTimeout(() => {
+        if (progressLoadSettled) return;
+        progressLoadSettled = true;
+        renderProgressLine();
+        renderGrid();
+      }, 8000);
+      TKChoiceBoard.progressDocRef(sessionId, studentId).get().then(doc => {
+        if (progressLoadSettled) return;
+        progressLoadSettled = true;
+        if (doc.exists && doc.data().completed) {
+          completed = doc.data().completed;
+        }
+        renderProgressLine();
+        renderGrid();
+      }).catch(err => {
+        if (progressLoadSettled) return;
+        progressLoadSettled = true;
+        console.error(err);
+        renderProgressLine();
+        renderGrid();
+      });
+
+      // Board config: live, in case the teacher edits it mid-session.
+      TKChoiceBoard.boardDocRef(sessionId).onSnapshot(doc => {
+        if (!doc.exists) return;
+        boardConfig = doc.data();
+        document.getElementById('boardTitle').textContent = boardConfig.title || 'Choice Board';
+        renderGrid();
+        renderProgressLine();
+      }, err => console.error(err));
+    }
+
+    function renderProgressLine() {
+      const n = TKChoiceBoard.countCompleted(completed);
+      document.getElementById('progressLine').textContent = `Progress: ${n}/${TKChoiceBoard.CELL_COUNT} tasks complete 🌟`;
+
+      const minLine = document.getElementById('minRequiredLine');
+      if (boardConfig && boardConfig.mustDoMode && boardConfig.minRequired) {
+        if (n >= boardConfig.minRequired) {
+          minLine.textContent = '✅ Minimum reached!';
+        } else {
+          const remaining = boardConfig.minRequired - n;
+          minLine.textContent = `${remaining} more needed to reach the minimum of ${boardConfig.minRequired}.`;
+        }
+      } else {
+        minLine.textContent = '';
+      }
+    }
+
+    function renderGrid() {
+      if (!boardConfig) return;
+      const gridEl = document.getElementById('boardGrid');
+      gridEl.innerHTML = '';
+      const cells = boardConfig.cells || TKChoiceBoard.emptyCells();
+      cells.forEach((cell, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'board-cell';
+        if (!cell) {
+          btn.classList.add('empty');
+        } else if (completed[i]) {
+          btn.classList.add('done');
+          btn.innerHTML = `<span class="check">✓</span><span class="label">${escapeHtml(cell.title || '')}</span>`;
+        } else {
+          btn.innerHTML = `<span class="emoji">${cell.icon}</span><span class="label">${escapeHtml(cell.title || '')}</span>`;
+        }
+        if (cell) {
+          btn.onclick = () => openModal(i);
+        }
+        gridEl.appendChild(btn);
+      });
+    }
+
+    function openModal(i) {
+      const cell = (boardConfig.cells || [])[i];
+      if (!cell) return;
+      openCellIndex = i;
+      document.getElementById('modalEmoji').textContent = cell.icon;
+      document.getElementById('modalTitle').textContent = cell.title || '';
+      document.getElementById('modalDesc').textContent = cell.description || '';
+      const done = !!completed[i];
+      document.getElementById('modalDoneBtn').style.display = done ? 'none' : 'block';
+      document.getElementById('modalCompletedTag').style.display = done ? 'block' : 'none';
+      document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').style.display = 'none';
+      openCellIndex = null;
+    }
+
+    document.getElementById('modalCloseBtn').onclick = closeModal;
+    document.getElementById('modalOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'modalOverlay') closeModal();
+    });
+
+    document.getElementById('modalDoneBtn').onclick = () => {
+      if (openCellIndex === null) return;
+      const i = openCellIndex;
+      const btn = document.getElementById('modalDoneBtn');
+      btn.disabled = true;
+      const newCompleted = completed.slice();
+      newCompleted[i] = true;
+
+      let doneSettled = false;
+      const doneTimeoutId = setTimeout(() => {
+        if (doneSettled) return;
+        doneSettled = true;
+        btn.disabled = false;
+        alert('Could not save — check your connection and try again.');
+      }, 8000);
+
+      TKChoiceBoard.progressDocRef(sessionId, studentId).set({
+        nickname,
+        completed: newCompleted
+      }, { merge: true }).then(() => {
+        if (doneSettled) return;
+        doneSettled = true;
+        clearTimeout(doneTimeoutId);
+        btn.disabled = false;
+        completed = newCompleted;
+        renderProgressLine();
+        renderGrid();
+        closeModal();
+      }).catch(err => {
+        if (doneSettled) return;
+        doneSettled = true;
+        clearTimeout(doneTimeoutId);
+        btn.disabled = false;
+        console.error(err);
+        alert('Could not save — check your connection and try again.');
+      });
+    };
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    document.getElementById('joinBtn').onclick = () => {
+      const code = document.getElementById('codeInput').value.trim().toUpperCase();
+      if (code.length !== 5) {
+        errorMsg.textContent = 'Enter the 5-letter code your teacher gave you.';
+        return;
+      }
+      sessionId = code;
+      const url = new URL(location.href);
+      url.searchParams.set('session', sessionId);
+      history.replaceState(null, '', url);
+      startSession();
+    };
+
+    if (sessionId) {
+      startSession();
+    }
+  </script>
+</body>
+</html>

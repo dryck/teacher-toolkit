@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exit Ticket — Teacher Dashboard</title>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    h1 {
+      text-align: center;
+      color: #fff;
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-weight: 700;
+      color: var(--tk-text);
+      margin-bottom: 14px;
+      font-size: 1.1rem;
+    }
+
+    /* Setup card */
+    .q-setup-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .q-setup-row:last-of-type { border-bottom: none; }
+    .q-setup-row .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: var(--tk-text);
+      min-width: 220px;
+    }
+    .q-setup-row .toggle-label input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+    .q-setup-row .hint {
+      font-size: 0.85rem;
+      color: var(--tk-text-muted);
+      font-weight: 400;
+    }
+    .q-setup-row input[type="text"] {
+      flex: 1;
+      min-width: 220px;
+      padding: 10px 14px;
+      border: 2px solid #e8e8e8;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .q-setup-row input[type="text"]:focus { outline: none; border-color: var(--tk-primary); }
+
+    #generateBtn {
+      display: block;
+      width: 100%;
+      margin-top: 20px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+    #setupError { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; margin-top: 10px; text-align: center; }
+
+    /* Join card */
+    .join-card {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .join-card img { width: 140px; height: 140px; border-radius: 8px; }
+    .join-info { text-align: center; }
+    .join-info .code {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--tk-primary-dark);
+    }
+    .join-info .url {
+      font-size: 0.95rem;
+      color: var(--tk-text-muted);
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .join-info button {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* Results card */
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .responded-count { font-weight: 700; color: var(--tk-text); }
+    .responded-count input {
+      width: 50px;
+      text-align: center;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 2px 4px;
+      font-weight: 700;
+    }
+    .responded-count:hover { cursor: pointer; }
+
+    .avg-line { font-weight: 700; color: var(--tk-text); margin-bottom: 14px; }
+    .hist-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .hist-row .hist-label { width: 20px; font-weight: 700; flex-shrink: 0; }
+    .hist-row .bar-bg { flex: 1; height: 22px; background: #eee; border-radius: 11px; overflow: hidden; }
+    .hist-row .bar-fill { height: 100%; border-radius: 11px; background: var(--tk-primary); transition: width 0.4s ease; }
+    .hist-row .count { width: 30px; text-align: right; font-weight: 700; color: var(--tk-text); }
+
+    .answer-list {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      padding: 6px 0;
+    }
+    .answer-list .answer-item {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f2f2f2;
+      color: var(--tk-text);
+      font-size: 0.95rem;
+    }
+    .answer-list .answer-item:last-child { border-bottom: none; }
+    .answer-list .empty { padding: 14px; color: var(--tk-text-muted); font-size: 0.9rem; text-align: center; }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .controls button {
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    #copyResultsBtn { background: #e0e7ff; color: #3730a3; }
+    #newSessionBtn { background: #fee2e2; color: #b91c1c; }
+
+    #sessionScreen { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🎫 Exit Ticket — Teacher Dashboard</h1>
+
+    <!-- SETUP SCREEN (shown until a session code exists) -->
+    <div id="setupScreen">
+      <div class="card">
+        <div class="section-title">Choose your questions</div>
+
+        <div class="q-setup-row">
+          <label class="toggle-label"><input type="checkbox" id="q1Toggle" checked> Knowledge</label>
+          <input type="text" id="q1TextInput" placeholder="What did you learn today?">
+        </div>
+
+        <div class="q-setup-row">
+          <label class="toggle-label"><input type="checkbox" id="q2Toggle" checked> Understanding <span class="hint">(1–5 confidence scale, wording fixed)</span></label>
+        </div>
+
+        <div class="q-setup-row">
+          <label class="toggle-label"><input type="checkbox" id="q3Toggle" checked> Next step</label>
+          <input type="text" id="q3TextInput" placeholder="What question do you still have?">
+        </div>
+
+        <button id="generateBtn">Generate code</button>
+        <div id="setupError"></div>
+      </div>
+    </div>
+
+    <!-- SESSION SCREEN (join info + live results) -->
+    <div id="sessionScreen">
+      <div class="card join-card">
+        <img id="qrImg" alt="QR code to join">
+        <div class="join-info">
+          <div>Students join at:</div>
+          <div class="code" id="sessionCode"></div>
+          <div class="url" id="joinUrl"></div>
+          <button id="copyLinkBtn">Copy link</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="results-header">
+          <span class="responded-count" id="respondedWrap"><span id="totalCount">0</span> responded<span id="classSizeWrap" style="display:none"> / <input type="number" id="classSizeInput" min="1" max="200"></span></span>
+        </div>
+
+        <div id="confidenceSection">
+          <div class="section-title">Understanding</div>
+          <div class="avg-line" id="avgLine">Average confidence: —</div>
+          <div id="histogram"></div>
+        </div>
+      </div>
+
+      <div class="card" id="q1Section">
+        <div class="section-title">What they learned</div>
+        <div class="answer-list" id="q1List"></div>
+      </div>
+
+      <div class="card" id="q3Section">
+        <div class="section-title">Still confused about</div>
+        <div class="answer-list" id="q3List"></div>
+      </div>
+
+      <div class="controls">
+        <button id="copyResultsBtn">📋 Copy results</button>
+        <button id="newSessionBtn">🆕 New session</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="exit-ticket.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+
+    const setupScreen = document.getElementById('setupScreen');
+    const sessionScreen = document.getElementById('sessionScreen');
+
+    // Build the (initially empty) histogram rows once.
+    const histEl = document.getElementById('histogram');
+    for (let i = 1; i <= 5; i++) {
+      const row = document.createElement('div');
+      row.className = 'hist-row';
+      row.innerHTML = `
+        <div class="hist-label">${i}</div>
+        <div class="bar-bg"><div class="bar-fill" id="hist-bar-${i}" style="width:0%"></div></div>
+        <div class="count" id="hist-count-${i}">0</div>
+      `;
+      histEl.appendChild(row);
+    }
+
+    document.getElementById('generateBtn').onclick = () => {
+      const setupError = document.getElementById('setupError');
+      setupError.textContent = '';
+
+      const q1Enabled = document.getElementById('q1Toggle').checked;
+      const q2Enabled = document.getElementById('q2Toggle').checked;
+      const q3Enabled = document.getElementById('q3Toggle').checked;
+
+      if (!q1Enabled && !q2Enabled && !q3Enabled) {
+        setupError.textContent = 'Enable at least one question.';
+        return;
+      }
+
+      const config = {
+        q1Enabled,
+        q1Text: document.getElementById('q1TextInput').value.trim() || TKExitTicket.DEFAULT_Q1_TEXT,
+        q2Enabled,
+        q3Enabled,
+        q3Text: document.getElementById('q3TextInput').value.trim() || TKExitTicket.DEFAULT_Q3_TEXT,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      const code = TKExitTicket.randomSessionCode();
+      const generateBtn = document.getElementById('generateBtn');
+      generateBtn.disabled = true;
+
+      // Without a timeout, a bad connection/config leaves this write
+      // pending forever and the button stays disabled with zero feedback
+      // — same failure mode fixed on this tool's student page.
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        generateBtn.disabled = false;
+        setupError.textContent = 'Could not create session — check your connection and try again.';
+      }, 8000);
+
+      TKExitTicket.sessionDocRef(code).set(config)
+        .then(() => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
+          const url = new URL(location.href);
+          url.searchParams.set('session', code);
+          location.href = url.toString();
+        })
+        .catch(err => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
+          console.error(err);
+          generateBtn.disabled = false;
+          setupError.textContent = 'Could not create session — check your connection and try again.';
+        });
+    };
+
+    if (sessionId) {
+      setupScreen.style.display = 'none';
+      sessionScreen.style.display = 'block';
+
+      const joinUrl = location.origin + location.pathname.replace('teacher.html', 'index.html') + '?session=' + sessionId;
+      document.getElementById('sessionCode').textContent = sessionId;
+      document.getElementById('joinUrl').textContent = joinUrl;
+      // QR image rendered via a public QR-generation service (api.qrserver.com) --
+      // the join URL contains only a random session code, no student data.
+      document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(joinUrl);
+
+      document.getElementById('copyLinkBtn').onclick = () => {
+        navigator.clipboard.writeText(joinUrl).then(() => {
+          const btn = document.getElementById('copyLinkBtn');
+          const original = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = original; }, 1500);
+        });
+      };
+
+      let config = null;
+      let latestResponses = [];
+
+      function render(responses) {
+        latestResponses = responses;
+        const total = responses.length;
+        document.getElementById('totalCount').textContent = total;
+
+        // Confidence histogram (only meaningful if q2 is enabled).
+        const confidenceSection = document.getElementById('confidenceSection');
+        if (config.q2Enabled) {
+          confidenceSection.style.display = 'block';
+          const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+          let sum = 0, answered = 0;
+          responses.forEach(r => {
+            if (typeof r.confidence === 'number' && counts[r.confidence] !== undefined) {
+              counts[r.confidence]++;
+              sum += r.confidence;
+              answered++;
+            }
+          });
+          const max = Math.max(1, ...Object.values(counts));
+          for (let i = 1; i <= 5; i++) {
+            document.getElementById('hist-bar-' + i).style.width = (counts[i] / max * 100) + '%';
+            document.getElementById('hist-count-' + i).textContent = counts[i];
+          }
+          document.getElementById('avgLine').textContent = answered
+            ? 'Average confidence: ' + (sum / answered).toFixed(1) + ' / 5'
+            : 'Average confidence: —';
+        } else {
+          confidenceSection.style.display = 'none';
+        }
+
+        // What they learned (q1).
+        const q1Section = document.getElementById('q1Section');
+        if (config.q1Enabled) {
+          q1Section.style.display = 'block';
+          const list = document.getElementById('q1List');
+          const answers = responses.map(r => r.q1Answer).filter(a => a && a.trim());
+          list.innerHTML = answers.length
+            ? answers.map(a => `<div class="answer-item">${escapeHtml(a)}</div>`).join('')
+            : '<div class="empty">No answers yet.</div>';
+        } else {
+          q1Section.style.display = 'none';
+        }
+
+        // Still confused about (q3).
+        const q3Section = document.getElementById('q3Section');
+        if (config.q3Enabled) {
+          q3Section.style.display = 'block';
+          const list = document.getElementById('q3List');
+          const answers = responses.map(r => r.q3Answer).filter(a => a && a.trim());
+          list.innerHTML = answers.length
+            ? answers.map(a => `<div class="answer-item">${escapeHtml(a)}</div>`).join('')
+            : '<div class="empty">No answers yet.</div>';
+        } else {
+          q3Section.style.display = 'none';
+        }
+      }
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      TKExitTicket.sessionDocRef(sessionId).get().then(doc => {
+        config = doc.exists ? doc.data() : { q1Enabled: true, q2Enabled: true, q3Enabled: true };
+        render([]);
+
+        TKExitTicket.responsesRef(sessionId).onSnapshot(snap => {
+          const responses = snap.docs.map(d => d.data());
+          render(responses);
+        }, err => console.error(err));
+      }).catch(err => console.error(err));
+
+      document.getElementById('newSessionBtn').onclick = () => {
+        if (!confirm('Start a brand-new session? Students will need a new link/QR to join, and this session\'s live view will stop updating here.')) return;
+        location.href = location.pathname;
+      };
+
+      document.getElementById('copyResultsBtn').onclick = () => {
+        const total = latestResponses.length;
+        const lines = [];
+        lines.push('Exit Ticket Results — Session ' + sessionId);
+        lines.push(total + ' responded');
+        lines.push('');
+
+        if (config.q2Enabled) {
+          const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+          let sum = 0, answered = 0;
+          latestResponses.forEach(r => {
+            if (typeof r.confidence === 'number' && counts[r.confidence] !== undefined) {
+              counts[r.confidence]++;
+              sum += r.confidence;
+              answered++;
+            }
+          });
+          lines.push('Confidence: average ' + (answered ? (sum / answered).toFixed(1) : '—') + ' / 5');
+          for (let i = 1; i <= 5; i++) {
+            lines.push('  ' + i + ': ' + '#'.repeat(counts[i]) + ' (' + counts[i] + ')');
+          }
+          lines.push('');
+        }
+
+        if (config.q1Enabled) {
+          lines.push('What they learned:');
+          const answers = latestResponses.map(r => r.q1Answer).filter(a => a && a.trim());
+          if (answers.length) answers.forEach(a => lines.push('- ' + a));
+          else lines.push('(no answers yet)');
+          lines.push('');
+        }
+
+        if (config.q3Enabled) {
+          lines.push('Still confused about:');
+          const answers = latestResponses.map(r => r.q3Answer).filter(a => a && a.trim());
+          if (answers.length) answers.forEach(a => lines.push('- ' + a));
+          else lines.push('(no answers yet)');
+        }
+
+        navigator.clipboard.writeText(lines.join('\n')).then(() => {
+          const btn = document.getElementById('copyResultsBtn');
+          const original = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = original; }, 1500);
+        });
+      };
+
+      // Optional class-size denominator, kept local to this browser only.
+      const classSizeInput = document.getElementById('classSizeInput');
+      const classSizeWrap = document.getElementById('classSizeWrap');
+      const savedClassSize = localStorage.getItem('tk-exit-ticket-class-size');
+      if (savedClassSize) {
+        classSizeInput.value = savedClassSize;
+        classSizeWrap.style.display = 'inline';
+      }
+      classSizeInput.addEventListener('input', () => {
+        if (classSizeInput.value) localStorage.setItem('tk-exit-ticket-class-size', classSizeInput.value);
+      });
+      document.getElementById('respondedWrap').addEventListener('click', () => {
+        classSizeWrap.style.display = 'inline';
+        classSizeInput.focus();
+      });
+    }
+  </script>
+  <script>window.TK_CURRENT = 'exit-ticket';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

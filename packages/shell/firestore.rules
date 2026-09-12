@@ -1,0 +1,78 @@
+// Paste this into Firebase Console -> Firestore Database -> Rules -> Publish.
+//
+// One shared Firebase project backs every real-time tool in the toolkit.
+// Each tool gets its own top-level collection, scoped so only that tool's
+// expected fields/subcollections are readable or writable -- everything
+// else is denied by the catch-all at the bottom. No student identity is
+// ever required or stored; nicknames (Choice Board) and free text
+// (Exit Ticket, Growth Mindset) are the only non-numeric fields, and
+// none of them are linked to a real name, login, or device ID.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Zones Check-In: one doc per session, just 4 zone counters.
+    match /zonesSessions/{sessionId} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['blue', 'green', 'yellow', 'red'])
+                   && (!('blue' in request.resource.data) || request.resource.data.blue is number)
+                   && (!('green' in request.resource.data) || request.resource.data.green is number)
+                   && (!('yellow' in request.resource.data) || request.resource.data.yellow is number)
+                   && (!('red' in request.resource.data) || request.resource.data.red is number);
+    }
+
+    // Exit Ticket: a config doc (written once by the teacher when
+    // generating a code) plus a responses subcollection (one doc per
+    // student submission, students never read each other's responses
+    // -- only the teacher's live dashboard reads the whole collection,
+    // which these rules can't distinguish from a student, so reads are
+    // open the same way they are for every other tool here).
+    match /exitTicketSessions/{sessionId} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['q1Enabled', 'q1Text', 'q2Enabled', 'q3Enabled', 'q3Text', 'createdAt']);
+
+      match /responses/{responseId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['q1Answer', 'confidence', 'q3Answer', 'submittedAt']);
+        allow update, delete: if false;
+      }
+    }
+
+    // Choice Board: a config doc (board layout, written by the teacher)
+    // plus a per-student progress subcollection.
+    match /choiceBoardSessions/{sessionId} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['title', 'cells', 'mustDoMode', 'minRequired']);
+
+      match /progress/{studentId} {
+        allow read: if true;
+        allow write: if request.resource.data.keys().hasOnly(['nickname', 'completed', 'joinedAt'])
+                     && request.resource.data.nickname is string
+                     && request.resource.data.nickname.size() <= 40;
+      }
+    }
+
+    // Growth Mindset's "Wall of Yet": the session doc itself is unused
+    // (just a parent for the subcollection); entries start unapproved
+    // and only the teacher's moderation view flips `approved` or
+    // deletes a rejected one.
+    match /growthWallSessions/{sessionId} {
+      allow read, write: if false;
+
+      match /entries/{entryId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['text', 'approved', 'createdAt'])
+                      && request.resource.data.approved == false
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() <= 280;
+        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approved']);
+        allow delete: if true;
+      }
+    }
+
+    // Everything else is denied by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

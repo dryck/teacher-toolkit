@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kagan Timer | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+    .screen { display: none; }
+    .screen.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* --- Structure picker --- */
+    .structure-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+    }
+    .structure-card {
+      border: 2px solid #ececf5;
+      border-radius: 14px;
+      padding: 20px;
+      cursor: pointer;
+      background: #fff;
+      text-align: left;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .structure-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--tk-primary);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.25);
+    }
+    .structure-card .icon { font-size: 2.2rem; display: block; margin-bottom: 8px; }
+    .structure-card h3 { color: var(--tk-text); font-size: 1.1rem; margin-bottom: 4px; }
+    .structure-card p { color: var(--tk-text-muted); font-size: 0.9rem; }
+
+    /* --- Config screen --- */
+    .back-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: var(--tk-primary);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-size: 0.95rem;
+      padding: 0;
+    }
+    .config-header { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+    .config-header .icon { font-size: 2rem; }
+    .config-header h2 { color: var(--tk-text); }
+    .config-tagline { color: var(--tk-text-muted); margin-bottom: 20px; }
+    .field-block { margin-bottom: 18px; }
+    .field-block label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    .field-block textarea,
+    .field-block input[type="number"],
+    .field-block select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .field-block textarea:focus,
+    .field-block input:focus,
+    .field-block select:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .field-block textarea { resize: vertical; min-height: 50px; }
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 4px;
+    }
+    .field-grid .field-block { margin-bottom: 0; }
+    .field-unit { color: var(--tk-text-muted); font-size: 0.85rem; margin-top: 4px; }
+
+    .btn {
+      padding: 14px 28px;
+      font-size: 1.05rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      color: white;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: var(--tk-bg-gradient);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    .btn-secondary {
+      background: #6b7280;
+      box-shadow: 0 8px 20px rgba(107, 114, 128, 0.3);
+    }
+    .btn-row { display: flex; gap: 12px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
+
+    /* --- Facilitation screen --- */
+    .facil-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .step-label {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--tk-primary-dark);
+    }
+    .structure-label {
+      font-size: 1rem;
+      color: var(--tk-text-muted);
+      font-weight: 600;
+    }
+    .phase-name {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--tk-text);
+      margin: 6px 0 18px;
+    }
+    .instruction {
+      text-align: center;
+      font-size: 2.3rem;
+      font-weight: 800;
+      color: var(--tk-text);
+      line-height: 1.35;
+      margin-bottom: 22px;
+    }
+    .topic-box {
+      background: #f2f2fb;
+      border-radius: 14px;
+      padding: 16px 22px;
+      text-align: center;
+      font-size: 1.3rem;
+      color: var(--tk-text);
+      margin-bottom: 26px;
+      font-weight: 600;
+    }
+    .topic-box .topic-label {
+      display: block;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--tk-text-muted);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .timer-display {
+      text-align: center;
+      font-size: 6rem;
+      font-weight: bold;
+      color: var(--tk-primary);
+      font-family: 'Courier New', monospace;
+      margin: 10px 0;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+    .timer-display.warning { color: #f39c12; }
+    .timer-display.danger { color: #e74c3c; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .progress-container {
+      width: 100%;
+      height: 26px;
+      background: #ecf0f1;
+      border-radius: 13px;
+      overflow: hidden;
+      margin: 16px 0 26px;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 100%;
+      background: var(--tk-bg-gradient);
+      border-radius: 13px;
+      transition: width 1s linear, background 0.4s ease;
+    }
+    .progress-bar.warning { background: linear-gradient(90deg, #f39c12 0%, #f1c40f 100%); }
+    .progress-bar.danger { background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%); }
+    .complete-banner {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #28a745;
+      margin-bottom: 16px;
+    }
+    .facil-controls {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: rgba(255,255,255,0.85);
+      font-size: 0.9rem;
+    }
+    .footer a { color: white; text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .instruction { font-size: 1.6rem; }
+      .timer-display { font-size: 3.8rem; }
+    }
+  </style>
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🧩 Kagan Timer</h1>
+    <p class="subtitle">Run structured cooperative-learning interactions</p>
+
+    <!-- SCREEN 1: STRUCTURE PICKER -->
+    <div class="screen active" id="pickerScreen">
+      <div class="structure-grid" id="structureGrid"></div>
+    </div>
+
+    <!-- SCREEN 1b: CONFIG -->
+    <div class="screen" id="configScreen">
+      <button class="back-link" onclick="showPicker()">← Back to structures</button>
+      <div class="config-header">
+        <span class="icon" id="configIcon"></span>
+        <h2 id="configName"></h2>
+      </div>
+      <p class="config-tagline" id="configTagline"></p>
+
+      <div class="field-block">
+        <label for="questionInput">Your question / topic</label>
+        <textarea id="questionInput" placeholder="e.g. What caused the fall of the Roman Empire?"></textarea>
+      </div>
+
+      <div class="field-grid" id="configFields"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="startFacilitation()">▶️ Start</button>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: FACILITATION -->
+    <div class="screen" id="facilScreen">
+      <button class="back-link" onclick="showPicker()">← Change structure</button>
+
+      <div id="completeBanner" class="complete-banner" style="display:none;">🎉 All steps complete!</div>
+
+      <div class="facil-top">
+        <span class="step-label" id="stepLabel">STEP 1 OF 1</span>
+        <span class="structure-label" id="structureLabel"></span>
+      </div>
+
+      <div class="phase-name" id="phaseName"></div>
+      <div class="instruction" id="instructionLine"></div>
+
+      <div class="topic-box">
+        <span class="topic-label">Question / Topic</span>
+        <span id="topicText"></span>
+      </div>
+
+      <div class="timer-display" id="timerDisplay">00:00</div>
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <div class="facil-controls">
+        <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">⏭️ Next Step</button>
+        <button class="btn btn-secondary" onclick="restartStructure()">🔄 Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------
+    // Structure library: each entry defines the config fields shown on
+    // the setup screen and a buildPhases(cfg) function that turns the
+    // teacher's config into an ordered list of timed phases.
+    // ---------------------------------------------------------------
+    const STRUCTURES = [
+      {
+        id: 'tps',
+        name: 'Think-Pair-Share',
+        tagline: 'Think alone, then discuss',
+        icon: '🤔',
+        fields: [
+          { key: 'think', label: 'Think time', unit: 'seconds', type: 'number', default: 30, min: 5, max: 600 },
+          { key: 'pair', label: 'Pair time', unit: 'seconds', type: 'number', default: 60, min: 5, max: 600 },
+          { key: 'shareMode', label: 'Share mode', type: 'select', default: 'whole', options: [
+            { value: 'whole', label: 'Whole class' },
+            { value: 'written', label: 'Written' }
+          ] },
+          { key: 'share', label: 'Share time', unit: 'seconds', type: 'number', default: 90, min: 5, max: 600 }
+        ],
+        buildPhases(cfg) {
+          const phases = [
+            { name: 'Think', emoji: '🤔', instruction: 'Think silently — no talking yet', seconds: cfg.think },
+            { name: 'Pair', emoji: '💬', instruction: "Turn to your partner — share your ideas — take turns, don't interrupt", seconds: cfg.pair }
+          ];
+          if (cfg.shareMode === 'written') {
+            phases.push({ name: 'Share (Written)', emoji: '✍️', instruction: 'Write down your best idea silently', seconds: cfg.share });
+          } else {
+            phases.push({ name: 'Share (Whole Class)', emoji: '🙋', instruction: 'Whole-class share — raise your hand if you are called on', seconds: cfg.share });
+          }
+          return phases;
+        }
+      },
+      {
+        id: 'tips',
+        name: 'Timed Pair Share',
+        tagline: 'Each partner speaks equally',
+        icon: '⏱️',
+        fields: [
+          { key: 'perPartner', label: 'Time per partner', unit: 'seconds', type: 'number', default: 60, min: 5, max: 600 }
+        ],
+        buildPhases(cfg) {
+          return [
+            { name: 'Partner A Speaks', emoji: '🗣️', instruction: 'Partner A talks — Partner B listens only, no interrupting', seconds: cfg.perPartner },
+            { name: 'Partner B Speaks', emoji: '🗣️', instruction: 'Partner B talks — Partner A listens only, no interrupting', seconds: cfg.perPartner }
+          ];
+        }
+      },
+      {
+        id: 'rally',
+        name: 'Rally Robin',
+        tagline: 'Take turns listing ideas',
+        icon: '🔁',
+        fields: [
+          { key: 'perRound', label: 'Time per turn', unit: 'seconds', type: 'number', default: 15, min: 5, max: 300 },
+          { key: 'rounds', label: 'Number of rounds', unit: 'turns', type: 'number', default: 4, min: 1, max: 20 }
+        ],
+        buildPhases(cfg) {
+          const phases = [];
+          for (let i = 1; i <= cfg.rounds; i++) {
+            const who = i % 2 === 1 ? 'Partner A' : 'Partner B';
+            phases.push({ name: `Round ${i} of ${cfg.rounds}`, emoji: '🔁', instruction: `${who}: say one idea, then pass it back`, seconds: cfg.perRound });
+          }
+          return phases;
+        }
+      },
+      {
+        id: 'nht',
+        name: 'Numbered Heads Together',
+        tagline: 'Any team member may answer',
+        icon: '🔢',
+        fields: [
+          { key: 'numberOff', label: 'Number-off time', unit: 'seconds', type: 'number', default: 15, min: 5, max: 120 },
+          { key: 'discuss', label: 'Discussion time', unit: 'seconds', type: 'number', default: 60, min: 5, max: 600 },
+          { key: 'answer', label: 'Answer time', unit: 'seconds', type: 'number', default: 20, min: 5, max: 300 }
+        ],
+        buildPhases(cfg) {
+          return [
+            { name: 'Number Off', emoji: '🔢', instruction: 'Number off 1 to 4 in your team', seconds: cfg.numberOff },
+            { name: 'Heads Together', emoji: '🧠', instruction: 'Discuss quietly — make sure every number can explain the answer', seconds: cfg.discuss },
+            { name: 'Answer', emoji: '🙋', instruction: 'Teacher calls a number — that student answers for the team', seconds: cfg.answer }
+          ];
+        }
+      },
+      {
+        id: 'roundrobin',
+        name: 'Round Robin',
+        tagline: 'Everyone in the group shares in turn',
+        icon: '🎤',
+        fields: [
+          { key: 'perPerson', label: 'Time per person', unit: 'seconds', type: 'number', default: 20, min: 5, max: 300 },
+          { key: 'groupSize', label: 'People per group', unit: 'people', type: 'number', default: 4, min: 2, max: 8 }
+        ],
+        buildPhases(cfg) {
+          const phases = [];
+          for (let i = 1; i <= cfg.groupSize; i++) {
+            phases.push({ name: `Person ${i} of ${cfg.groupSize}`, emoji: '🎤', instruction: 'This person shares — everyone else listens quietly', seconds: cfg.perPerson });
+          }
+          return phases;
+        }
+      },
+      {
+        id: 'mps',
+        name: 'Mix-Pair-Share',
+        tagline: 'Move around, pair up, share, repeat',
+        icon: '🚶',
+        fields: [
+          { key: 'mix', label: 'Mix time', unit: 'seconds', type: 'number', default: 15, min: 5, max: 300 },
+          { key: 'share', label: 'Share time', unit: 'seconds', type: 'number', default: 45, min: 5, max: 600 },
+          { key: 'rounds', label: 'Number of rounds', unit: 'pairings', type: 'number', default: 3, min: 1, max: 10 }
+        ],
+        buildPhases(cfg) {
+          const phases = [];
+          for (let i = 1; i <= cfg.rounds; i++) {
+            phases.push({ name: `Mix ${i} of ${cfg.rounds}`, emoji: '🚶', instruction: 'Walk around the room quietly until the timer stops', seconds: cfg.mix });
+            phases.push({ name: `Pair & Share ${i} of ${cfg.rounds}`, emoji: '👥', instruction: 'Pair up with someone new — share your thinking', seconds: cfg.share });
+          }
+          return phases;
+        }
+      }
+    ];
+
+    let currentStructure = null;
+    let phases = [];
+    let phaseIndex = 0;
+    let remainingSeconds = 0;
+    let totalSeconds = 0;
+    let timerInterval = null;
+    let topicText = '';
+
+    // ---------------- Screen management ----------------
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function showPicker() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      showScreen('pickerScreen');
+    }
+
+    // ---------------- Picker screen ----------------
+    function renderPicker() {
+      const grid = document.getElementById('structureGrid');
+      grid.innerHTML = '';
+      STRUCTURES.forEach(structure => {
+        const card = document.createElement('button');
+        card.className = 'structure-card';
+        card.innerHTML = `
+          <span class="icon">${structure.icon}</span>
+          <h3>${structure.name}</h3>
+          <p>${structure.tagline}</p>
+        `;
+        card.onclick = () => openConfig(structure.id);
+        grid.appendChild(card);
+      });
+    }
+
+    // ---------------- Config screen ----------------
+    function openConfig(structureId) {
+      currentStructure = STRUCTURES.find(s => s.id === structureId);
+      document.getElementById('configIcon').textContent = currentStructure.icon;
+      document.getElementById('configName').textContent = currentStructure.name;
+      document.getElementById('configTagline').textContent = currentStructure.tagline;
+      document.getElementById('questionInput').value = topicText;
+
+      const fieldsWrap = document.getElementById('configFields');
+      fieldsWrap.innerHTML = '';
+      currentStructure.fields.forEach(field => {
+        const block = document.createElement('div');
+        block.className = 'field-block';
+        if (field.type === 'select') {
+          block.innerHTML = `
+            <label for="field_${field.key}">${field.label}</label>
+            <select id="field_${field.key}">
+              ${field.options.map(o => `<option value="${o.value}" ${o.value === field.default ? 'selected' : ''}>${o.label}</option>`).join('')}
+            </select>
+          `;
+        } else {
+          block.innerHTML = `
+            <label for="field_${field.key}">${field.label}</label>
+            <input type="number" id="field_${field.key}" value="${field.default}" min="${field.min}" max="${field.max}">
+            <div class="field-unit">${field.unit || ''}</div>
+          `;
+        }
+        fieldsWrap.appendChild(block);
+      });
+
+      showScreen('configScreen');
+    }
+
+    function readConfig() {
+      const cfg = {};
+      currentStructure.fields.forEach(field => {
+        const el = document.getElementById(`field_${field.key}`);
+        if (field.type === 'select') {
+          cfg[field.key] = el.value;
+        } else {
+          let val = parseInt(el.value, 10);
+          if (isNaN(val)) val = field.default;
+          val = Math.max(field.min, Math.min(field.max, val));
+          cfg[field.key] = val;
+        }
+      });
+      return cfg;
+    }
+
+    // ---------------- Facilitation screen ----------------
+    function startFacilitation() {
+      topicText = document.getElementById('questionInput').value.trim() || '(no topic entered)';
+      const cfg = readConfig();
+      phases = currentStructure.buildPhases(cfg);
+      document.getElementById('structureLabel').textContent = `${currentStructure.icon} ${currentStructure.name}`;
+      document.getElementById('topicText').textContent = topicText;
+      showScreen('facilScreen');
+      loadPhase(0);
+    }
+
+    function restartStructure() {
+      document.getElementById('completeBanner').style.display = 'none';
+      document.getElementById('nextBtn').disabled = false;
+      loadPhase(0);
+    }
+
+    function loadPhase(index) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+
+      if (index >= phases.length) {
+        finishStructure();
+        return;
+      }
+
+      phaseIndex = index;
+      const phase = phases[phaseIndex];
+      totalSeconds = phase.seconds;
+      remainingSeconds = phase.seconds;
+
+      document.getElementById('completeBanner').style.display = 'none';
+      document.getElementById('nextBtn').disabled = false;
+      document.getElementById('stepLabel').textContent = `Step ${phaseIndex + 1} of ${phases.length}`;
+      document.getElementById('phaseName').textContent = phase.name;
+      document.getElementById('instructionLine').textContent = `${phase.emoji} ${phase.instruction}`;
+
+      document.getElementById('timerDisplay').classList.remove('warning', 'danger');
+      document.getElementById('progressBar').classList.remove('warning', 'danger');
+
+      updateTimerDisplay();
+      playTone(660, 0.18);
+
+      timerInterval = setInterval(tick, 1000);
+    }
+
+    function tick() {
+      remainingSeconds--;
+      updateTimerDisplay();
+
+      const percentRemaining = totalSeconds > 0 ? remainingSeconds / totalSeconds : 0;
+      const timerEl = document.getElementById('timerDisplay');
+      const barEl = document.getElementById('progressBar');
+      if (percentRemaining <= 0.1) {
+        timerEl.classList.add('danger');
+        barEl.classList.add('danger');
+      } else if (percentRemaining <= 0.3) {
+        timerEl.classList.add('warning');
+        barEl.classList.add('warning');
+      }
+
+      if (remainingSeconds <= 0) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        loadPhase(phaseIndex + 1);
+      }
+    }
+
+    function nextStep() {
+      loadPhase(phaseIndex + 1);
+    }
+
+    function finishStructure() {
+      document.getElementById('stepLabel').textContent = `Step ${phases.length} of ${phases.length}`;
+      document.getElementById('phaseName').textContent = 'Done';
+      document.getElementById('instructionLine').textContent = '✅ Structure complete — debrief or move on';
+      document.getElementById('timerDisplay').textContent = '00:00';
+      document.getElementById('progressBar').style.width = '0%';
+      document.getElementById('completeBanner').style.display = 'block';
+      document.getElementById('nextBtn').disabled = true;
+      playAlarm();
+    }
+
+    function updateTimerDisplay() {
+      const minutes = Math.floor(Math.max(remainingSeconds, 0) / 60);
+      const seconds = Math.max(remainingSeconds, 0) % 60;
+      document.getElementById('timerDisplay').textContent =
+        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      const percent = totalSeconds > 0 ? (Math.max(remainingSeconds, 0) / totalSeconds) * 100 : 0;
+      document.getElementById('progressBar').style.width = percent + '%';
+    }
+
+    // ---------------- Audio cues (Web Audio API, no files) ----------------
+    function playTone(frequency, duration) {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+
+    function playAlarm() {
+      const pattern = [880, 660, 880, 660];
+      pattern.forEach((freq, i) => {
+        setTimeout(() => playTone(freq, 0.25), i * 300);
+      });
+    }
+
+    // ---------------- Init ----------------
+    renderPicker();
+  </script>
+  <script>window.TK_CURRENT = 'kagan-timer';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>
