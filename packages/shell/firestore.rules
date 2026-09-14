@@ -70,6 +70,45 @@ service cloud.firestore {
       }
     }
 
+    // Snowball Wall: a session doc the teacher writes (concept text, and
+    // which of the 4 phases is active) plus a stickies subcollection --
+    // students only ever create their own sticky, the teacher can update
+    // (merge two stickies' text together) or delete (after a merge) any
+    // sticky, but never create one themselves.
+    match /snowballSessions/{sessionId} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['concept', 'phase', 'createdAt'])
+                   && (!('phase' in request.resource.data) || request.resource.data.phase is number);
+
+      match /stickies/{stickyId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['text', 'phase', 'createdAt'])
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() <= 140;
+        // A teacher merge can combine two already-capped stickies, so the
+        // update path allows a longer combined string than a fresh create.
+        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text'])
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() <= 400;
+        allow delete: if true;
+      }
+    }
+
+    // Challenge Deck: a config doc (deck title + categories, each with a
+    // difficulty and a list of card strings) plus a per-student progress
+    // subcollection, same shape as Choice Board's.
+    match /challengeDeckSessions/{sessionId} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['title', 'categories']);
+
+      match /progress/{studentId} {
+        allow read: if true;
+        allow write: if request.resource.data.keys().hasOnly(['nickname', 'completedCardIds', 'joinedAt'])
+                     && request.resource.data.nickname is string
+                     && request.resource.data.nickname.size() <= 40;
+      }
+    }
+
     // Everything else is denied by default.
     match /{document=**} {
       allow read, write: if false;

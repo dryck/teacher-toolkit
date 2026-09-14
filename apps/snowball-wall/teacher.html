@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snowball Wall — Teacher Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 1.2rem;
+      color: var(--tk-text);
+      margin-bottom: 16px;
+    }
+
+    /* Setup screen */
+    label { font-weight: 600; color: var(--tk-text); display: block; margin-bottom: 6px; font-size: 0.9rem; }
+    #conceptInput {
+      width: 100%;
+      font-size: 1.1rem;
+      padding: 10px 14px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      margin-bottom: 14px;
+    }
+    #setupError { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; margin-bottom: 10px; }
+    .btn {
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: #fff;
+      background: var(--tk-primary);
+    }
+    .btn.accent { background: var(--tk-accent); }
+    .btn.secondary { background: #f0f0f0; color: var(--tk-text); }
+    .btn.danger { background: #fee2e2; color: #b91c1c; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+
+    /* Join card */
+    .join-card {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .join-card img { width: 140px; height: 140px; border-radius: 8px; }
+    .join-info { text-align: center; }
+    .join-info .code {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--tk-primary-dark);
+    }
+    .join-info .url {
+      font-size: 0.95rem;
+      color: var(--tk-text-muted);
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .join-info button {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* Phase card */
+    .phase-header {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    #phaseIndicator {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--tk-primary-dark);
+    }
+    #stickyCount {
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+    #finalPhaseNote {
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+      margin-top: 6px;
+    }
+
+    /* Timer */
+    .timer-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin: 18px 0;
+      padding: 14px;
+      background: #f7f7f2;
+      border-radius: 12px;
+      flex-wrap: wrap;
+    }
+    #timerDisplay {
+      font-family: 'Courier New', monospace;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--tk-primary-dark);
+      min-width: 110px;
+      text-align: center;
+    }
+    .timer-row button {
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      background: #fff;
+      border: 1px solid #ddd;
+    }
+
+    /* Sticky wall */
+    .wall-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      padding: 10px 4px 4px;
+      min-height: 60px;
+    }
+    #noStickies { color: var(--tk-text-muted); text-align: center; width: 100%; padding: 10px 0; }
+    .sticky-card {
+      width: 160px;
+      min-height: 130px;
+      padding: 14px;
+      border-radius: 4px;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+      font-family: 'Ubuntu', 'Segoe UI', sans-serif;
+      font-size: 0.92rem;
+      color: #3a3a2e;
+      cursor: pointer;
+      word-break: break-word;
+      transition: box-shadow 0.15s ease;
+    }
+    .sticky-card:hover { box-shadow: 0 10px 20px rgba(0,0,0,0.26); }
+    .sticky-card:nth-child(4n+1) { background: #fff6a8; transform: rotate(-3deg); }
+    .sticky-card:nth-child(4n+2) { background: #ffd6e8; transform: rotate(2deg); }
+    .sticky-card:nth-child(4n+3) { background: #c8f4d6; transform: rotate(-1.5deg); }
+    .sticky-card:nth-child(4n+4) { background: #cbe4ff; transform: rotate(2.5deg); }
+    .sticky-card.selected { outline: 3px solid var(--tk-primary); outline-offset: 2px; }
+    #wallHint {
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>❄️ Snowball Wall — Teacher Dashboard</h1>
+
+    <div class="card" id="setupCard">
+      <h2>Set up a new lesson</h2>
+      <label for="conceptInput">Concept / question students respond to</label>
+      <input type="text" id="conceptInput" placeholder="e.g. What made the Roman Empire fall?">
+      <div id="setupError"></div>
+      <div class="btn-row">
+        <button class="btn" id="startBtn">Start</button>
+      </div>
+    </div>
+
+    <div id="mainScreen" style="display:none">
+      <div class="card">
+        <h2>Students join at</h2>
+        <div class="join-card">
+          <img id="qrImg" alt="QR code to join">
+          <div class="join-info">
+            <div class="code" id="sessionCode"></div>
+            <div class="url" id="joinUrl"></div>
+            <button id="copyBtn">Copy link</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="phase-header">
+          <div id="phaseIndicator"></div>
+        </div>
+        <div id="stickyCount">0 stickies submitted this phase</div>
+
+        <div class="timer-row">
+          <span id="timerDisplay">03:00</span>
+          <button id="timerStartBtn">▶️ Start timer</button>
+          <button id="timerResetBtn">🔄 Reset timer</button>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn accent" id="nextPhaseBtn">Next Phase →</button>
+        </div>
+        <div id="finalPhaseNote" style="display:none">🏛️ This is the final phase — the whole-class wall.</div>
+      </div>
+
+      <div class="card">
+        <h2>Wall — current phase</h2>
+        <div class="wall-grid" id="wallGrid"></div>
+        <div id="noStickies" style="display:none">No stickies submitted yet this phase.</div>
+        <div id="wallHint">Click one sticky, then another, to combine them into one.</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn danger" id="resetBtn">🔄 Reset (new lesson)</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="snowball-wall.js"></script>
+  <script>
+    let sessionId = (new URLSearchParams(location.search).get('session') || '').toUpperCase();
+    let currentPhase = 1;
+    let unsubscribeSession = null;
+    let unsubscribeStickies = null;
+    let selectedStickyId = null;
+    let selectedStickyText = null;
+
+    // Without a timeout, a bad connection/config leaves a write pending
+    // forever with no feedback at all — same failure mode fixed on the
+    // student page. `onSuccess`/`onFailure` are mutually exclusive via the
+    // `settled` flag.
+    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        onFailure(new Error('timeout'));
+      }, ms);
+      promise.then(result => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onSuccess(result);
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onFailure(err);
+      });
+    }
+
+    const setupCard = document.getElementById('setupCard');
+    const conceptInput = document.getElementById('conceptInput');
+    const setupError = document.getElementById('setupError');
+    const startBtn = document.getElementById('startBtn');
+    const mainScreen = document.getElementById('mainScreen');
+    const phaseIndicator = document.getElementById('phaseIndicator');
+    const stickyCount = document.getElementById('stickyCount');
+    const nextPhaseBtn = document.getElementById('nextPhaseBtn');
+    const finalPhaseNote = document.getElementById('finalPhaseNote');
+    const wallGrid = document.getElementById('wallGrid');
+    const noStickies = document.getElementById('noStickies');
+
+    function phaseIndicatorText(n) {
+      const info = TKSnowball.phaseInfo(n);
+      if (n >= 4) return 'Phase 4 — ' + info.emoji + ' ' + info.label;
+      return 'Phase ' + n + ' of 4 — ' + info.emoji + ' ' + info.label;
+    }
+
+    // --- Timer (visual aid only, does not auto-advance the phase) ---
+    const TIMER_DEFAULT_SECONDS = 180;
+    let timerInterval = null;
+    let timerRemaining = TIMER_DEFAULT_SECONDS;
+    const timerDisplay = document.getElementById('timerDisplay');
+
+    function updateTimerDisplay() {
+      const m = Math.floor(timerRemaining / 60);
+      const s = timerRemaining % 60;
+      timerDisplay.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    function startTimer() {
+      if (timerInterval || timerRemaining <= 0) return;
+      const deadline = Date.now() + timerRemaining * 1000;
+      timerInterval = setInterval(() => {
+        timerRemaining = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+        updateTimerDisplay();
+        if (timerRemaining <= 0) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+      }, 250);
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerRemaining = TIMER_DEFAULT_SECONDS;
+      updateTimerDisplay();
+    }
+
+    document.getElementById('timerStartBtn').onclick = startTimer;
+    document.getElementById('timerResetBtn').onclick = resetTimer;
+    updateTimerDisplay();
+
+    // --- Setup / start ---
+    startBtn.onclick = () => {
+      const concept = conceptInput.value.trim();
+      if (!concept) {
+        setupError.textContent = 'Enter a concept or question first.';
+        return;
+      }
+      setupError.textContent = '';
+      const newId = TKSnowball.randomSessionCode();
+      startBtn.disabled = true;
+      withTimeout(
+        TKSnowball.sessionDocRef(newId).set({
+          concept,
+          phase: 1,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }),
+        () => {
+          startBtn.disabled = false;
+          sessionId = newId;
+          const url = new URL(location.href);
+          url.searchParams.set('session', sessionId);
+          history.replaceState(null, '', url);
+          enterSession(sessionId);
+        },
+        err => {
+          startBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not start the session — check your connection and try again.');
+        }
+      );
+    };
+
+    function enterSession(id) {
+      setupCard.style.display = 'none';
+      mainScreen.style.display = 'block';
+
+      const joinUrl = location.origin + location.pathname.replace('teacher.html', 'index.html') + '?session=' + id;
+      document.getElementById('sessionCode').textContent = id;
+      document.getElementById('joinUrl').textContent = joinUrl;
+      // QR image rendered via a public QR-generation service (api.qrserver.com) --
+      // the join URL contains only a random session code, no student data.
+      document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(joinUrl);
+
+      if (unsubscribeSession) unsubscribeSession();
+      unsubscribeSession = TKSnowball.sessionDocRef(id).onSnapshot(doc => {
+        if (!doc.exists) return;
+        const data = doc.data();
+        const newPhase = data.phase || 1;
+        const phaseChanged = newPhase !== currentPhase;
+        currentPhase = newPhase;
+        phaseIndicator.textContent = phaseIndicatorText(currentPhase);
+        nextPhaseBtn.style.display = currentPhase >= 4 ? 'none' : 'inline-block';
+        finalPhaseNote.style.display = currentPhase >= 4 ? 'block' : 'none';
+        if (phaseChanged) {
+          resetTimer();
+          clearSelection();
+          subscribeStickies(id, currentPhase);
+        }
+      }, err => console.error(err));
+
+      subscribeStickies(id, currentPhase);
+    }
+
+    document.getElementById('copyBtn').onclick = () => {
+      const joinUrl = document.getElementById('joinUrl').textContent;
+      navigator.clipboard.writeText(joinUrl).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    };
+
+    // --- Next phase ---
+    nextPhaseBtn.onclick = () => {
+      if (currentPhase >= 4) return;
+      nextPhaseBtn.disabled = true;
+      withTimeout(
+        TKSnowball.sessionDocRef(sessionId).update({ phase: currentPhase + 1 }),
+        () => { nextPhaseBtn.disabled = false; },
+        err => {
+          nextPhaseBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not advance the phase — check your connection and try again.');
+        }
+      );
+    };
+
+    // --- Stickies wall + merge ---
+    function subscribeStickies(id, phase) {
+      if (unsubscribeStickies) unsubscribeStickies();
+      unsubscribeStickies = TKSnowball.stickiesCollRef(id)
+        .where('phase', '==', phase)
+        .onSnapshot(snap => {
+          const stickies = [];
+          snap.forEach(doc => stickies.push({ id: doc.id, ...doc.data() }));
+          // Sorted client-side by createdAt rather than via .orderBy() in the
+          // query, so this doesn't require a composite Firestore index on
+          // top of the equality filter on `phase`.
+          stickies.sort((a, b) => {
+            const at = a.createdAt ? a.createdAt.toMillis() : 0;
+            const bt = b.createdAt ? b.createdAt.toMillis() : 0;
+            return at - bt;
+          });
+          renderWall(stickies);
+        }, err => console.error(err));
+    }
+
+    function renderWall(stickies) {
+      stickyCount.textContent = stickies.length + (stickies.length === 1 ? ' sticky' : ' stickies') + ' submitted this phase';
+
+      wallGrid.innerHTML = '';
+      noStickies.style.display = stickies.length ? 'none' : 'block';
+      stickies.forEach(sticky => {
+        const card = document.createElement('div');
+        card.className = 'sticky-card';
+        if (sticky.id === selectedStickyId) card.classList.add('selected');
+        card.textContent = sticky.text || '';
+        card.onclick = () => handleStickyClick(sticky.id, sticky.text || '', card);
+        wallGrid.appendChild(card);
+      });
+    }
+
+    function clearSelection() {
+      selectedStickyId = null;
+      selectedStickyText = null;
+      document.querySelectorAll('.sticky-card.selected').forEach(el => el.classList.remove('selected'));
+    }
+
+    function handleStickyClick(id, text, cardEl) {
+      if (selectedStickyId === null) {
+        selectedStickyId = id;
+        selectedStickyText = text;
+        cardEl.classList.add('selected');
+        return;
+      }
+      if (selectedStickyId === id) {
+        clearSelection();
+        return;
+      }
+      const firstId = selectedStickyId;
+      const firstText = selectedStickyText;
+      const secondId = id;
+      const secondText = text;
+      if (!confirm('Combine these two stickies into one?')) return;
+
+      const mergedText = firstText + ' + ' + secondText;
+      withTimeout(
+        Promise.all([
+          TKSnowball.stickiesCollRef(sessionId).doc(firstId).update({ text: mergedText }),
+          TKSnowball.stickiesCollRef(sessionId).doc(secondId).delete()
+        ]),
+        () => { clearSelection(); },
+        err => {
+          console.error(err);
+          clearSelection();
+          TKToast.show('Could not merge stickies — check your connection and try again.');
+        }
+      );
+    }
+
+    // --- Reset ---
+    document.getElementById('resetBtn').onclick = () => {
+      if (!confirm('Start a new lesson? Existing stickies stay saved, but students on the current code will stop seeing updates.')) return;
+      if (unsubscribeSession) unsubscribeSession();
+      if (unsubscribeStickies) unsubscribeStickies();
+      unsubscribeSession = null;
+      unsubscribeStickies = null;
+      sessionId = '';
+      currentPhase = 1;
+      clearSelection();
+      resetTimer();
+      const url = new URL(location.href);
+      url.searchParams.delete('session');
+      history.replaceState(null, '', url);
+      mainScreen.style.display = 'none';
+      setupCard.style.display = 'block';
+      conceptInput.value = '';
+      setupError.textContent = '';
+    };
+
+    // If a session code is already in the URL, load its existing concept
+    // and jump straight to the phase view.
+    if (sessionId) {
+      TKSnowball.sessionDocRef(sessionId).get().then(doc => {
+        if (doc.exists) {
+          currentPhase = doc.data().phase || 1;
+          enterSession(sessionId);
+        } else {
+          // Stale/unknown code in the URL — fall back to a blank setup screen.
+          sessionId = '';
+          const url = new URL(location.href);
+          url.searchParams.delete('session');
+          history.replaceState(null, '', url);
+        }
+      }).catch(err => console.error(err));
+    }
+  </script>
+  <script>window.TK_CURRENT = 'snowball-wall';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

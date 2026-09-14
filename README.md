@@ -27,6 +27,9 @@ apps/
   choice-board/          static — 3x3 task board with live progress (Firebase-backed)
   presentation-timer/    static — per-team presentation + Q&A timer
   assessment-checklist/  static — rubric-based team scoring (local only)
+  snowball-wall/         static — 1-2-4-all idea-building wall (Firebase-backed)
+  question-builder/      static — topic → Bloom's-leveled question bank (local only)
+  challenge-deck/        static — draw-a-card task deck by category (Firebase-backed)
 packages/
   shell/          shared navbar + theme (theme.css, navbar.css, navbar.js),
                   plus the shared Firebase config + Firestore rules
@@ -70,7 +73,7 @@ dist/
 
 ## Firebase setup
 
-Four tools need a live backend — student phones/devices write to it, a
+Six tools need a live backend — student phones/devices write to it, a
 teacher screen watches it update in real time — and they all share **one**
 Firebase project via `packages/shell/firebase-config.js`:
 
@@ -78,6 +81,8 @@ Firebase project via `packages/shell/firebase-config.js`:
 - **Exit Ticket** — end-of-lesson responses (`exitTicketSessions`)
 - **Choice Board** — per-student task progress (`choiceBoardSessions`)
 - **Growth Mindset** — the moderated "Wall of Yet" (`growthWallSessions`)
+- **Snowball Wall** — phase-tracked sticky notes (`snowballSessions`)
+- **Challenge Deck** — per-student card progress (`challengeDeckSessions`)
 
 Every other tool is fully local (localStorage only), no backend needed.
 

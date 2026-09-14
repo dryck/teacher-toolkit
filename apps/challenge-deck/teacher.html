@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Challenge Deck — Teacher Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 1.2rem;
+      color: var(--tk-text);
+      margin-bottom: 16px;
+    }
+
+    /* Deck editor */
+    label { font-weight: 600; color: var(--tk-text); display: block; margin-bottom: 6px; font-size: 0.9rem; }
+    #titleInput {
+      width: 100%;
+      font-size: 1.1rem;
+      padding: 10px 14px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      margin-bottom: 18px;
+    }
+
+    #categoriesContainer { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+    .category-row {
+      border: 2px solid #eee;
+      border-radius: 12px;
+      padding: 14px;
+      background: #fafafa;
+    }
+    .cat-row-header {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .cat-name {
+      flex: 1;
+      min-width: 160px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .cat-difficulty {
+      font-size: 0.9rem;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .btn-remove-cat {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #b91c1c;
+      background: #fee2e2;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .btn-remove-cat:disabled { opacity: 0.4; cursor: not-allowed; }
+    .cat-cards {
+      width: 100%;
+      min-height: 90px;
+      font-size: 0.9rem;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .cat-hint { font-size: 0.75rem; color: var(--tk-text-muted); margin-top: 4px; }
+
+    .btn-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+    .btn {
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: #fff;
+      background: var(--tk-primary);
+    }
+    .btn.secondary { background: #e0e7ff; color: #3730a3; }
+    .btn.danger { background: #fee2e2; color: #b91c1c; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Join card */
+    .join-card {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .join-card img { width: 140px; height: 140px; border-radius: 8px; }
+    .join-info { text-align: center; }
+    .join-info .code {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--tk-primary-dark);
+    }
+    .join-info .url {
+      font-size: 0.95rem;
+      color: var(--tk-text-muted);
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .join-info button {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* Progress view */
+    .student-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .student-row:last-child { border-bottom: none; }
+    .student-row .nickname { width: 140px; flex-shrink: 0; font-weight: 700; color: var(--tk-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .student-row .cats { flex: 1; font-size: 0.85rem; color: var(--tk-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .student-row .frac { width: 130px; text-align: right; font-weight: 700; color: var(--tk-text); flex-shrink: 0; }
+    #noStudents { color: var(--tk-text-muted); text-align: center; padding: 10px 0; }
+
+    #editorSaved { text-align: center; font-size: 0.85rem; color: #16a34a; min-height: 1.2em; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🃏 Challenge Deck — Teacher Dashboard</h1>
+
+    <div class="card">
+      <h2>Deck editor</h2>
+      <label for="titleInput">Deck title</label>
+      <input type="text" id="titleInput" placeholder="e.g. Fractions Practice">
+
+      <div id="categoriesContainer"></div>
+
+      <div class="btn-row">
+        <button class="btn secondary" id="addCategoryBtn">+ Add category</button>
+      </div>
+
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn" id="generateBtn">🎲 Create Board</button>
+        <button class="btn secondary" id="saveBtn" style="display:none">💾 Save Changes</button>
+        <button class="btn danger" id="resetBtn" style="display:none">🔄 Reset (new lesson)</button>
+        <button class="btn secondary" id="newSessionBtn" style="display:none">🆕 New session code</button>
+      </div>
+      <div id="editorSaved"></div>
+    </div>
+
+    <div class="card" id="joinCard" style="display:none">
+      <h2>Students join at</h2>
+      <div class="join-card">
+        <img id="qrImg" alt="QR code to join">
+        <div class="join-info">
+          <div class="code" id="sessionCode"></div>
+          <div class="url" id="joinUrl"></div>
+          <button id="copyBtn">Copy link</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="progressCard" style="display:none">
+      <h2>Live progress</h2>
+      <div id="studentRows"></div>
+      <div id="noStudents">No students have joined yet.</div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="challenge-deck.js"></script>
+  <script>
+    let sessionId = (new URLSearchParams(location.search).get('session') || '').toUpperCase();
+
+    // Without a timeout, a bad connection/config leaves a write pending
+    // forever with no feedback at all — same failure mode fixed on the
+    // student page. `onTimeout` and the promise's own then/catch are
+    // mutually exclusive via the `settled` flag.
+    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        onFailure(new Error('timeout'));
+      }, ms);
+      promise.then(result => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onSuccess(result);
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onFailure(err);
+      });
+    }
+
+    const titleInput = document.getElementById('titleInput');
+    const categoriesContainer = document.getElementById('categoriesContainer');
+    const addCategoryBtn = document.getElementById('addCategoryBtn');
+    const generateBtn = document.getElementById('generateBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const newSessionBtn = document.getElementById('newSessionBtn');
+    const editorSaved = document.getElementById('editorSaved');
+    const joinCard = document.getElementById('joinCard');
+    const progressCard = document.getElementById('progressCard');
+
+    let categoryRows = [];
+
+    function createCategoryRow(data) {
+      const wrap = document.createElement('div');
+      wrap.className = 'category-row';
+
+      const header = document.createElement('div');
+      header.className = 'cat-row-header';
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.className = 'cat-name';
+      nameInput.placeholder = 'Category name (e.g. Warm-up)';
+      nameInput.value = (data && data.name) || '';
+
+      const difficultySelect = document.createElement('select');
+      difficultySelect.className = 'cat-difficulty';
+      TKChallengeDeck.DIFFICULTIES.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        difficultySelect.appendChild(opt);
+      });
+      difficultySelect.value = (data && data.difficulty) || 'Easy';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn-remove-cat';
+      removeBtn.textContent = 'Remove';
+      removeBtn.onclick = () => {
+        if (categoryRows.length <= 1) return;
+        categoryRows = categoryRows.filter(r => r !== rowObj);
+        wrap.remove();
+        syncRemoveButtons();
+      };
+
+      header.append(nameInput, difficultySelect, removeBtn);
+
+      const cardsTextarea = document.createElement('textarea');
+      cardsTextarea.className = 'cat-cards';
+      cardsTextarea.placeholder = 'One card per line, e.g.\nExplain your answer to a partner\nDraw a diagram of the process';
+      cardsTextarea.value = (data && data.cards) ? data.cards.join('\n') : '';
+
+      const hint = document.createElement('div');
+      hint.className = 'cat-hint';
+      hint.textContent = 'One task per line — each line becomes a card students can draw.';
+
+      wrap.append(header, cardsTextarea, hint);
+      categoriesContainer.appendChild(wrap);
+
+      const rowObj = { wrap, nameInput, difficultySelect, cardsTextarea, removeBtn };
+      categoryRows.push(rowObj);
+      syncRemoveButtons();
+      return rowObj;
+    }
+
+    function syncRemoveButtons() {
+      const disable = categoryRows.length <= 1;
+      categoryRows.forEach(r => { r.removeBtn.disabled = disable; });
+    }
+
+    addCategoryBtn.onclick = () => {
+      createCategoryRow({ name: '', difficulty: 'Easy', cards: [] });
+    };
+
+    function collectCategories() {
+      return categoryRows.map(r => ({
+        name: r.nameInput.value.trim() || 'Category',
+        difficulty: r.difficultySelect.value,
+        cards: r.cardsTextarea.value.split('\n').map(s => s.trim()).filter(Boolean)
+      }));
+    }
+
+    function collectDeckConfig() {
+      return {
+        title: titleInput.value.trim() || 'Challenge Deck',
+        categories: collectCategories()
+      };
+    }
+
+    function applyDeckConfig(config) {
+      titleInput.value = config.title || '';
+      categoriesContainer.innerHTML = '';
+      categoryRows = [];
+      const categories = (config.categories && config.categories.length) ? config.categories : TKChallengeDeck.defaultCategories();
+      categories.forEach(cat => createCategoryRow(cat));
+    }
+
+    function showFlash(msg) {
+      editorSaved.textContent = msg;
+      setTimeout(() => { editorSaved.textContent = ''; }, 2000);
+    }
+
+    function showJoinAndProgress(id) {
+      const joinUrl = location.origin + location.pathname.replace('teacher.html', 'index.html') + '?session=' + id;
+      document.getElementById('sessionCode').textContent = id;
+      document.getElementById('joinUrl').textContent = joinUrl;
+      // QR image rendered via a public QR-generation service (api.qrserver.com) --
+      // the join URL contains only a random session code, no student data.
+      document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(joinUrl);
+      joinCard.style.display = 'block';
+      progressCard.style.display = 'block';
+      generateBtn.style.display = 'none';
+      saveBtn.style.display = 'inline-block';
+      resetBtn.style.display = 'inline-block';
+      newSessionBtn.style.display = 'inline-block';
+      startProgressListener(id);
+    }
+
+    document.getElementById('copyBtn').onclick = () => {
+      const joinUrl = document.getElementById('joinUrl').textContent;
+      navigator.clipboard.writeText(joinUrl).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    };
+
+    generateBtn.onclick = () => {
+      const config = collectDeckConfig();
+      const newId = TKChallengeDeck.randomSessionCode();
+      generateBtn.disabled = true;
+      withTimeout(
+        TKChallengeDeck.sessionDocRef(newId).set(config),
+        () => {
+          generateBtn.disabled = false;
+          sessionId = newId;
+          const url = new URL(location.href);
+          url.searchParams.set('session', sessionId);
+          history.replaceState(null, '', url);
+          showJoinAndProgress(sessionId);
+          showFlash('Board created!');
+        },
+        err => {
+          generateBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not create the board — check your connection and try again.');
+        }
+      );
+    };
+
+    saveBtn.onclick = () => {
+      if (!sessionId) return;
+      const config = collectDeckConfig();
+      saveBtn.disabled = true;
+      withTimeout(
+        TKChallengeDeck.sessionDocRef(sessionId).set(config),
+        () => {
+          saveBtn.disabled = false;
+          showFlash('Saved!');
+        },
+        err => {
+          saveBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not save changes — check your connection and try again.');
+        }
+      );
+    };
+
+    resetBtn.onclick = () => {
+      if (!sessionId) return;
+      if (!confirm('Clear all student progress for this session? (Use this to start a fresh lesson.)')) return;
+      resetBtn.disabled = true;
+      withTimeout(
+        TKChallengeDeck.progressCollRef(sessionId).get().then(snap => {
+          const batch = TKChallengeDeck.db.batch();
+          snap.forEach(doc => batch.delete(doc.ref));
+          return batch.commit();
+        }),
+        () => {
+          resetBtn.disabled = false;
+          showFlash('Progress reset!');
+        },
+        err => {
+          resetBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not reset progress — check your connection and try again.');
+        }
+      );
+    };
+
+    newSessionBtn.onclick = () => {
+      if (!confirm('Start a brand-new session code? Students will need the new link/QR to join.')) return;
+      const config = collectDeckConfig();
+      const newId = TKChallengeDeck.randomSessionCode();
+      newSessionBtn.disabled = true;
+      withTimeout(
+        TKChallengeDeck.sessionDocRef(newId).set(config),
+        () => {
+          newSessionBtn.disabled = false;
+          sessionId = newId;
+          const url = new URL(location.href);
+          url.searchParams.set('session', sessionId);
+          history.replaceState(null, '', url);
+          showJoinAndProgress(sessionId);
+          showFlash('New session code created!');
+        },
+        err => {
+          newSessionBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not create a new session — check your connection and try again.');
+        }
+      );
+    };
+
+    let unsubscribeProgress = null;
+    function startProgressListener(id) {
+      if (unsubscribeProgress) unsubscribeProgress();
+      unsubscribeProgress = TKChallengeDeck.progressCollRef(id).onSnapshot(snap => {
+        const students = [];
+        snap.forEach(doc => students.push(doc.data()));
+        renderProgress(students);
+      }, err => console.error(err));
+    }
+
+    function renderProgress(students) {
+      const rowsEl = document.getElementById('studentRows');
+      const noStudentsEl = document.getElementById('noStudents');
+      rowsEl.innerHTML = '';
+      if (!students.length) {
+        noStudentsEl.style.display = 'block';
+        return;
+      }
+      noStudentsEl.style.display = 'none';
+
+      const config = collectDeckConfig();
+      const categories = config.categories;
+
+      const sorted = students.slice().sort((a, b) => {
+        const nA = TKChallengeDeck.countCompletedTotal(a.completedCardIds);
+        const nB = TKChallengeDeck.countCompletedTotal(b.completedCardIds);
+        return nB - nA;
+      });
+
+      sorted.forEach(s => {
+        const completedCardIds = s.completedCardIds || [];
+        const n = TKChallengeDeck.countCompletedTotal(completedCardIds);
+        const touched = categories
+          .map((cat, i) => ({ name: cat.name, count: TKChallengeDeck.countCompletedInCategory(completedCardIds, i) }))
+          .filter(c => c.count > 0)
+          .map(c => c.name);
+        const row = document.createElement('div');
+        row.className = 'student-row';
+        row.innerHTML = `
+          <div class="nickname">${escapeHtml(s.nickname || 'Student')}</div>
+          <div class="cats">${touched.length ? escapeHtml(touched.join(', ')) : '—'}</div>
+          <div class="frac">${n} card${n === 1 ? '' : 's'} completed</div>
+        `;
+        rowsEl.appendChild(row);
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // If a session code is already in the URL, load its existing deck
+    // config into the editor and jump straight to the join + progress view.
+    if (sessionId) {
+      TKChallengeDeck.sessionDocRef(sessionId).get().then(doc => {
+        if (doc.exists) {
+          applyDeckConfig(doc.data());
+          showJoinAndProgress(sessionId);
+        } else {
+          // Stale/unknown code in the URL — fall back to a blank editor.
+          sessionId = '';
+          const url = new URL(location.href);
+          url.searchParams.delete('session');
+          history.replaceState(null, '', url);
+          applyDeckConfig({ title: '', categories: TKChallengeDeck.defaultCategories() });
+        }
+      }).catch(err => {
+        console.error(err);
+        applyDeckConfig({ title: '', categories: TKChallengeDeck.defaultCategories() });
+      });
+    } else {
+      applyDeckConfig({ title: '', categories: TKChallengeDeck.defaultCategories() });
+    }
+  </script>
+  <script>window.TK_CURRENT = 'challenge-deck';</script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+</body>
+</html>

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Challenge Deck</title>
+  <!-- No shared navbar/branding here on purpose: students land on this
+       page directly via a link/QR code their teacher gives them, and
+       should never see (or be able to navigate to) the rest of the
+       teacher-facing toolkit. Only theme.css (CSS variables) is kept. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+      color: var(--tk-text);
+      margin: 12px 0 4px;
+    }
+
+    /* Join-by-code screen (shown if no ?session= in the URL) */
+    #joinScreen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #joinScreen p { color: var(--tk-text-muted); }
+    #joinScreen input {
+      font-size: 1.6rem;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 220px;
+    }
+    #joinScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+
+    /* Nickname screen */
+    #nicknameScreen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #nicknameScreen p { color: var(--tk-text-muted); }
+    #nicknameScreen input {
+      font-size: 1.2rem;
+      text-align: center;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 240px;
+    }
+    #nicknameScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+
+    /* Category picker screen */
+    #categoryScreen { display: none; flex: 1; flex-direction: column; gap: 14px; }
+    #deckTitle { text-align: center; font-size: 1.3rem; font-weight: 800; color: var(--tk-text); }
+    #categoryList { display: flex; flex-direction: column; gap: 12px; }
+    .category-btn {
+      background: var(--tk-surface);
+      box-shadow: var(--tk-shadow);
+      border: none;
+      border-radius: 14px;
+      padding: 16px 18px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .category-btn:disabled { opacity: 0.6; cursor: default; }
+    .category-btn .cat-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .category-btn .cat-name { font-size: 1.1rem; font-weight: 700; color: var(--tk-text); }
+    .difficulty-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .category-btn .cat-progress { font-size: 0.85rem; color: var(--tk-text-muted); font-weight: 600; }
+    #noCategories { color: var(--tk-text-muted); text-align: center; padding: 20px 0; }
+
+    /* Card draw screen */
+    #cardScreen { display: none; flex: 1; flex-direction: column; gap: 16px; align-items: center; justify-content: center; }
+    #cardCategoryLabel { font-size: 0.9rem; font-weight: 700; color: var(--tk-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .card-box {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 32px 24px;
+      max-width: 400px;
+      width: 100%;
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      opacity: 0;
+      transform: scale(0.85) rotateY(90deg);
+      transition: transform 0.35s ease, opacity 0.35s ease;
+    }
+    .card-box.shown { opacity: 1; transform: scale(1) rotateY(0deg); }
+    .card-box #cardText { font-size: 1.35rem; font-weight: 700; color: var(--tk-text); line-height: 1.4; }
+    .card-box.all-done #cardText { font-size: 1.6rem; }
+    #cardActions { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; }
+    #cardDoneBtn {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      background: #22c55e;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      cursor: pointer;
+      width: 100%;
+    }
+    #cardDoneBtn:disabled { opacity: 0.7; cursor: default; }
+    #cardBackBtn {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--tk-text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 10px;
+    }
+
+    #errorMsg { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🃏 Challenge Deck</h1>
+
+    <div id="joinScreen">
+      <p>Enter the code your teacher gave you:</p>
+      <input type="text" id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+      <div id="errorMsg"></div>
+      <button id="joinBtn">Join</button>
+    </div>
+
+    <div id="nicknameScreen">
+      <p>What should we call you?</p>
+      <input type="text" id="nicknameInput" maxlength="24" placeholder="Your name" autocomplete="off">
+      <div id="nicknameError" style="color:#dc3545;font-size:0.9rem;min-height:1.2em"></div>
+      <button id="nicknameBtn">Let's go</button>
+    </div>
+
+    <div id="categoryScreen">
+      <div id="deckTitle"></div>
+      <div id="categoryList"></div>
+      <div id="noCategories" style="display:none">Your teacher hasn't added any categories yet.</div>
+    </div>
+
+    <div id="cardScreen">
+      <div id="cardCategoryLabel"></div>
+      <div class="card-box" id="cardBox">
+        <div id="cardText"></div>
+      </div>
+      <div id="cardActions">
+        <button id="cardDoneBtn">✅ Done — draw another</button>
+        <button id="cardBackBtn">← Choose a different category</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="challenge-deck.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+
+    const joinScreen = document.getElementById('joinScreen');
+    const nicknameScreen = document.getElementById('nicknameScreen');
+    const categoryScreen = document.getElementById('categoryScreen');
+    const cardScreen = document.getElementById('cardScreen');
+    const errorMsg = document.getElementById('errorMsg');
+
+    function nicknameKey(id) { return 'tk-challenge-deck-nickname-' + id; }
+    function studentIdKey(id) { return 'tk-challenge-deck-studentid-' + id; }
+
+    let studentId = null;
+    let nickname = null;
+    let deckConfig = null; // { title, categories: [{name, difficulty, cards}] }
+    let completedCardIds = [];
+    let currentCategoryIndex = null;
+    let currentCard = null; // { categoryIndex, cardIndex, id, text }
+
+    function startSession() {
+      joinScreen.style.display = 'none';
+      nickname = localStorage.getItem(nicknameKey(sessionId));
+      studentId = localStorage.getItem(studentIdKey(sessionId));
+
+      if (nickname && studentId) {
+        enterDeck();
+      } else {
+        nicknameScreen.style.display = 'flex';
+      }
+    }
+
+    document.getElementById('nicknameBtn').onclick = () => {
+      const val = document.getElementById('nicknameInput').value.trim();
+      const errEl = document.getElementById('nicknameError');
+      if (!val) {
+        errEl.textContent = 'Please enter a name.';
+        return;
+      }
+      nickname = val;
+      studentId = TKChallengeDeck.randomStudentId();
+      localStorage.setItem(nicknameKey(sessionId), nickname);
+      localStorage.setItem(studentIdKey(sessionId), studentId);
+
+      // Without a timeout, a bad connection/config leaves this write
+      // pending forever and the "Join" button never does anything.
+      let joinSettled = false;
+      const joinTimeoutId = setTimeout(() => {
+        if (joinSettled) return;
+        joinSettled = true;
+        errEl.textContent = 'Could not join — check your connection and try again.';
+      }, 8000);
+
+      TKChallengeDeck.progressDocRef(sessionId, studentId).set({
+        nickname,
+        completedCardIds: [],
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).then(() => {
+        if (joinSettled) return;
+        joinSettled = true;
+        clearTimeout(joinTimeoutId);
+        nicknameScreen.style.display = 'none';
+        enterDeck();
+      }).catch(err => {
+        if (joinSettled) return;
+        joinSettled = true;
+        clearTimeout(joinTimeoutId);
+        console.error(err);
+        errEl.textContent = 'Could not join — check your connection and try again.';
+      });
+    };
+
+    function enterDeck() {
+      nicknameScreen.style.display = 'none';
+      categoryScreen.style.display = 'flex';
+
+      // Own progress: load once, then keep local + writes on each change.
+      // Timeout guard: without it, a bad connection/config leaves this
+      // read pending forever and the category list never renders at all.
+      let progressLoadSettled = false;
+      setTimeout(() => {
+        if (progressLoadSettled) return;
+        progressLoadSettled = true;
+        renderCategoryList();
+      }, 8000);
+      TKChallengeDeck.progressDocRef(sessionId, studentId).get().then(doc => {
+        if (progressLoadSettled) return;
+        progressLoadSettled = true;
+        if (doc.exists && Array.isArray(doc.data().completedCardIds)) {
+          completedCardIds = doc.data().completedCardIds;
+        }
+        renderCategoryList();
+      }).catch(err => {
+        if (progressLoadSettled) return;
+        progressLoadSettled = true;
+        console.error(err);
+        renderCategoryList();
+      });
+
+      // Deck config: live, in case the teacher edits it mid-session.
+      TKChallengeDeck.sessionDocRef(sessionId).onSnapshot(doc => {
+        if (!doc.exists) return;
+        deckConfig = doc.data();
+        document.getElementById('deckTitle').textContent = deckConfig.title || 'Challenge Deck';
+        renderCategoryList();
+      }, err => console.error(err));
+    }
+
+    function renderCategoryList() {
+      if (!deckConfig) return;
+      const listEl = document.getElementById('categoryList');
+      const noCatEl = document.getElementById('noCategories');
+      listEl.innerHTML = '';
+      const categories = deckConfig.categories || [];
+      if (!categories.length) {
+        noCatEl.style.display = 'block';
+        return;
+      }
+      noCatEl.style.display = 'none';
+      categories.forEach((cat, i) => {
+        const cardCount = (cat.cards || []).length;
+        const doneCount = TKChallengeDeck.countCompletedInCategory(completedCardIds, i);
+        const colors = TKChallengeDeck.DIFFICULTY_COLORS[cat.difficulty] || TKChallengeDeck.DIFFICULTY_COLORS.Easy;
+        const btn = document.createElement('button');
+        btn.className = 'category-btn';
+        btn.innerHTML = `
+          <div class="cat-top">
+            <span class="cat-name">${escapeHtml(cat.name || 'Category')}</span>
+            <span class="difficulty-badge" style="background:${colors.bg};color:${colors.fg}">${escapeHtml(cat.difficulty || '')}</span>
+          </div>
+          <span class="cat-progress">${doneCount}/${cardCount} done</span>
+        `;
+        if (!cardCount) {
+          btn.disabled = true;
+        } else {
+          btn.onclick = () => enterCategory(i);
+        }
+        listEl.appendChild(btn);
+      });
+    }
+
+    function enterCategory(categoryIndex) {
+      currentCategoryIndex = categoryIndex;
+      categoryScreen.style.display = 'none';
+      cardScreen.style.display = 'flex';
+      const cat = deckConfig.categories[categoryIndex];
+      document.getElementById('cardCategoryLabel').textContent = cat.name || 'Category';
+      drawCard();
+    }
+
+    function backToCategories() {
+      cardScreen.style.display = 'none';
+      categoryScreen.style.display = 'flex';
+      currentCategoryIndex = null;
+      currentCard = null;
+      renderCategoryList();
+    }
+
+    function drawCard() {
+      const cat = deckConfig.categories[currentCategoryIndex];
+      const cards = cat.cards || [];
+      const uncompleted = [];
+      cards.forEach((text, i) => {
+        const id = TKChallengeDeck.cardId(currentCategoryIndex, i);
+        if (!completedCardIds.includes(id)) uncompleted.push({ cardIndex: i, id, text });
+      });
+
+      const cardBox = document.getElementById('cardBox');
+      const doneBtn = document.getElementById('cardDoneBtn');
+
+      if (!uncompleted.length) {
+        currentCard = null;
+        cardBox.classList.add('all-done');
+        doneBtn.style.display = 'none';
+        revealCard('🎉 All done in this category!');
+        return;
+      }
+
+      cardBox.classList.remove('all-done');
+      doneBtn.style.display = 'block';
+      const pick = uncompleted[Math.floor(Math.random() * uncompleted.length)];
+      currentCard = { categoryIndex: currentCategoryIndex, cardIndex: pick.cardIndex, id: pick.id, text: pick.text };
+      revealCard(pick.text);
+    }
+
+    // Toggling display:none -> visible and starting a CSS transition in the
+    // same tick means the transition never plays -- force a reflow between
+    // the two steps so the "flip" animation actually runs on every draw.
+    function revealCard(text) {
+      const cardBox = document.getElementById('cardBox');
+      document.getElementById('cardText').textContent = text;
+      cardBox.classList.remove('shown');
+      void cardBox.offsetWidth;
+      cardBox.classList.add('shown');
+    }
+
+    document.getElementById('cardDoneBtn').onclick = () => {
+      if (!currentCard) return;
+      const btn = document.getElementById('cardDoneBtn');
+      btn.disabled = true;
+      const newCompleted = completedCardIds.concat([currentCard.id]);
+
+      let doneSettled = false;
+      const doneTimeoutId = setTimeout(() => {
+        if (doneSettled) return;
+        doneSettled = true;
+        btn.disabled = false;
+        TKToast.show('Could not save — check your connection and try again.');
+      }, 8000);
+
+      TKChallengeDeck.progressDocRef(sessionId, studentId).set({
+        nickname,
+        completedCardIds: newCompleted
+      }, { merge: true }).then(() => {
+        if (doneSettled) return;
+        doneSettled = true;
+        clearTimeout(doneTimeoutId);
+        btn.disabled = false;
+        completedCardIds = newCompleted;
+        drawCard();
+      }).catch(err => {
+        if (doneSettled) return;
+        doneSettled = true;
+        clearTimeout(doneTimeoutId);
+        btn.disabled = false;
+        console.error(err);
+        TKToast.show('Could not save — check your connection and try again.');
+      });
+    };
+
+    document.getElementById('cardBackBtn').onclick = backToCategories;
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    document.getElementById('joinBtn').onclick = () => {
+      const code = document.getElementById('codeInput').value.trim().toUpperCase();
+      if (code.length !== 5) {
+        errorMsg.textContent = 'Enter the 5-letter code your teacher gave you.';
+        return;
+      }
+      sessionId = code;
+      const url = new URL(location.href);
+      url.searchParams.set('session', sessionId);
+      history.replaceState(null, '', url);
+      startSession();
+    };
+
+    if (sessionId) {
+      startSession();
+    }
+  </script>
+</body>
+</html>

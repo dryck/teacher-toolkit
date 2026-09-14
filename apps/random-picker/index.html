@@ -85,8 +85,42 @@
       padding: 40px;
       min-height: 150px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 16px;
+    }
+    .bloom-question-box {
+      background: var(--tk-surface);
+      border: 2px solid var(--tk-primary);
+      border-radius: var(--tk-radius);
+      padding: 16px 22px;
+      max-width: 480px;
+      text-align: center;
+    }
+    .bloom-question-box .bloom-level {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--tk-accent);
+      margin-bottom: 6px;
+    }
+    .bloom-question-box .bloom-text {
+      font-size: 1.1rem;
+      color: var(--tk-text);
+      margin-bottom: 12px;
+    }
+    .bloom-question-box button {
+      background: var(--tk-primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
     }
     .empty-message {
       background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
@@ -430,12 +464,66 @@ Hannah</textarea>
       }, SPIN_DURATION);
     }
 
+    // Bloom's Question Builder (packages/shell -> apps/question-builder)
+    // queues its questions here so a picked student's question shows up
+    // automatically instead of the teacher having to switch tabs.
+    const BLOOM_STORAGE_KEY = 'tk-bloom-questions';
+
+    function nextUnaskedQuestion() {
+      try {
+        const list = JSON.parse(localStorage.getItem(BLOOM_STORAGE_KEY) || '[]');
+        return list.find(q => !q.asked) || null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function markQuestionAsked(id) {
+      try {
+        const list = JSON.parse(localStorage.getItem(BLOOM_STORAGE_KEY) || '[]');
+        const q = list.find(q => q.id === id);
+        if (q) q.asked = true;
+        localStorage.setItem(BLOOM_STORAGE_KEY, JSON.stringify(list));
+      } catch (e) { /* ignore */ }
+    }
+
     function showResult(name) {
       document.getElementById('wheelContainer').style.display = 'none';
       const container = document.getElementById('resultContainer');
       container.style.display = 'flex';
-      container.innerHTML = `<div class="result">${name}!</div>`;
-      
+      container.innerHTML = '';
+
+      const resultEl = document.createElement('div');
+      resultEl.className = 'result';
+      resultEl.textContent = name + '!';
+      container.appendChild(resultEl);
+
+      const question = nextUnaskedQuestion();
+      if (question) {
+        const box = document.createElement('div');
+        box.className = 'bloom-question-box';
+
+        const levelEl = document.createElement('div');
+        levelEl.className = 'bloom-level';
+        levelEl.textContent = question.level + ' · ' + question.technique;
+        box.appendChild(levelEl);
+
+        const textEl = document.createElement('div');
+        textEl.className = 'bloom-text';
+        textEl.textContent = question.text;
+        box.appendChild(textEl);
+
+        const markBtn = document.createElement('button');
+        markBtn.textContent = '✓ Mark asked';
+        markBtn.onclick = () => {
+          markQuestionAsked(question.id);
+          box.remove();
+        };
+        box.appendChild(markBtn);
+
+        container.appendChild(box);
+      }
+
       // Celebration effect
       confetti();
     }

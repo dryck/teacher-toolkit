@@ -24,6 +24,9 @@
     { key: 'choice-board', label: 'Choice Board', href: 'choice-board/teacher.html' },
     { key: 'presentation-timer', label: 'Presentation Timer', href: 'presentation-timer/' },
     { key: 'assessment-checklist', label: 'Assessment Checklist', href: 'assessment-checklist/' },
+    { key: 'snowball-wall', label: 'Snowball Wall', href: 'snowball-wall/teacher.html' },
+    { key: 'question-builder', label: "Bloom's Questions", href: 'question-builder/' },
+    { key: 'challenge-deck', label: 'Challenge Deck', href: 'challenge-deck/teacher.html' },
     { key: 'research', label: 'Research', href: 'research/' }
   ];
 

@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bloom's Question Builder | Teacher Tools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 1100px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+
+    /* --- Generator form --- */
+    .generator-form {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 8px;
+    }
+    .generator-form .field-block { flex: 1 1 320px; }
+    .field-block label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    .field-block input[type="text"],
+    .field-block select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .field-block input[type="text"]:focus,
+    .field-block select:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+
+    .btn {
+      padding: 12px 24px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      color: white;
+      white-space: nowrap;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: var(--tk-primary);
+      box-shadow: 0 8px 20px rgba(38, 87, 135, 0.4);
+    }
+    .btn-secondary {
+      background: #6b7280;
+      box-shadow: 0 8px 20px rgba(107, 114, 128, 0.3);
+    }
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      border-radius: 8px;
+    }
+    .hint {
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 26px;
+    }
+
+    /* --- Main layout: bank + sidebar --- */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+      align-items: start;
+      margin-top: 10px;
+    }
+    @media (max-width: 820px) {
+      .main-layout { grid-template-columns: 1fr; }
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--tk-text-muted);
+      padding: 40px 20px;
+      font-size: 0.95rem;
+      border: 2px dashed #e4e4ef;
+      border-radius: 14px;
+    }
+
+    /* --- Bloom level sections --- */
+    .level-section {
+      border: 2px solid #ececf5;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+    .level-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .level-badge {
+      display: inline-block;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 999px;
+    }
+    .level-badge.level-remember { background: #3a6ea5; }
+    .level-badge.level-understand { background: #2f9188; }
+    .level-badge.level-apply { background: #4f8a3f; }
+    .level-badge.level-analyze { background: #c98a2b; }
+    .level-badge.level-evaluate { background: #b8562f; }
+    .level-badge.level-create { background: #a83e5c; }
+
+    .level-desc {
+      color: var(--tk-text-muted);
+      font-size: 0.88rem;
+      margin: 6px 0 12px;
+    }
+    .question-list { list-style: none; }
+    .question-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-top: 1px solid #f0f0f5;
+    }
+    .question-row:first-child { border-top: none; }
+    .question-text {
+      color: var(--tk-text);
+      font-size: 0.96rem;
+      line-height: 1.4;
+    }
+
+    /* --- Sidebar / Today's Questions --- */
+    .sidebar {
+      background: #faf9f4;
+      border: 2px solid #ececf5;
+      border-radius: 14px;
+      padding: 18px 20px;
+      position: sticky;
+      top: 16px;
+    }
+    .sidebar h2 {
+      color: var(--tk-text);
+      font-size: 1.15rem;
+      margin-bottom: 6px;
+    }
+    .sidebar-hint {
+      color: var(--tk-text-muted);
+      font-size: 0.8rem;
+      margin-bottom: 14px;
+      line-height: 1.4;
+    }
+    .today-list { list-style: none; margin-bottom: 16px; }
+    .today-item {
+      background: var(--tk-surface);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(38, 87, 135, 0.08);
+    }
+    .today-item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .today-item-text {
+      color: var(--tk-text);
+      font-size: 0.9rem;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+    .remove-btn {
+      background: none;
+      border: none;
+      color: var(--tk-text-muted);
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 2px;
+      flex-shrink: 0;
+    }
+    .remove-btn:hover { color: #b8562f; }
+    .technique-select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #e4e4ef;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-family: inherit;
+      color: var(--tk-text);
+    }
+    .no-questions {
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    .manual-add {
+      border-top: 1px solid #e4e4ef;
+      padding-top: 14px;
+      margin-top: 4px;
+    }
+    .manual-add h3 {
+      color: var(--tk-text);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+    .manual-add input[type="text"],
+    .manual-add select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 2px solid #e4e4ef;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      margin-bottom: 8px;
+    }
+    .manual-add input[type="text"]:focus,
+    .manual-add select:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+
+    .sidebar-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* --- Technique reference cards --- */
+    .techniques-section { margin-top: 34px; }
+    .techniques-section h2 {
+      color: var(--tk-text);
+      font-size: 1.25rem;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+    .techniques-section .section-sub {
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-size: 0.88rem;
+      margin-bottom: 18px;
+    }
+    .technique-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+    }
+    .technique-card {
+      background: var(--tk-surface);
+      border: 2px solid #ececf5;
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 18px 20px;
+    }
+    .technique-card .icon { font-size: 1.6rem; display: block; margin-bottom: 8px; }
+    .technique-card h3 { color: var(--tk-text); font-size: 1.05rem; margin-bottom: 6px; }
+    .technique-card p { color: var(--tk-text-muted); font-size: 0.88rem; line-height: 1.45; }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📝 Bloom's Question Builder</h1>
+    <p class="subtitle">Turn any lesson topic into a ready-to-use bank of discussion questions, organized by Bloom's Taxonomy</p>
+
+    <div class="generator-form">
+      <div class="field-block">
+        <label for="topicInput">Lesson topic</label>
+        <input type="text" id="topicInput" placeholder="e.g. Photosynthesis, The Water Cycle, World War I causes">
+      </div>
+      <button class="btn btn-primary" onclick="generateQuestions()">✨ Generate</button>
+    </div>
+    <p class="hint">Questions are built instantly from a template bank — no AI, no internet connection needed.</p>
+
+    <div class="main-layout">
+      <!-- LEFT: generated question bank -->
+      <div id="bankWrap">
+        <div class="empty-state" id="emptyState">Type a lesson topic above and click Generate to see questions at all six Bloom's levels.</div>
+        <div id="levelSections"></div>
+      </div>
+
+      <!-- RIGHT: Today's Questions sidebar -->
+      <div class="sidebar">
+        <h2>📋 Today's Questions</h2>
+        <p class="sidebar-hint">These questions will show up automatically in Random Picker when you spin — pick your questioning technique above to match how you'll use each one.</p>
+
+        <ul class="today-list" id="todayList"></ul>
+        <p class="no-questions" id="noQuestionsMsg" style="display:none;">No questions added yet.</p>
+
+        <div class="manual-add">
+          <h3>+ Add a custom question</h3>
+          <input type="text" id="manualText" placeholder="Type your own question...">
+          <select id="manualLevel">
+            <option value="Remember">Remember</option>
+            <option value="Understand">Understand</option>
+            <option value="Apply">Apply</option>
+            <option value="Analyze">Analyze</option>
+            <option value="Evaluate">Evaluate</option>
+            <option value="Create">Create</option>
+          </select>
+          <button class="btn btn-primary btn-small" onclick="addManualQuestion()" style="width:100%;">+ Add to lesson</button>
+        </div>
+
+        <div class="sidebar-actions">
+          <button class="btn btn-secondary btn-small" onclick="clearAllQuestions()" style="width:100%;">🗑️ Clear all</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reference cards: questioning techniques -->
+    <div class="techniques-section">
+      <h2>Classroom Questioning Techniques</h2>
+      <p class="section-sub">Four complementary ways to decide who answers and which question to ask</p>
+      <div class="technique-grid">
+        <div class="technique-card">
+          <span class="icon">🎯</span>
+          <h3>Individual</h3>
+          <p>Cold-call one student by name, with no hands raised. Keeps every student mentally engaged because anyone could be picked at any moment, not just the volunteers.</p>
+        </div>
+        <div class="technique-card">
+          <span class="icon">🔗</span>
+          <h3>Sequential</h3>
+          <p>Right after one student answers, immediately call on a second student to build on, add to, or agree/disagree with the first response. Creates a chain of thinking instead of a string of disconnected answers.</p>
+        </div>
+        <div class="technique-card">
+          <span class="icon">🔁</span>
+          <h3>Persistent</h3>
+          <p>If a student says "I don't know," don't let that be the end of it. Simplify or rephrase the question and circle back to that same student until they produce an answer — "I don't know" is never treated as an exit.</p>
+        </div>
+        <div class="technique-card">
+          <span class="icon">🌱</span>
+          <h3>Bloom's</h3>
+          <p>Deliberately choose questions from a specific taxonomy level to match your goal — "Remember" questions for a quick check, "Evaluate" or "Create" questions when you want deeper discussion and original thinking.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------
+    // Bloom's Taxonomy question bank: each level has a description and
+    // a set of template stems. {topic} is replaced with whatever the
+    // teacher typed in. Fully client-side string templating — no
+    // network calls, no AI.
+    // ---------------------------------------------------------------
+    const BLOOM_LEVELS = [
+      {
+        id: 'Remember',
+        className: 'level-remember',
+        description: 'Recall facts and basic concepts — the foundation before deeper thinking can happen.',
+        templates: [
+          topic => `What is ${topic}?`,
+          topic => `Can you list the key parts of ${topic}?`,
+          topic => `Define ${topic} in one sentence.`
+        ]
+      },
+      {
+        id: 'Understand',
+        className: 'level-understand',
+        description: 'Explain ideas or concepts in their own words to show real comprehension, not just memorization.',
+        templates: [
+          topic => `Can you explain ${topic} in your own words?`,
+          topic => `What's the main idea behind ${topic}?`,
+          topic => `How would you summarize ${topic} for a younger student?`
+        ]
+      },
+      {
+        id: 'Apply',
+        className: 'level-apply',
+        description: 'Use knowledge in a new situation — put the idea to work instead of just describing it.',
+        templates: [
+          topic => `How would you use ${topic} to solve a real-world problem?`,
+          topic => `Can you think of an example of ${topic} outside of class?`,
+          topic => `What would happen if you applied ${topic} to a different situation?`
+        ]
+      },
+      {
+        id: 'Analyze',
+        className: 'level-analyze',
+        description: 'Break an idea into its parts and examine how they relate, and what evidence backs it up.',
+        templates: [
+          topic => `What are the parts of ${topic}, and how do they connect?`,
+          topic => `What evidence supports what we know about ${topic}?`,
+          topic => `What's a common misconception about ${topic}, and why is it wrong?`
+        ]
+      },
+      {
+        id: 'Evaluate',
+        className: 'level-evaluate',
+        description: 'Make and defend a judgment about the topic using clear criteria or reasoning.',
+        templates: [
+          topic => `Do you agree with how ${topic} is usually explained? Why or why not?`,
+          topic => `What's the strongest argument for or against ${topic}?`,
+          topic => `How would you judge whether ${topic} was a success or a failure?`
+        ]
+      },
+      {
+        id: 'Create',
+        className: 'level-create',
+        description: 'Combine ideas into something new — a design, plan, or original example.',
+        templates: [
+          topic => `How would you redesign or improve ${topic}?`,
+          topic => `Can you invent a new example that demonstrates ${topic}?`,
+          topic => `If you had to teach ${topic} to the class tomorrow, what would you include?`
+        ]
+      }
+    ];
+
+    const STORAGE_KEY = 'tk-bloom-questions';
+    const TECHNIQUES = ['Individual', 'Sequential', 'Persistent'];
+
+    let todayQuestions = loadQuestions();
+
+    // ---------------- localStorage ----------------
+    function loadQuestions() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveQuestions() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todayQuestions));
+    }
+
+    function makeId() {
+      return 'q_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+    }
+
+    // ---------------- Generate question bank ----------------
+    function generateQuestions() {
+      const topic = document.getElementById('topicInput').value.trim();
+      const wrap = document.getElementById('levelSections');
+      const emptyState = document.getElementById('emptyState');
+
+      if (!topic) {
+        wrap.innerHTML = '';
+        emptyState.style.display = 'block';
+        emptyState.textContent = 'Type a lesson topic to generate questions.';
+        document.getElementById('topicInput').focus();
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      wrap.innerHTML = '';
+
+      BLOOM_LEVELS.forEach(level => {
+        const section = document.createElement('div');
+        section.className = 'level-section';
+
+        const header = document.createElement('div');
+        header.className = 'level-header';
+        header.innerHTML = `<span class="level-badge ${level.className}">${level.id}</span>`;
+        section.appendChild(header);
+
+        const desc = document.createElement('p');
+        desc.className = 'level-desc';
+        desc.textContent = level.description;
+        section.appendChild(desc);
+
+        const list = document.createElement('ul');
+        list.className = 'question-list';
+
+        level.templates.forEach(templateFn => {
+          const questionText = templateFn(topic);
+          const row = document.createElement('li');
+          row.className = 'question-row';
+
+          const span = document.createElement('span');
+          span.className = 'question-text';
+          span.textContent = questionText;
+          row.appendChild(span);
+
+          const addBtn = document.createElement('button');
+          addBtn.className = 'btn btn-primary btn-small';
+          addBtn.textContent = '+ Add to lesson';
+          addBtn.onclick = () => addQuestion(questionText, level.id);
+          row.appendChild(addBtn);
+
+          list.appendChild(row);
+        });
+
+        section.appendChild(list);
+        wrap.appendChild(section);
+      });
+    }
+
+    // ---------------- Today's Questions panel ----------------
+    function addQuestion(text, level, technique) {
+      todayQuestions.push({
+        id: makeId(),
+        text: text,
+        level: level,
+        technique: technique || 'Individual',
+        asked: false
+      });
+      saveQuestions();
+      renderTodayList();
+    }
+
+    function addManualQuestion() {
+      const textInput = document.getElementById('manualText');
+      const levelSelect = document.getElementById('manualLevel');
+      const text = textInput.value.trim();
+      if (!text) {
+        textInput.focus();
+        return;
+      }
+      addQuestion(text, levelSelect.value, 'Individual');
+      textInput.value = '';
+      textInput.focus();
+    }
+
+    function removeQuestion(id) {
+      todayQuestions = todayQuestions.filter(q => q.id !== id);
+      saveQuestions();
+      renderTodayList();
+    }
+
+    function setTechnique(id, technique) {
+      const q = todayQuestions.find(q => q.id === id);
+      if (q) {
+        q.technique = technique;
+        saveQuestions();
+      }
+    }
+
+    function clearAllQuestions() {
+      if (todayQuestions.length && !confirm('Remove all questions from today\'s lesson?')) return;
+      todayQuestions = [];
+      saveQuestions();
+      renderTodayList();
+    }
+
+    function levelClassName(level) {
+      const found = BLOOM_LEVELS.find(l => l.id === level);
+      return found ? found.className : 'level-remember';
+    }
+
+    function renderTodayList() {
+      const list = document.getElementById('todayList');
+      const noMsg = document.getElementById('noQuestionsMsg');
+      list.innerHTML = '';
+
+      if (!todayQuestions.length) {
+        noMsg.style.display = 'block';
+        return;
+      }
+      noMsg.style.display = 'none';
+
+      todayQuestions.forEach(q => {
+        const li = document.createElement('li');
+        li.className = 'today-item';
+
+        const top = document.createElement('div');
+        top.className = 'today-item-top';
+        top.innerHTML = `<span class="level-badge ${levelClassName(q.level)}">${q.level}</span>`;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.setAttribute('aria-label', 'Remove question');
+        removeBtn.textContent = '×';
+        removeBtn.onclick = () => removeQuestion(q.id);
+        top.appendChild(removeBtn);
+        li.appendChild(top);
+
+        const textEl = document.createElement('div');
+        textEl.className = 'today-item-text';
+        textEl.textContent = q.text;
+        li.appendChild(textEl);
+
+        const select = document.createElement('select');
+        select.className = 'technique-select';
+        TECHNIQUES.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t;
+          opt.textContent = t;
+          if (t === q.technique) opt.selected = true;
+          select.appendChild(opt);
+        });
+        select.onchange = () => setTechnique(q.id, select.value);
+        li.appendChild(select);
+
+        list.appendChild(li);
+      });
+    }
+
+    // ---------------- Init ----------------
+    renderTodayList();
+    document.getElementById('topicInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') generateQuestions();
+    });
+  </script>
+  <script>window.TK_CURRENT = 'question-builder';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

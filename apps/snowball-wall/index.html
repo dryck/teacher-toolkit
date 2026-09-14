@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Snowball Wall</title>
+  <!-- No shared navbar/branding here on purpose: students land on this
+       page directly via a link/QR code their teacher gives them, and
+       should never see (or be able to navigate to) the rest of the
+       teacher-facing toolkit. Only theme.css (CSS variables) is kept. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+      color: var(--tk-text);
+      margin: 12px 0 20px;
+    }
+
+    /* Join-by-code screen (shown if no ?session= in the URL) */
+    #joinScreen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #joinScreen p { color: var(--tk-text-muted); }
+    #joinScreen input {
+      font-size: 1.6rem;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 220px;
+    }
+    #joinScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+
+    /* Phase screen */
+    #phaseScreen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .concept-card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 18px 20px;
+      text-align: center;
+    }
+    .concept-card .kicker {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--tk-text-muted);
+      margin-bottom: 6px;
+    }
+    .concept-card .concept-text {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--tk-text);
+    }
+    #instructionText {
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-size: 0.95rem;
+    }
+
+    #formWrap { display: none; flex-direction: column; gap: 10px; }
+    #stickyText {
+      font-family: inherit;
+      font-size: 1rem;
+      padding: 14px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      resize: none;
+      min-height: 110px;
+      background: #fffbe0;
+    }
+    #charCount { text-align: right; font-size: 0.8rem; color: var(--tk-text-muted); }
+    #submitBtn {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+    #submitBtn:disabled { opacity: 0.6; cursor: default; }
+    #formError { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; text-align: center; }
+
+    /* Waiting / done screens */
+    #submittedWrap, #doneWrap {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 10px;
+    }
+    #submittedWrap .check, #doneWrap .check { font-size: 4rem; }
+    #submittedWrap h2, #doneWrap h2 { font-size: 1.3rem; color: var(--tk-text); }
+    #submittedWrap p, #doneWrap p { color: var(--tk-text-muted); }
+
+    #errorMsg { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; text-align: center; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>❄️ Snowball Wall</h1>
+
+    <div id="joinScreen">
+      <p>Enter the code your teacher gave you:</p>
+      <input type="text" id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+      <div id="joinError" style="color:#dc3545;font-size:0.9rem;min-height:1.2em"></div>
+      <button id="joinBtn">Join</button>
+    </div>
+
+    <div id="phaseScreen">
+      <div class="concept-card">
+        <div class="kicker">Topic</div>
+        <div class="concept-text" id="conceptText"></div>
+      </div>
+      <div id="instructionText"></div>
+
+      <div id="formWrap">
+        <textarea id="stickyText" maxlength="140" placeholder="Write your idea here..."></textarea>
+        <div id="charCount">0 / 140</div>
+        <div id="formError"></div>
+        <button id="submitBtn">Submit</button>
+      </div>
+
+      <div id="submittedWrap">
+        <div class="check">✓</div>
+        <h2>Submitted</h2>
+        <p>Waiting for the next phase...</p>
+      </div>
+
+      <div id="doneWrap">
+        <div class="check">🏛️</div>
+        <h2>You're all done!</h2>
+        <p>Check the class wall on the screen.</p>
+      </div>
+
+      <div id="errorMsg"></div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="snowball-wall.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+
+    const joinScreen = document.getElementById('joinScreen');
+    const phaseScreen = document.getElementById('phaseScreen');
+    const joinError = document.getElementById('joinError');
+    const errorMsg = document.getElementById('errorMsg');
+
+    const conceptText = document.getElementById('conceptText');
+    const instructionText = document.getElementById('instructionText');
+    const formWrap = document.getElementById('formWrap');
+    const submittedWrap = document.getElementById('submittedWrap');
+    const doneWrap = document.getElementById('doneWrap');
+    const stickyText = document.getElementById('stickyText');
+    const charCount = document.getElementById('charCount');
+    const formError = document.getElementById('formError');
+    const submitBtn = document.getElementById('submitBtn');
+
+    let concept = '';
+    let currentPhase = null;
+
+    function submittedKey(id, phase) { return 'tk-snowball-submitted-' + id + '-' + phase; }
+
+    function startSession() {
+      joinScreen.style.display = 'none';
+      phaseScreen.style.display = 'flex';
+
+      TKSnowball.sessionDocRef(sessionId).onSnapshot(doc => {
+        if (!doc.exists) {
+          errorMsg.textContent = 'Session not found. Check the code with your teacher.';
+          return;
+        }
+        errorMsg.textContent = '';
+        const data = doc.data();
+        concept = data.concept || '';
+        currentPhase = data.phase || 1;
+        renderPhase();
+      }, err => {
+        console.error(err);
+        errorMsg.textContent = 'Could not load this session — check your connection.';
+      });
+    }
+
+    function renderPhase() {
+      conceptText.textContent = concept;
+
+      if (currentPhase >= 4) {
+        formWrap.style.display = 'none';
+        submittedWrap.style.display = 'none';
+        doneWrap.style.display = 'flex';
+        instructionText.textContent = '';
+        return;
+      }
+
+      doneWrap.style.display = 'none';
+      const info = TKSnowball.phaseInfo(currentPhase);
+      instructionText.textContent = info.instruction;
+
+      if (localStorage.getItem(submittedKey(sessionId, currentPhase))) {
+        formWrap.style.display = 'none';
+        submittedWrap.style.display = 'flex';
+      } else {
+        submittedWrap.style.display = 'none';
+        formWrap.style.display = 'flex';
+        stickyText.value = '';
+        charCount.textContent = '0 / ' + TKSnowball.MAX_STICKY_LEN;
+        formError.textContent = '';
+        submitBtn.disabled = false;
+      }
+    }
+
+    stickyText.addEventListener('input', () => {
+      charCount.textContent = stickyText.value.length + ' / ' + TKSnowball.MAX_STICKY_LEN;
+    });
+
+    submitBtn.onclick = () => {
+      const text = stickyText.value.trim().slice(0, TKSnowball.MAX_STICKY_LEN);
+      if (!text) {
+        formError.textContent = 'Write something before submitting.';
+        return;
+      }
+      const phaseAtSubmit = currentPhase;
+      submitBtn.disabled = true;
+      formError.textContent = '';
+
+      // Without a timeout, a bad connection/config leaves this write
+      // pending forever with no feedback — same failure mode fixed on
+      // the other reference tools' student pages.
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        submitBtn.disabled = false;
+        TKToast.show('Could not submit — check your connection and try again.');
+      }, 8000);
+
+      TKSnowball.stickiesCollRef(sessionId).add({
+        text,
+        phase: phaseAtSubmit,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        localStorage.setItem(submittedKey(sessionId, phaseAtSubmit), '1');
+        renderPhase();
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        console.error(err);
+        submitBtn.disabled = false;
+        TKToast.show('Could not submit — check your connection and try again.');
+      });
+    };
+
+    document.getElementById('joinBtn').onclick = () => {
+      const code = document.getElementById('codeInput').value.trim().toUpperCase();
+      if (code.length !== 5) {
+        joinError.textContent = 'Enter the 5-letter code your teacher gave you.';
+        return;
+      }
+      sessionId = code;
+      const url = new URL(location.href);
+      url.searchParams.set('session', sessionId);
+      history.replaceState(null, '', url);
+      startSession();
+    };
+
+    if (sessionId) {
+      startSession();
+    }
+  </script>
+</body>
+</html>
