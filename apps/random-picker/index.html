@@ -219,6 +219,9 @@
       text-decoration: none;
     }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="../shell/theme.css">
   <link rel="stylesheet" href="../shell/navbar.css">
   <link rel="stylesheet" href="../shell/fullscreen.css">
@@ -470,8 +473,10 @@ Hannah</textarea>
     }
 
     function playSound() {
-      // Simple beep sound using Web Audio API
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      // Simple beep sound using Web Audio API. Sound is decorative here —
+      // never let an unavailable audio context break the spin flow.
+      const audioContext = TKAudio.ctx();
+      if (!audioContext) return;
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -520,11 +525,12 @@ Hannah</textarea>
       if (names.length > 0) {
         document.getElementById('wheelContainer').style.display = 'block';
         document.getElementById('resultContainer').style.display = 'none';
-        createWheel();
+        createWheel(names);
       }
     });
   </script>
   <script>window.TK_CURRENT = 'random-picker';</script>
+  <script src="../shell/audio.js"></script>
   <script src="../shell/navbar.js"></script>
   <script src="../shell/fullscreen.js"></script>
 </body>

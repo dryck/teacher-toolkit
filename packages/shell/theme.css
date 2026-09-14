@@ -1,8 +1,15 @@
 /* Teacher Toolkit — shared design tokens.
    Loaded by every app (hub, static tools, and the noise-monitor React app).
    Palette matches hungryteachers.ru/tools (warm cream + navy + terracotta)
-   since the toolkit is meant to live there eventually. */
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@300;400;500;700&display=swap');
+   since the toolkit is meant to live there eventually.
+
+   The Google Fonts stylesheet is deliberately NOT imported from this file.
+   A CSS import can only be discovered after this file has downloaded and
+   parsed, which serialises HTML -> theme.css -> fonts.css -> font files
+   into a 3-deep chain of render-blocking requests (measured: the font
+   request sat idle ~178ms waiting on this file). Every page links it
+   directly in <head> instead (with a preconnect), so the fonts download
+   in parallel with this stylesheet rather than after it. */
 
 :root {
   --tk-primary: #265787;

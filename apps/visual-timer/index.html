@@ -223,6 +223,9 @@
       display: none;
     }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="../shell/theme.css">
   <link rel="stylesheet" href="../shell/navbar.css">
 </head>
@@ -286,7 +289,14 @@
     
     const mascots = ['🐢', '🐰', '🐌', '🚀', '⏰', '🕐', '🎯'];
     let currentMascot = 0;
-    
+
+    // Cached once: these are looked up on every tick of a running timer,
+    // and re-querying the DOM each second is pure waste.
+    const timerDisplayEl = document.getElementById('timerDisplay');
+    const progressBarEl = document.getElementById('progressBar');
+    const statusEl = document.getElementById('status');
+    const mascotEl = document.getElementById('mascot');
+
     function setTimer(minutes) {
       resetTimer();
       totalSeconds = minutes * 60;
@@ -329,32 +339,53 @@
         playTone(600, 0.2);
       }
       
+      // Count down against a wall-clock deadline rather than assuming each
+      // setInterval tick is exactly 1s. Browsers throttle timers in
+      // backgrounded/occluded tabs (often to once a minute), so a
+      // decrement-per-tick timer silently runs slow the moment a teacher
+      // switches tabs — on a projector that's minutes of drift. Deriving
+      // the remaining time from Date.now() makes every tick self-correcting,
+      // so the clock is right even after the tab was throttled or asleep.
+      const deadline = Date.now() + remainingSeconds * 1000;
+      let lastShownSecond = remainingSeconds;
+
       timerInterval = setInterval(() => {
-        remainingSeconds--;
-        updateDisplay();
-        
-        // Update mascot every 10 seconds
-        if (remainingSeconds % 10 === 0) {
-          currentMascot = (currentMascot + 1) % mascots.length;
-          document.getElementById('mascot').textContent = mascots[currentMascot];
+        remainingSeconds = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+
+        // Only touch the DOM when the displayed second actually changes;
+        // we tick faster than 1s to stay responsive, not to repaint more.
+        if (remainingSeconds !== lastShownSecond) {
+          // Advance the mascot once per 10s boundary crossed, not once per
+          // tick — after throttling a single tick can span many seconds.
+          const steps = Math.floor(lastShownSecond / 10) - Math.floor(remainingSeconds / 10);
+          lastShownSecond = remainingSeconds;
+          updateDisplay();
+
+          if (steps > 0) {
+            currentMascot = (currentMascot + steps) % mascots.length;
+            mascotEl.textContent = mascots[currentMascot];
+          }
+
+          // Recompute (rather than only ever add) so the state is correct
+          // even if a throttled tick jumps straight past a threshold.
+          const percentRemaining = totalSeconds > 0 ? remainingSeconds / totalSeconds : 0;
+          const danger = percentRemaining <= 0.1;
+          const warning = !danger && percentRemaining <= 0.3;
+          timerDisplayEl.classList.toggle('danger', danger);
+          progressBarEl.classList.toggle('danger', danger);
+          timerDisplayEl.classList.toggle('warning', warning);
+          progressBarEl.classList.toggle('warning', warning);
+          if (danger) {
+            statusEl.textContent = '⚠️ Time almost up!';
+          } else if (warning) {
+            statusEl.textContent = '⏰ Hurry up!';
+          }
         }
-        
-        // Warning at 30% and 10% remaining
-        const percentRemaining = remainingSeconds / totalSeconds;
-        if (percentRemaining <= 0.1) {
-          document.getElementById('timerDisplay').classList.add('danger');
-          document.getElementById('progressBar').classList.add('danger');
-          document.getElementById('status').textContent = '⚠️ Time almost up!';
-        } else if (percentRemaining <= 0.3) {
-          document.getElementById('timerDisplay').classList.add('warning');
-          document.getElementById('progressBar').classList.add('warning');
-          document.getElementById('status').textContent = '⏰ Hurry up!';
-        }
-        
+
         if (remainingSeconds <= 0) {
           timerFinished();
         }
-      }, 1000);
+      }, 250);
     }
     
     function pauseTimer() {
@@ -420,18 +451,18 @@
     function updateDisplay() {
       const minutes = Math.floor(remainingSeconds / 60);
       const seconds = remainingSeconds % 60;
-      document.getElementById('timerDisplay').textContent = 
+      timerDisplayEl.textContent =
         `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-      
+
       if (totalSeconds > 0) {
         const percent = (remainingSeconds / totalSeconds) * 100;
-        document.getElementById('progressBar').style.width = percent + '%';
+        progressBarEl.style.width = percent + '%';
       }
     }
     
     function playTone(frequency, duration) {
       try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioContext = TKAudio.ctx();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
@@ -473,6 +504,7 @@
     setTimer(10);
   </script>
   <script>window.TK_CURRENT = 'visual-timer';</script>
+  <script src="../shell/audio.js"></script>
   <script src="../shell/navbar.js"></script>
 </body>
 </html>
