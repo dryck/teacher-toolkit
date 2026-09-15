@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KWL Chart | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .hidden { display: none !important; }
+
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 1180px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 1.6rem;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+
+    /* ---------- Topic bar ---------- */
+    .topic-bar {
+      margin-bottom: 18px;
+    }
+    .topic-bar label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    #topicInput {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--tk-text);
+      font-family: inherit;
+      text-align: center;
+    }
+    #topicInput:focus { outline: none; border-color: var(--tk-primary); }
+
+    /* ---------- Toolbar ---------- */
+    .toolbar {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .btn {
+      padding: 12px 22px;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      color: #fff;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary { background: var(--tk-primary); box-shadow: 0 8px 20px rgba(38, 87, 135, 0.35); }
+    .btn-secondary { background: #6b7280; box-shadow: 0 8px 20px rgba(107, 114, 128, 0.3); }
+
+    /* ---------- Past charts panel ---------- */
+    #pastChartsPanel {
+      background: var(--tk-bg);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 24px;
+    }
+    .past-charts-title {
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 12px;
+      font-size: 1rem;
+    }
+    #pastChartsList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .past-chart-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .past-chart-card:hover { border-color: var(--tk-primary); background: #f2f6fa; }
+    .past-chart-info { display: flex; flex-direction: column; gap: 2px; }
+    .past-chart-topic { font-weight: 700; color: var(--tk-primary-dark); font-size: 0.95rem; }
+    .past-chart-meta { color: var(--tk-text-muted); font-size: 0.8rem; }
+    .past-chart-delete {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 8px;
+      background: #f7f7f7;
+      color: #b8382f;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .past-chart-delete:hover { background: #fbe4e2; }
+    .past-charts-empty { color: var(--tk-text-muted); font-size: 0.9rem; }
+
+    /* ---------- Board ---------- */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    @media (max-width: 820px) {
+      .board { grid-template-columns: 1fr; }
+    }
+    .column {
+      display: flex;
+      flex-direction: column;
+      background: var(--tk-bg);
+      border-radius: 16px;
+      padding: 18px;
+      min-height: 340px;
+      border-top: 6px solid var(--tk-primary);
+    }
+    .column.column-want { border-top-color: var(--tk-primary-dark); }
+    .column.column-learned { border-top-color: var(--tk-accent); }
+
+    .column-header {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .column-letter {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--tk-primary);
+    }
+    .column-want .column-letter { color: var(--tk-primary-dark); }
+    .column-learned .column-letter { color: var(--tk-accent); }
+    .column-label {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--tk-text-muted);
+    }
+
+    .column-add-row {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0 14px;
+    }
+    .column-add-row input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .column-add-row input[type="text"]:focus { outline: none; border-color: var(--tk-primary); }
+    .column-add-row button {
+      flex-shrink: 0;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 10px;
+      background: var(--tk-primary);
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .column-want .column-add-row button { background: var(--tk-primary-dark); }
+    .column-learned .column-add-row button { background: var(--tk-accent); }
+
+    .entry-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+    .entry-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      box-shadow: 0 2px 8px rgba(38, 87, 135, 0.08);
+    }
+    .entry-text {
+      font-size: 1.08rem;
+      color: var(--tk-text);
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .entry-delete {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border: none;
+      border-radius: 7px;
+      background: #f7f7f7;
+      color: #b8382f;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .entry-delete:hover { background: #fbe4e2; }
+    .entry-empty {
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      font-style: italic;
+      padding: 6px 2px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+</head>
+<body>
+
+  <div class="container">
+    <h1>🗂️ KWL Chart</h1>
+    <p class="subtitle">What we Know, what we Want to know, what we Learned — build K and W together at the start, come back to fill in L at the end.</p>
+
+    <div class="topic-bar">
+      <label for="topicInput">Topic</label>
+      <input type="text" id="topicInput" placeholder="e.g. Volcanoes">
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" id="saveNewBtn">💾 Save &amp; Start New Chart</button>
+      <button type="button" class="btn btn-secondary" id="pastChartsToggleBtn">📋 Past Charts</button>
+    </div>
+
+    <div id="pastChartsPanel" class="hidden">
+      <div class="past-charts-title">Past charts</div>
+      <div id="pastChartsList"></div>
+      <div class="past-charts-empty hidden" id="pastChartsEmpty">No saved charts yet — use "Save &amp; Start New Chart" to keep this one and start a fresh topic.</div>
+    </div>
+
+    <div class="board">
+      <div class="column column-know">
+        <div class="column-header">
+          <span class="column-letter">K</span>
+          <span class="column-label">What We Know</span>
+        </div>
+        <div class="column-add-row">
+          <input type="text" id="knowInput" placeholder="Add what we know...">
+          <button type="button" id="knowAddBtn">Add</button>
+        </div>
+        <div class="entry-list" id="knowList"></div>
+      </div>
+
+      <div class="column column-want">
+        <div class="column-header">
+          <span class="column-letter">W</span>
+          <span class="column-label">What We Want to Know</span>
+        </div>
+        <div class="column-add-row">
+          <input type="text" id="wantInput" placeholder="Add what we want to know...">
+          <button type="button" id="wantAddBtn">Add</button>
+        </div>
+        <div class="entry-list" id="wantList"></div>
+      </div>
+
+      <div class="column column-learned">
+        <div class="column-header">
+          <span class="column-letter">L</span>
+          <span class="column-label">What We Learned</span>
+        </div>
+        <div class="column-add-row">
+          <input type="text" id="learnedInput" placeholder="Add what we learned...">
+          <button type="button" id="learnedAddBtn">Add</button>
+        </div>
+        <div class="entry-list" id="learnedList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var CURRENT_KEY = 'tk-kwl-chart-current';
+      var SAVED_KEY = 'tk-kwl-chart-saved';
+      var MAX_SAVED = 10;
+
+      var COLUMNS = [
+        { key: 'know', inputId: 'knowInput', addBtnId: 'knowAddBtn', listId: 'knowList' },
+        { key: 'want', inputId: 'wantInput', addBtnId: 'wantAddBtn', listId: 'wantList' },
+        { key: 'learned', inputId: 'learnedInput', addBtnId: 'learnedAddBtn', listId: 'learnedList' }
+      ];
+
+      var topicInput = document.getElementById('topicInput');
+      var saveNewBtn = document.getElementById('saveNewBtn');
+      var pastChartsToggleBtn = document.getElementById('pastChartsToggleBtn');
+      var pastChartsPanel = document.getElementById('pastChartsPanel');
+      var pastChartsList = document.getElementById('pastChartsList');
+      var pastChartsEmpty = document.getElementById('pastChartsEmpty');
+
+      // ---------------- Working chart state ----------------
+      var state = { topic: '', know: [], want: [], learned: [] };
+
+      function blankState() {
+        return { topic: '', know: [], want: [], learned: [] };
+      }
+
+      // ======================================================================
+      // CURRENT CHART PERSISTENCE (autosave)
+      // ======================================================================
+      // loadCurrent() only ever assigns directly into `state` from storage --
+      // it never goes through persistCurrent(), so restoring on page load can
+      // never overwrite a saved chart with an empty/default one. persistCurrent()
+      // is only ever called from inside user-triggered handlers below (typing
+      // in the topic field, adding/deleting an entry, saving, loading a past
+      // chart), all of which run strictly after the initial restore+render at
+      // the bottom of this file -- so autosave can't fire mid-restore.
+      function loadCurrent() {
+        var raw;
+        try { raw = localStorage.getItem(CURRENT_KEY); } catch (e) { raw = null; }
+        if (!raw) return;
+        var parsed;
+        try { parsed = JSON.parse(raw); } catch (e) { return; }
+        if (!parsed || typeof parsed !== 'object') return;
+        state = {
+          topic: typeof parsed.topic === 'string' ? parsed.topic : '',
+          know: Array.isArray(parsed.know) ? parsed.know.filter(isNonEmptyString) : [],
+          want: Array.isArray(parsed.want) ? parsed.want.filter(isNonEmptyString) : [],
+          learned: Array.isArray(parsed.learned) ? parsed.learned.filter(isNonEmptyString) : []
+        };
+      }
+
+      function persistCurrent() {
+        try { localStorage.setItem(CURRENT_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable -- ignore */ }
+      }
+
+      function isNonEmptyString(v) { return typeof v === 'string' && v.trim().length > 0; }
+
+      // ======================================================================
+      // SAVED (PAST) CHARTS
+      // ======================================================================
+      function loadSaved() {
+        var raw;
+        try { raw = localStorage.getItem(SAVED_KEY); } catch (e) { raw = null; }
+        if (!raw) return [];
+        var parsed;
+        try { parsed = JSON.parse(raw); } catch (e) { return []; }
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(function (entry) {
+          return entry && typeof entry === 'object';
+        }).map(function (entry) {
+          return {
+            topic: typeof entry.topic === 'string' ? entry.topic : '',
+            know: Array.isArray(entry.know) ? entry.know.filter(isNonEmptyString) : [],
+            want: Array.isArray(entry.want) ? entry.want.filter(isNonEmptyString) : [],
+            learned: Array.isArray(entry.learned) ? entry.learned.filter(isNonEmptyString) : [],
+            savedAt: typeof entry.savedAt === 'number' ? entry.savedAt : Date.now()
+          };
+        });
+      }
+
+      function persistSaved(list) {
+        try { localStorage.setItem(SAVED_KEY, JSON.stringify(list)); } catch (e) { /* storage unavailable -- ignore */ }
+      }
+
+      function hasContent(s) {
+        return isNonEmptyString(s.topic) || s.know.length > 0 || s.want.length > 0 || s.learned.length > 0;
+      }
+
+      function formatSavedDate(ts) {
+        var d = new Date(ts);
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+          ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      }
+
+      function renderSavedCharts() {
+        var saved = loadSaved();
+        pastChartsList.innerHTML = '';
+
+        if (saved.length === 0) {
+          pastChartsEmpty.classList.remove('hidden');
+          return;
+        }
+        pastChartsEmpty.classList.add('hidden');
+
+        saved.forEach(function (entry, index) {
+          var card = document.createElement('div');
+          card.className = 'past-chart-card';
+
+          var info = document.createElement('div');
+          info.className = 'past-chart-info';
+
+          var topicEl = document.createElement('div');
+          topicEl.className = 'past-chart-topic';
+          topicEl.textContent = entry.topic.trim() || '(untitled topic)';
+
+          var metaEl = document.createElement('div');
+          metaEl.className = 'past-chart-meta';
+          metaEl.textContent = formatSavedDate(entry.savedAt) +
+            ' · K:' + entry.know.length + ' W:' + entry.want.length + ' L:' + entry.learned.length;
+
+          info.appendChild(topicEl);
+          info.appendChild(metaEl);
+
+          var deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'past-chart-delete';
+          deleteBtn.textContent = '×';
+          deleteBtn.title = 'Delete this saved chart';
+          deleteBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            deleteSavedChart(index);
+          });
+
+          card.appendChild(info);
+          card.appendChild(deleteBtn);
+
+          card.addEventListener('click', function () {
+            loadSavedChart(index);
+          });
+
+          pastChartsList.appendChild(card);
+        });
+      }
+
+      function deleteSavedChart(index) {
+        var saved = loadSaved();
+        saved.splice(index, 1);
+        persistSaved(saved);
+        renderSavedCharts();
+      }
+
+      function loadSavedChart(index) {
+        var saved = loadSaved();
+        var entry = saved[index];
+        if (!entry) return;
+        state = {
+          topic: entry.topic,
+          know: entry.know.slice(),
+          want: entry.want.slice(),
+          learned: entry.learned.slice()
+        };
+        persistCurrent();
+        renderAll();
+        pastChartsPanel.classList.add('hidden');
+      }
+
+      // ======================================================================
+      // RENDERING
+      // ======================================================================
+      function renderTopic() {
+        topicInput.value = state.topic;
+      }
+
+      function renderColumn(col) {
+        var listEl = document.getElementById(col.listId);
+        var arr = state[col.key];
+        listEl.innerHTML = '';
+
+        if (arr.length === 0) {
+          var empty = document.createElement('div');
+          empty.className = 'entry-empty';
+          empty.textContent = 'Nothing added yet.';
+          listEl.appendChild(empty);
+          return;
+        }
+
+        arr.forEach(function (text, index) {
+          var chip = document.createElement('div');
+          chip.className = 'entry-chip';
+
+          var textEl = document.createElement('span');
+          textEl.className = 'entry-text';
+          textEl.textContent = text;
+
+          var deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'entry-delete';
+          deleteBtn.textContent = '×';
+          deleteBtn.title = 'Remove this entry';
+          deleteBtn.addEventListener('click', function () {
+            deleteEntry(col.key, index);
+          });
+
+          chip.appendChild(textEl);
+          chip.appendChild(deleteBtn);
+          listEl.appendChild(chip);
+        });
+      }
+
+      function renderAll() {
+        renderTopic();
+        COLUMNS.forEach(renderColumn);
+      }
+
+      // ======================================================================
+      // ENTRY ADD / DELETE
+      // ======================================================================
+      function addEntry(key, rawText) {
+        var text = (rawText || '').trim();
+        if (!text) return;
+        state[key].push(text);
+        persistCurrent();
+        renderColumn(COLUMNS.filter(function (c) { return c.key === key; })[0]);
+      }
+
+      function deleteEntry(key, index) {
+        state[key].splice(index, 1);
+        persistCurrent();
+        renderColumn(COLUMNS.filter(function (c) { return c.key === key; })[0]);
+      }
+
+      COLUMNS.forEach(function (col) {
+        var input = document.getElementById(col.inputId);
+        var addBtn = document.getElementById(col.addBtnId);
+
+        addBtn.addEventListener('click', function () {
+          addEntry(col.key, input.value);
+          input.value = '';
+          input.focus();
+        });
+
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            addEntry(col.key, input.value);
+            input.value = '';
+          }
+        });
+      });
+
+      topicInput.addEventListener('input', function () {
+        state.topic = topicInput.value;
+        persistCurrent();
+      });
+
+      // ======================================================================
+      // SAVE & START NEW / PAST CHARTS TOGGLE
+      // ======================================================================
+      saveNewBtn.addEventListener('click', function () {
+        if (hasContent(state)) {
+          var saved = loadSaved();
+          var normalizedTopic = state.topic.trim().toLowerCase();
+          // Replace any existing saved chart with the same topic (case-
+          // insensitive) rather than piling up duplicates -- a teacher
+          // reloading an earlier topic from Past Charts to fill in "L" and
+          // then saving again should update that chart's checkpoint, not
+          // clutter the list with a second stale copy of the same topic.
+          saved = saved.filter(function (entry) {
+            return entry.topic.trim().toLowerCase() !== normalizedTopic;
+          });
+          saved.unshift({
+            topic: state.topic,
+            know: state.know.slice(),
+            want: state.want.slice(),
+            learned: state.learned.slice(),
+            savedAt: Date.now()
+          });
+          saved = saved.slice(0, MAX_SAVED);
+          persistSaved(saved);
+          renderSavedCharts();
+        }
+
+        state = blankState();
+        persistCurrent();
+        renderAll();
+        topicInput.focus();
+      });
+
+      pastChartsToggleBtn.addEventListener('click', function () {
+        var willShow = pastChartsPanel.classList.contains('hidden');
+        if (willShow) renderSavedCharts();
+        pastChartsPanel.classList.toggle('hidden');
+      });
+
+      // ---------------- Init ----------------
+      loadCurrent();
+      renderAll();
+      renderSavedCharts();
+    })();
+  </script>
+
+  <script>window.TK_CURRENT = 'kwl-chart';</script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+</body>
+</html>

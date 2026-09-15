@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Quiz — Teacher Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <script src="../shell/escape.js"></script>
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 1.2rem;
+      color: var(--tk-text);
+      margin-bottom: 16px;
+    }
+
+    /* Quiz editor */
+    label { font-weight: 600; color: var(--tk-text); display: block; margin-bottom: 6px; font-size: 0.9rem; }
+    #titleInput {
+      width: 100%;
+      font-size: 1.1rem;
+      padding: 10px 14px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      margin-bottom: 18px;
+    }
+
+    #questionsContainer { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+    .question-row {
+      border: 2px solid #eee;
+      border-radius: 12px;
+      padding: 14px;
+      background: #fafafa;
+    }
+    .q-row-header {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .q-label { font-size: 0.85rem; font-weight: 700; color: var(--tk-text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+    .btn-remove-q {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #b91c1c;
+      background: #fee2e2;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .btn-remove-q:disabled { opacity: 0.4; cursor: not-allowed; }
+    .q-text {
+      width: 100%;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .options-wrap { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .option-row { display: flex; align-items: center; gap: 8px; }
+    .option-row input[type="radio"] { flex-shrink: 0; width: 18px; height: 18px; cursor: pointer; }
+    .option-text {
+      flex: 1;
+      font-size: 0.9rem;
+      padding: 7px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .btn-remove-option {
+      flex-shrink: 0;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #b91c1c;
+      background: #fee2e2;
+      border: none;
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+    }
+    .btn-remove-option:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-add-option {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #3730a3;
+      background: #e0e7ff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+    .btn-add-option:disabled { opacity: 0.4; cursor: not-allowed; }
+    .q-hint { font-size: 0.75rem; color: var(--tk-text-muted); margin-top: 2px; }
+
+    .btn-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+    .btn {
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: #fff;
+      background: var(--tk-primary);
+    }
+    .btn.secondary { background: #e0e7ff; color: #3730a3; }
+    .btn.danger { background: #fee2e2; color: #b91c1c; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Join card */
+    .join-card {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .join-card img { width: 140px; height: 140px; border-radius: 8px; }
+    .join-info { text-align: center; }
+    .join-info .code {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--tk-primary-dark);
+    }
+    .join-info .url {
+      font-size: 0.95rem;
+      color: var(--tk-text-muted);
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .join-info button {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* Control card */
+    #questionNumLine { font-size: 0.85rem; font-weight: 700; color: var(--tk-text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+    #questionTextLine { font-size: 1.2rem; font-weight: 700; color: var(--tk-text); margin: 6px 0 14px; min-height: 1.4em; }
+    #answeredLine { font-size: 0.95rem; color: var(--tk-primary-dark); font-weight: 700; margin-bottom: 14px; min-height: 1.2em; }
+
+    #chartWrap { display: none; margin-top: 14px; margin-bottom: 6px; }
+    .chart-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+    .chart-row.correct .chart-label { color: #16a34a; }
+    .chart-label { width: 200px; flex-shrink: 0; font-size: 0.9rem; font-weight: 600; color: var(--tk-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chart-bar-track { flex: 1; background: #f0f0f0; border-radius: 8px; height: 20px; overflow: hidden; }
+    .chart-bar-fill { height: 100%; background: var(--tk-primary); border-radius: 8px; transition: width 0.3s ease; }
+    .chart-row.correct .chart-bar-fill { background: #22c55e; }
+    .chart-count { width: 30px; text-align: right; font-weight: 700; color: var(--tk-text); flex-shrink: 0; }
+
+    /* Leaderboard */
+    .leaderboard-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .leaderboard-row:last-child { border-bottom: none; }
+    .lb-rank { width: 36px; flex-shrink: 0; font-weight: 800; color: var(--tk-text-muted); }
+    .lb-name { flex: 1; font-weight: 700; color: var(--tk-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lb-score { width: 50px; text-align: right; font-weight: 800; color: var(--tk-primary-dark); flex-shrink: 0; }
+    #noLeaderboard, #noFinalLeaderboard { color: var(--tk-text-muted); text-align: center; padding: 10px 0; }
+
+    #editorSaved { text-align: center; font-size: 0.85rem; color: #16a34a; min-height: 1.2em; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🧠 Live Quiz — Teacher Dashboard</h1>
+
+    <div class="card" id="setupCard">
+      <h2>Quiz editor</h2>
+      <label for="titleInput">Quiz title</label>
+      <input type="text" id="titleInput" placeholder="e.g. Cell Biology Recap">
+
+      <div id="questionsContainer"></div>
+
+      <div class="btn-row">
+        <button class="btn secondary" id="addQuestionBtn" type="button">+ Add question</button>
+      </div>
+
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn" id="startBtn" type="button">▶️ Start Session</button>
+      </div>
+      <div id="editorSaved"></div>
+    </div>
+
+    <div class="card" id="joinCard" style="display:none">
+      <h2>Students join at</h2>
+      <div class="join-card">
+        <img id="qrImg" alt="QR code to join">
+        <div class="join-info">
+          <div class="code" id="sessionCode"></div>
+          <div class="url" id="joinUrl"></div>
+          <button id="copyBtn" type="button">Copy link</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="controlCard" style="display:none">
+      <h2>Live control</h2>
+      <div id="questionNumLine">Not started yet</div>
+      <div id="questionTextLine"></div>
+      <div id="answeredLine"></div>
+
+      <div class="btn-row">
+        <button class="btn" id="nextBtn" type="button">Start Question 1 →</button>
+        <button class="btn secondary" id="revealBtn" type="button" style="display:none">👁️ Reveal Answer</button>
+        <button class="btn danger" id="endQuizBtn" type="button">🏁 End Quiz</button>
+      </div>
+
+      <div id="chartWrap">
+        <h2>Answer breakdown</h2>
+        <div id="chartRows"></div>
+      </div>
+    </div>
+
+    <div class="card" id="leaderboardCard" style="display:none">
+      <h2>🏆 Leaderboard (top 5)</h2>
+      <div id="leaderboardList"></div>
+      <div id="noLeaderboard">No answers yet.</div>
+    </div>
+
+    <div class="card" id="finalLeaderboardCard" style="display:none">
+      <h2>🏆 Final Leaderboard</h2>
+      <div id="finalLeaderboardList"></div>
+      <div id="noFinalLeaderboard">No students joined this session.</div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="live-quiz.js"></script>
+  <script>
+    let sessionId = (new URLSearchParams(location.search).get('session') || '').toUpperCase();
+
+    // Without a timeout, a bad connection/config leaves a write pending
+    // forever with no feedback at all — same failure mode fixed on the
+    // student page. `onTimeout` and the promise's own then/catch are
+    // mutually exclusive via the `settled` flag.
+    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        onFailure(new Error('timeout'));
+      }, ms);
+      promise.then(result => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onSuccess(result);
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onFailure(err);
+      });
+    }
+
+    const setupCard = document.getElementById('setupCard');
+    const titleInput = document.getElementById('titleInput');
+    const questionsContainer = document.getElementById('questionsContainer');
+    const addQuestionBtn = document.getElementById('addQuestionBtn');
+    const startBtn = document.getElementById('startBtn');
+    const editorSaved = document.getElementById('editorSaved');
+    const joinCard = document.getElementById('joinCard');
+    const controlCard = document.getElementById('controlCard');
+    const leaderboardCard = document.getElementById('leaderboardCard');
+    const finalLeaderboardCard = document.getElementById('finalLeaderboardCard');
+    const questionNumLine = document.getElementById('questionNumLine');
+    const questionTextLine = document.getElementById('questionTextLine');
+    const answeredLine = document.getElementById('answeredLine');
+    const nextBtn = document.getElementById('nextBtn');
+    const revealBtn = document.getElementById('revealBtn');
+    const endQuizBtn = document.getElementById('endQuizBtn');
+    const chartWrap = document.getElementById('chartWrap');
+    const chartRows = document.getElementById('chartRows');
+    const leaderboardList = document.getElementById('leaderboardList');
+    const noLeaderboard = document.getElementById('noLeaderboard');
+    const finalLeaderboardList = document.getElementById('finalLeaderboardList');
+    const noFinalLeaderboard = document.getElementById('noFinalLeaderboard');
+
+    // ---------------- Quiz editor ----------------
+    // Question sets get reused across classes/years, so every change is
+    // persisted to localStorage and restored on load (separate from the
+    // Firestore doc, which is only written once "Start Session" fires).
+    const DRAFT_KEY = 'tk-live-quiz-draft';
+    let questionBlocks = [];
+    let qUidCounter = 0;
+
+    function saveDraft() {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraftState()));
+      } catch (e) { /* storage full/unavailable — not fatal, just no restore */ }
+    }
+
+    function collectDraftState() {
+      return {
+        title: titleInput.value,
+        questions: questionBlocks.map(qb => ({
+          text: qb.textInput.value,
+          options: qb.optionRows.map(r => r.textInput.value),
+          correctIndex: qb.optionRows.findIndex(r => r.radio.checked)
+        }))
+      };
+    }
+
+    // Compacted for the Firestore write: empty option slots are dropped
+    // (preserving order), and correctIndex is re-mapped onto that
+    // compacted array — matches the schema's `options: string[] (2-4)`.
+    function collectQuestionsForSubmit() {
+      return questionBlocks.map(qb => {
+        const text = qb.textInput.value.trim();
+        const rows = qb.optionRows.filter(r => r.textInput.value.trim());
+        let correctIndex = -1;
+        const options = rows.map((r, i) => {
+          if (r.radio.checked) correctIndex = i;
+          return r.textInput.value.trim();
+        });
+        return { text, options, correctIndex };
+      });
+    }
+
+    function syncOptionButtons(qb) {
+      const disableRemove = qb.optionRows.length <= 2;
+      qb.optionRows.forEach(r => { r.removeBtn.disabled = disableRemove; });
+      qb.addOptionBtn.disabled = qb.optionRows.length >= 4;
+    }
+
+    function createOptionRow(qb, text, checked) {
+      const row = document.createElement('div');
+      row.className = 'option-row';
+
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'correct-' + qb.uid;
+      radio.checked = !!checked;
+      radio.onchange = saveDraft;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'option-text';
+      input.placeholder = 'Option text';
+      input.maxLength = 120;
+      input.value = text || '';
+      input.oninput = saveDraft;
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn-remove-option';
+      removeBtn.textContent = '✕';
+
+      row.append(radio, input, removeBtn);
+      qb.optionsWrap.appendChild(row);
+
+      const rowObj = { wrap: row, radio, textInput: input, removeBtn };
+      removeBtn.onclick = () => {
+        if (qb.optionRows.length <= 2) return;
+        qb.optionRows = qb.optionRows.filter(r => r !== rowObj);
+        row.remove();
+        syncOptionButtons(qb);
+        saveDraft();
+      };
+      qb.optionRows.push(rowObj);
+      syncOptionButtons(qb);
+      return rowObj;
+    }
+
+    function renumberQuestions() {
+      questionBlocks.forEach((qb, i) => { qb.qLabel.textContent = 'Question ' + (i + 1); });
+    }
+
+    function syncRemoveQuestionButtons() {
+      const disable = questionBlocks.length <= 1;
+      questionBlocks.forEach(qb => { qb.removeBtn.disabled = disable; });
+    }
+
+    function createQuestionBlock(data) {
+      qUidCounter++;
+      const uid = qUidCounter;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'question-row';
+
+      const header = document.createElement('div');
+      header.className = 'q-row-header';
+      const qLabel = document.createElement('div');
+      qLabel.className = 'q-label';
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn-remove-q';
+      removeBtn.textContent = 'Remove question';
+      header.append(qLabel, removeBtn);
+
+      const textInput = document.createElement('input');
+      textInput.type = 'text';
+      textInput.className = 'q-text';
+      textInput.placeholder = 'Question text';
+      textInput.maxLength = 200;
+      textInput.value = (data && data.text) || '';
+      textInput.oninput = saveDraft;
+
+      const optionsWrap = document.createElement('div');
+      optionsWrap.className = 'options-wrap';
+
+      const addOptionBtn = document.createElement('button');
+      addOptionBtn.type = 'button';
+      addOptionBtn.className = 'btn-add-option';
+      addOptionBtn.textContent = '+ Add option';
+
+      const hint = document.createElement('div');
+      hint.className = 'q-hint';
+      hint.textContent = 'Pick the radio button next to the correct option.';
+
+      wrap.append(header, textInput, optionsWrap, addOptionBtn, hint);
+      questionsContainer.appendChild(wrap);
+
+      const qb = { uid, wrap, qLabel, removeBtn, textInput, optionsWrap, addOptionBtn, optionRows: [] };
+
+      addOptionBtn.onclick = () => {
+        if (qb.optionRows.length >= 4) return;
+        createOptionRow(qb, '', false);
+        saveDraft();
+      };
+      removeBtn.onclick = () => {
+        if (questionBlocks.length <= 1) return;
+        questionBlocks = questionBlocks.filter(q => q !== qb);
+        wrap.remove();
+        renumberQuestions();
+        syncRemoveQuestionButtons();
+        saveDraft();
+      };
+
+      const rawOptions = (data && data.options && data.options.length) ? data.options : ['', ''];
+      const correctIndex = (data && typeof data.correctIndex === 'number') ? data.correctIndex : -1;
+      rawOptions.forEach((optText, i) => createOptionRow(qb, optText, i === correctIndex));
+
+      questionBlocks.push(qb);
+      renumberQuestions();
+      syncRemoveQuestionButtons();
+      return qb;
+    }
+
+    titleInput.oninput = saveDraft;
+    addQuestionBtn.onclick = () => {
+      createQuestionBlock({ text: '', options: ['', ''], correctIndex: -1 });
+      saveDraft();
+    };
+
+    function applyDraft(draft) {
+      titleInput.value = (draft && draft.title) || '';
+      questionsContainer.innerHTML = '';
+      questionBlocks = [];
+      const questions = (draft && draft.questions && draft.questions.length)
+        ? draft.questions
+        : [{ text: '', options: ['', ''], correctIndex: -1 }];
+      questions.forEach(q => createQuestionBlock(q));
+    }
+
+    let savedDraft = null;
+    try { savedDraft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) { savedDraft = null; }
+
+    function showFlash(msg) {
+      editorSaved.textContent = msg;
+      setTimeout(() => { editorSaved.textContent = ''; }, 2000);
+    }
+
+    // ---------------- Start Session ----------------
+    startBtn.onclick = () => {
+      const title = titleInput.value.trim() || 'Live Quiz';
+      const questions = collectQuestionsForSubmit();
+      if (!TKLiveQuiz.validateQuestions(questions)) {
+        TKToast.show('Each question needs text, 2-4 options, and exactly one option marked correct.');
+        return;
+      }
+      const newId = TKLiveQuiz.randomSessionCode();
+      startBtn.disabled = true;
+      withTimeout(
+        TKLiveQuiz.sessionDocRef(newId).set({
+          title,
+          questions,
+          currentQuestion: -1,
+          revealed: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }),
+        () => {
+          startBtn.disabled = false;
+          sessionId = newId;
+          const url = new URL(location.href);
+          url.searchParams.set('session', sessionId);
+          history.replaceState(null, '', url);
+          enterLiveView(sessionId);
+        },
+        err => {
+          startBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not start the session — check your connection and try again.');
+        }
+      );
+    };
+
+    // ---------------- Join card ----------------
+    function showJoin(id) {
+      const joinUrl = location.origin + location.pathname.replace('teacher.html', 'index.html') + '?session=' + id;
+      document.getElementById('sessionCode').textContent = id;
+      document.getElementById('joinUrl').textContent = joinUrl;
+      // QR image rendered via a public QR-generation service (api.qrserver.com) --
+      // the join URL contains only a random session code, no student data.
+      document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(joinUrl);
+      joinCard.style.display = 'block';
+    }
+
+    document.getElementById('copyBtn').onclick = () => {
+      const joinUrl = document.getElementById('joinUrl').textContent;
+      navigator.clipboard.writeText(joinUrl).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    };
+
+    // ---------------- Live control + dashboard ----------------
+    // Setup is a one-time write (creating the session doc); from here on
+    // the teacher only ever sends control-state updates (currentQuestion/
+    // revealed), matching the schema doc's "setup once, then control-state
+    // updates" note — so the editor is hidden rather than left editable.
+    let sessionData = null;
+    let players = [];
+    let responses = [];
+    let quizEnded = false;
+
+    function enterLiveView(id) {
+      setupCard.style.display = 'none';
+      controlCard.style.display = 'block';
+      leaderboardCard.style.display = 'block';
+      showJoin(id);
+      startListeners(id);
+    }
+
+    let unsubSession = null, unsubPlayers = null, unsubResponses = null;
+    function startListeners(id) {
+      if (unsubSession) unsubSession();
+      if (unsubPlayers) unsubPlayers();
+      if (unsubResponses) unsubResponses();
+
+      unsubSession = TKLiveQuiz.sessionDocRef(id).onSnapshot(doc => {
+        if (!doc.exists) return;
+        sessionData = doc.data();
+        render();
+      }, err => console.error(err));
+
+      unsubPlayers = TKLiveQuiz.playersCollRef(id).onSnapshot(snap => {
+        players = [];
+        snap.forEach(d => players.push(Object.assign({ id: d.id }, d.data())));
+        render();
+      }, err => console.error(err));
+
+      unsubResponses = TKLiveQuiz.responsesCollRef(id).onSnapshot(snap => {
+        responses = [];
+        snap.forEach(d => responses.push(d.data()));
+        render();
+      }, err => console.error(err));
+    }
+
+    function render() {
+      if (!sessionData) return;
+      const questions = sessionData.questions || [];
+      const currentQuestion = typeof sessionData.currentQuestion === 'number' ? sessionData.currentQuestion : -1;
+      const revealed = !!sessionData.revealed;
+      const currentQ = (currentQuestion >= 0 && currentQuestion < questions.length) ? questions[currentQuestion] : null;
+
+      if (currentQuestion < 0) {
+        questionNumLine.textContent = 'Not started yet';
+        questionTextLine.textContent = '';
+      } else if (!currentQ) {
+        questionNumLine.textContent = 'Quiz complete — ' + questions.length + ' question' + (questions.length === 1 ? '' : 's') + ' asked';
+        questionTextLine.textContent = '';
+      } else {
+        questionNumLine.textContent = 'Question ' + (currentQuestion + 1) + ' of ' + questions.length;
+        questionTextLine.textContent = currentQ.text;
+      }
+
+      nextBtn.style.display = currentQ || currentQuestion < 0 ? 'inline-block' : 'none';
+      nextBtn.textContent = currentQuestion < 0 ? 'Start Question 1 →'
+        : (currentQuestion + 1 < questions.length ? 'Next Question →' : 'Finish →');
+      // Disabled until the current question is revealed, so a question is
+      // never advanced past before its "revealed" moment — the invariant
+      // TKLiveQuiz.isQuestionRevealed() relies on for every past question.
+      nextBtn.disabled = currentQuestion >= 0 && !!currentQ && !revealed;
+
+      revealBtn.style.display = (currentQ && !revealed) ? 'inline-block' : 'none';
+
+      if (currentQ) {
+        const answeredCount = responses.filter(r => r.questionIndex === currentQuestion).length;
+        answeredLine.textContent = answeredCount + ' of ' + players.length + ' students have answered';
+      } else {
+        answeredLine.textContent = '';
+      }
+
+      if (currentQ && revealed) {
+        chartWrap.style.display = 'block';
+        renderChart(currentQ, currentQuestion);
+      } else {
+        chartWrap.style.display = 'none';
+      }
+
+      if (!quizEnded) {
+        renderLeaderboard(questions, currentQuestion, revealed);
+      }
+    }
+
+    function renderChart(question, questionIndex) {
+      const counts = TKLiveQuiz.tallyOptionCounts(responses, questionIndex, question.options.length);
+      const maxCount = Math.max(1, ...counts);
+      chartRows.innerHTML = '';
+      question.options.forEach((opt, i) => {
+        const isCorrect = i === question.correctIndex;
+        const count = counts[i];
+        const pct = Math.round((count / maxCount) * 100);
+        const row = document.createElement('div');
+        row.className = 'chart-row' + (isCorrect ? ' correct' : '');
+        row.innerHTML = `
+          <div class="chart-label">${isCorrect ? '✓ ' : ''}${escapeHtml(opt)}</div>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${pct}%"></div></div>
+          <div class="chart-count">${count}</div>
+        `;
+        chartRows.appendChild(row);
+      });
+    }
+
+    function renderLeaderboard(questions, currentQuestion, revealed) {
+      const scores = TKLiveQuiz.computeScores(questions, responses, currentQuestion, revealed);
+      const rows = players
+        .map(p => ({ nickname: p.nickname, score: scores[p.id] || 0 }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+      leaderboardList.innerHTML = '';
+      if (!rows.length) {
+        noLeaderboard.style.display = 'block';
+        return;
+      }
+      noLeaderboard.style.display = 'none';
+      rows.forEach((r, i) => {
+        const row = document.createElement('div');
+        row.className = 'leaderboard-row';
+        row.innerHTML = `<div class="lb-rank">#${i + 1}</div><div class="lb-name">${escapeHtml(r.nickname || 'Student')}</div><div class="lb-score">${r.score}</div>`;
+        leaderboardList.appendChild(row);
+      });
+    }
+
+    function renderFinalLeaderboard() {
+      const questions = sessionData.questions || [];
+      // Treat every question as revealed for the final tally: passing
+      // questions.length as the "currentQuestion" makes
+      // isQuestionRevealed() true for every valid index (all < length),
+      // without needing any extra stored state.
+      const scores = TKLiveQuiz.computeScores(questions, responses, questions.length, false);
+      const rows = players
+        .map(p => ({ nickname: p.nickname, score: scores[p.id] || 0 }))
+        .sort((a, b) => b.score - a.score);
+      finalLeaderboardList.innerHTML = '';
+      if (!rows.length) {
+        noFinalLeaderboard.style.display = 'block';
+        return;
+      }
+      noFinalLeaderboard.style.display = 'none';
+      rows.forEach((r, i) => {
+        const row = document.createElement('div');
+        row.className = 'leaderboard-row';
+        row.innerHTML = `<div class="lb-rank">#${i + 1}</div><div class="lb-name">${escapeHtml(r.nickname || 'Student')}</div><div class="lb-score">${r.score}</div>`;
+        finalLeaderboardList.appendChild(row);
+      });
+    }
+
+    nextBtn.onclick = () => {
+      if (!sessionData) return;
+      const questions = sessionData.questions || [];
+      const currentQuestion = typeof sessionData.currentQuestion === 'number' ? sessionData.currentQuestion : -1;
+      if (currentQuestion >= questions.length) return;
+      nextBtn.disabled = true;
+      withTimeout(
+        TKLiveQuiz.sessionDocRef(sessionId).update({
+          currentQuestion: currentQuestion + 1,
+          revealed: false
+        }),
+        () => { /* re-rendered (and re-enabled once revealed) via the session onSnapshot */ },
+        err => {
+          nextBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not advance the question — check your connection and try again.');
+        }
+      );
+    };
+
+    revealBtn.onclick = () => {
+      if (!sessionData) return;
+      revealBtn.disabled = true;
+      withTimeout(
+        TKLiveQuiz.sessionDocRef(sessionId).update({ revealed: true }),
+        () => { revealBtn.disabled = false; },
+        err => {
+          revealBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not reveal the answer — check your connection and try again.');
+        }
+      );
+    };
+
+    endQuizBtn.onclick = () => {
+      if (!sessionData) return;
+      quizEnded = true;
+      leaderboardCard.style.display = 'none';
+      finalLeaderboardCard.style.display = 'block';
+      renderFinalLeaderboard();
+    };
+
+    // If a session code is already in the URL, jump straight to the live
+    // view (a session doc only exists once "Start Session" has already
+    // fired, so there's never a partially-set-up session to resume into
+    // the editor). Stale/unknown code in the URL falls back to a blank
+    // editor, same as choice-board's/challenge-deck's teacher.html.
+    if (sessionId) {
+      TKLiveQuiz.sessionDocRef(sessionId).get().then(doc => {
+        if (doc.exists) {
+          enterLiveView(sessionId);
+        } else {
+          sessionId = '';
+          const url = new URL(location.href);
+          url.searchParams.delete('session');
+          history.replaceState(null, '', url);
+          applyDraft(savedDraft);
+        }
+      }).catch(err => {
+        console.error(err);
+        applyDraft(savedDraft);
+      });
+    } else {
+      applyDraft(savedDraft);
+    }
+  </script>
+  <script>window.TK_CURRENT = 'live-quiz';</script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+</body>
+</html>

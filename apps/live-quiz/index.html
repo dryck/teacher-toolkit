@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Live Quiz</title>
+  <!-- No shared navbar/branding here on purpose: students land on this
+       page directly via a link/QR code their teacher gives them, and
+       should never see (or be able to navigate to) the rest of the
+       teacher-facing toolkit. Only theme.css (CSS variables) is kept. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <script src="../shell/escape.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+      color: var(--tk-text);
+      margin: 12px 0 4px;
+    }
+
+    /* Join-by-code screen (shown if no ?session= in the URL) */
+    #joinScreen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #joinScreen p { color: var(--tk-text-muted); }
+    #joinScreen input {
+      font-size: 1.6rem;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 220px;
+    }
+    #joinScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+    #joinScreen button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Nickname screen */
+    #nicknameScreen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #nicknameScreen p { color: var(--tk-text-muted); }
+    #nicknameScreen input {
+      font-size: 1.2rem;
+      text-align: center;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 240px;
+    }
+    #nicknameScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+
+    /* Waiting screen */
+    #waitingScreen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      text-align: center;
+    }
+    #waitingText { font-size: 1.15rem; color: var(--tk-text-muted); font-weight: 600; }
+    #quizTitleWaiting { font-size: 1.3rem; font-weight: 800; color: var(--tk-text); }
+
+    /* Question screen */
+    #questionScreen { display: none; flex: 1; flex-direction: column; gap: 14px; }
+    #questionNumLabel { text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--tk-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    #questionTextEl { text-align: center; font-size: 1.3rem; font-weight: 800; color: var(--tk-text); }
+
+    #optionsWrap { display: flex; flex-direction: column; gap: 12px; }
+    .option-btn {
+      background: var(--tk-surface);
+      box-shadow: var(--tk-shadow);
+      border: 3px solid transparent;
+      border-radius: 14px;
+      padding: 16px 18px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--tk-text);
+      text-align: left;
+      cursor: pointer;
+    }
+    .option-btn.selected { border-color: var(--tk-primary); background: #eef2ff; }
+    .option-btn.correct { border-color: #22c55e; background: #dcfce7; color: #15803d; }
+    .option-btn.wrong { border-color: #dc3545; background: #fdecec; color: #b91c1c; }
+    .option-btn:disabled { cursor: default; }
+
+    #resultLine { display: none; text-align: center; font-size: 1.15rem; font-weight: 800; margin-top: 4px; }
+    #scoreLine { text-align: center; font-size: 0.95rem; color: var(--tk-text-muted); font-weight: 700; }
+    #waitingNextLine { display: none; text-align: center; font-size: 0.95rem; color: var(--tk-text-muted); }
+
+    #errorMsg { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🧠 Live Quiz</h1>
+
+    <div id="joinScreen">
+      <p>Enter the code your teacher gave you:</p>
+      <input type="text" id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+      <div id="errorMsg"></div>
+      <button type="button" id="joinBtn">Join</button>
+    </div>
+
+    <div id="nicknameScreen">
+      <p>What should we call you?</p>
+      <input type="text" id="nicknameInput" maxlength="24" placeholder="Your name" autocomplete="off">
+      <div id="nicknameError" style="color:#dc3545;font-size:0.9rem;min-height:1.2em"></div>
+      <button type="button" id="nicknameBtn">Let's go</button>
+    </div>
+
+    <div id="waitingScreen">
+      <div id="quizTitleWaiting"></div>
+      <div id="waitingText"></div>
+    </div>
+
+    <div id="questionScreen">
+      <div id="questionNumLabel"></div>
+      <div id="questionTextEl"></div>
+      <div id="optionsWrap"></div>
+      <div id="resultLine"></div>
+      <div id="scoreLine"></div>
+      <div id="waitingNextLine"></div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="live-quiz.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+
+    // Without a timeout, a bad connection/config leaves a write pending
+    // forever with no feedback at all. Mirrors apps/choice-board/index.html.
+    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        onFailure(new Error('timeout'));
+      }, ms);
+      promise.then(result => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onSuccess(result);
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onFailure(err);
+      });
+    }
+
+    const joinScreen = document.getElementById('joinScreen');
+    const nicknameScreen = document.getElementById('nicknameScreen');
+    const waitingScreen = document.getElementById('waitingScreen');
+    const questionScreen = document.getElementById('questionScreen');
+    const errorMsg = document.getElementById('errorMsg');
+    const joinBtn = document.getElementById('joinBtn');
+
+    function nicknameKey(id) { return 'tk-live-quiz-nickname-' + id; }
+    function studentIdKey(id) { return 'tk-live-quiz-studentid-' + id; }
+
+    let studentId = null;
+    let nickname = null;
+    let sessionData = null; // { title, questions, currentQuestion, revealed }
+    let myResponses = []; // this student's own responses, across all questions
+
+    // ---------------- Join by code ----------------
+    // Existence is checked up front (unlike choice-board/challenge-deck,
+    // which let a bad code silently write an orphaned progress doc) so a
+    // mistyped code gets the same "Session not found" message brainstorm-
+    // timer shows, instead of a screen that never renders anything.
+    //
+    // `fromLink` (arrived via ?session=CODE, e.g. a QR scan) vs manual
+    // entry only changes where the "not found" result is shown: manual
+    // entry stays on the join screen (button already visible there);
+    // link arrival hid the join screen up front (to avoid a flash of the
+    // empty code box) so it has to be re-shown on failure.
+    function tryJoinCode(code, fromLink) {
+      if (!fromLink) joinBtn.disabled = true;
+      withTimeout(
+        TKLiveQuiz.sessionDocRef(code).get(),
+        doc => {
+          if (!fromLink) joinBtn.disabled = false;
+          if (!doc.exists) {
+            if (fromLink) {
+              sessionId = '';
+              const url = new URL(location.href);
+              url.searchParams.delete('session');
+              history.replaceState(null, '', url);
+              joinScreen.style.display = 'flex';
+            }
+            errorMsg.textContent = 'Session not found — check the code with your teacher.';
+            return;
+          }
+          sessionId = code;
+          const url = new URL(location.href);
+          url.searchParams.set('session', sessionId);
+          history.replaceState(null, '', url);
+          startSession();
+        },
+        err => {
+          if (!fromLink) joinBtn.disabled = false;
+          if (fromLink) joinScreen.style.display = 'flex';
+          console.error(err);
+          errorMsg.textContent = 'Could not check that code — check your connection and try again.';
+        }
+      );
+    }
+
+    joinBtn.onclick = () => {
+      const code = document.getElementById('codeInput').value.trim().toUpperCase();
+      if (code.length !== 5) {
+        errorMsg.textContent = 'Enter the 5-letter code your teacher gave you.';
+        return;
+      }
+      errorMsg.textContent = '';
+      tryJoinCode(code, false);
+    };
+
+    function startSession() {
+      joinScreen.style.display = 'none';
+      nickname = localStorage.getItem(nicknameKey(sessionId));
+      studentId = localStorage.getItem(studentIdKey(sessionId));
+
+      if (nickname && studentId) {
+        enterQuiz();
+      } else {
+        nicknameScreen.style.display = 'flex';
+      }
+    }
+
+    document.getElementById('nicknameBtn').onclick = () => {
+      const val = document.getElementById('nicknameInput').value.trim();
+      const errEl = document.getElementById('nicknameError');
+      if (!val) {
+        errEl.textContent = 'Please enter a name.';
+        return;
+      }
+      nickname = val;
+      studentId = TKLiveQuiz.randomStudentId();
+      localStorage.setItem(nicknameKey(sessionId), nickname);
+      localStorage.setItem(studentIdKey(sessionId), studentId);
+
+      // Without a timeout, a bad connection/config leaves this write
+      // pending forever and the "Let's go" button never does anything —
+      // same failure mode fixed in Choice Board's student page.
+      let joinSettled = false;
+      const joinTimeoutId = setTimeout(() => {
+        if (joinSettled) return;
+        joinSettled = true;
+        errEl.textContent = 'Could not join — check your connection and try again.';
+      }, 8000);
+
+      // Written once on join, never mutated afterward -- no score field
+      // here, score is always derived client-side from `responses`.
+      TKLiveQuiz.playerDocRef(sessionId, studentId).set({
+        nickname,
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        if (joinSettled) return;
+        joinSettled = true;
+        clearTimeout(joinTimeoutId);
+        nicknameScreen.style.display = 'none';
+        enterQuiz();
+      }).catch(err => {
+        if (joinSettled) return;
+        joinSettled = true;
+        clearTimeout(joinTimeoutId);
+        console.error(err);
+        errEl.textContent = 'Could not join — check your connection and try again.';
+      });
+    };
+
+    // ---------------- Quiz reactive view ----------------
+    let unsubSession = null, unsubMyResponses = null;
+    function enterQuiz() {
+      nicknameScreen.style.display = 'none';
+
+      unsubSession = TKLiveQuiz.sessionDocRef(sessionId).onSnapshot(doc => {
+        if (!doc.exists) {
+          questionScreen.style.display = 'none';
+          waitingScreen.style.display = 'flex';
+          document.getElementById('quizTitleWaiting').textContent = '';
+          document.getElementById('waitingText').textContent = 'Session not found — check the code with your teacher.';
+          return;
+        }
+        sessionData = doc.data();
+        renderQuiz();
+      }, err => console.error(err));
+
+      // Scoped to this student's own responses only -- enough to render
+      // "which option did I pick" + "my running score" without pulling
+      // the whole class's answers down to a student device.
+      unsubMyResponses = TKLiveQuiz.responsesCollRef(sessionId).where('studentId', '==', studentId).onSnapshot(snap => {
+        myResponses = [];
+        snap.forEach(d => myResponses.push(d.data()));
+        renderQuiz();
+      }, err => console.error(err));
+    }
+
+    function showWaiting(title, msg) {
+      questionScreen.style.display = 'none';
+      waitingScreen.style.display = 'flex';
+      document.getElementById('quizTitleWaiting').textContent = title || '';
+      document.getElementById('waitingText').textContent = msg;
+    }
+
+    function renderQuiz() {
+      if (!sessionData) return;
+      const questions = sessionData.questions || [];
+      const currentQuestion = typeof sessionData.currentQuestion === 'number' ? sessionData.currentQuestion : -1;
+      const revealed = !!sessionData.revealed;
+      const title = sessionData.title || 'Live Quiz';
+
+      if (currentQuestion < 0) {
+        showWaiting(title, 'Waiting for the teacher to start Question 1…');
+        return;
+      }
+
+      const q = questions[currentQuestion];
+      if (!q) {
+        showWaiting(title, 'Waiting for the next question…');
+        return;
+      }
+
+      waitingScreen.style.display = 'none';
+      questionScreen.style.display = 'flex';
+
+      document.getElementById('questionNumLabel').textContent = 'Question ' + (currentQuestion + 1) + ' of ' + questions.length;
+      document.getElementById('questionTextEl').textContent = q.text;
+
+      const myResponse = myResponses.find(r => r.questionIndex === currentQuestion);
+      const selectedIndex = myResponse ? myResponse.optionIndex : null;
+
+      const optionsWrap = document.getElementById('optionsWrap');
+      optionsWrap.innerHTML = '';
+      (q.options || []).forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'option-btn';
+        btn.textContent = opt;
+        if (revealed) {
+          btn.disabled = true;
+          if (i === q.correctIndex) btn.classList.add('correct');
+          if (i === selectedIndex && i !== q.correctIndex) btn.classList.add('wrong');
+          if (i === selectedIndex) btn.classList.add('selected');
+        } else {
+          if (i === selectedIndex) btn.classList.add('selected');
+          btn.onclick = () => submitResponse(currentQuestion, i);
+        }
+        optionsWrap.appendChild(btn);
+      });
+
+      const resultLine = document.getElementById('resultLine');
+      const scoreLine = document.getElementById('scoreLine');
+      const waitingNextLine = document.getElementById('waitingNextLine');
+
+      if (revealed) {
+        resultLine.style.display = 'block';
+        waitingNextLine.style.display = 'block';
+        waitingNextLine.textContent = 'Waiting for the next question…';
+        if (selectedIndex === null) {
+          resultLine.textContent = "⌛ You didn't answer in time.";
+          resultLine.style.color = 'var(--tk-text-muted)';
+        } else if (selectedIndex === q.correctIndex) {
+          resultLine.textContent = '✅ Correct!';
+          resultLine.style.color = '#16a34a';
+        } else {
+          resultLine.textContent = '❌ Not quite — correct answer: ' + q.options[q.correctIndex];
+          resultLine.style.color = '#dc3545';
+        }
+        const myScore = TKLiveQuiz.computeScores(questions, myResponses, currentQuestion, revealed)[studentId] || 0;
+        scoreLine.textContent = 'Your score: ' + myScore;
+      } else {
+        resultLine.style.display = 'none';
+        waitingNextLine.style.display = 'none';
+        scoreLine.textContent = '';
+      }
+    }
+
+    // ---------------- Answer submission ----------------
+    let submitting = false;
+    function submitResponse(questionIndex, optionIndex) {
+      if (submitting) return;
+      submitting = true;
+      withTimeout(
+        TKLiveQuiz.responseDocRef(sessionId, studentId, questionIndex).set({
+          studentId,
+          questionIndex,
+          optionIndex,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }),
+        () => {
+          submitting = false;
+          // myResponses/renderQuiz update reactively via the responses
+          // onSnapshot listener above -- no local mutation needed here.
+        },
+        err => {
+          submitting = false;
+          console.error(err);
+          TKToast.show('Could not save your answer — check your connection and try again.');
+        }
+      );
+    }
+
+    // ---------------- Boot ----------------
+    // If a session code is already in the URL (student arrived via link/QR),
+    // hide the join screen immediately (it would otherwise flash an empty
+    // code box for a moment) and still verify the code exists before
+    // showing the nickname screen, same check as manual join above.
+    if (sessionId) {
+      joinScreen.style.display = 'none';
+      tryJoinCode(sessionId, true);
+    }
+  </script>
+</body>
+</html>

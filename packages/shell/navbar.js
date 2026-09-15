@@ -42,6 +42,9 @@
     { key: 'hint-envelopes', label: 'Hint Envelopes', href: 'hint-envelopes/' },
     { key: 'jigsaw-coordinator', label: 'Jigsaw Coordinator', href: 'jigsaw-coordinator/' },
     { key: 'peer-feedback', label: 'Peer Feedback', href: 'peer-feedback/teacher.html' },
+    { key: 'live-quiz', label: 'Live Quiz', href: 'live-quiz/teacher.html' },
+    { key: 'class-points', label: 'Class Points', href: 'class-points/' },
+    { key: 'kwl-chart', label: 'KWL Chart', href: 'kwl-chart/' },
     { key: 'research', label: 'Research', href: 'research/' }
   ];
 

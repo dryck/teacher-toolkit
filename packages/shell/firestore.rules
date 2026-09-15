@@ -189,6 +189,35 @@ service cloud.firestore {
       }
     }
 
+    // Live Quiz: a config+control doc (question set, plus which question
+    // index is active and whether its answer is revealed -- written only
+    // by the teacher) plus a players subcollection (nickname, upsert by
+    // deterministic studentId, same shape as Choice Board's progress) and
+    // a responses subcollection keyed by deterministic `studentId_questionIndex`
+    // so a student changing their answer before reveal overwrites their own
+    // doc instead of creating a duplicate. No score field is ever stored --
+    // every client derives scores from responses + which questions are
+    // revealed, the same trust level already extended to every other
+    // collection in this file.
+    match /liveQuizSessions/{sessionId} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['title', 'questions', 'currentQuestion', 'revealed', 'createdAt']);
+
+      match /players/{studentId} {
+        allow read: if true;
+        allow write: if request.resource.data.keys().hasOnly(['nickname', 'joinedAt'])
+                     && request.resource.data.nickname is string
+                     && request.resource.data.nickname.size() <= 40;
+      }
+
+      match /responses/{responseId} {
+        allow read: if true;
+        allow write: if request.resource.data.keys().hasOnly(['studentId', 'questionIndex', 'optionIndex', 'createdAt'])
+                     && request.resource.data.questionIndex is number
+                     && request.resource.data.optionIndex is number;
+      }
+    }
+
     // Everything else is denied by default.
     match /{document=**} {
       allow read, write: if false;

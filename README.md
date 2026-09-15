@@ -44,6 +44,9 @@ apps/
   hint-envelopes/        static — sequential hint reveal for a task (URL + localStorage only)
   jigsaw-coordinator/    static — auto-builds Jigsaw expert/home groups + phase timer (local only)
   peer-feedback/         static — anonymous "two stars and a wish" peer feedback (Firebase-backed)
+  live-quiz/             static — live multiple-choice quiz with a running leaderboard (Firebase-backed)
+  class-points/          static — tap-to-award points for students or teams (local only)
+  kwl-chart/              static — shared Know/Want-to-know/Learned board (local only)
 packages/
   shell/          shared navbar + theme (theme.css, navbar.css, navbar.js),
                   plus the shared Firebase config + Firestore rules
@@ -87,7 +90,7 @@ dist/
 
 ## Firebase setup
 
-Ten tools need a live backend — student phones/devices write to it, a
+Eleven tools need a live backend — student phones/devices write to it, a
 teacher screen watches it update in real time — and they all share **one**
 Firebase project via `packages/shell/firebase-config.js`:
 
@@ -101,10 +104,11 @@ Firebase project via `packages/shell/firebase-config.js`:
 - **Help Ladder** — its "Ask 3 Before Me" mode only; anonymous "still stuck" signals (`helpLadderSessions`) — the ladder display itself is fully local
 - **Brainstorm Timer** — anonymous live idea count (`brainstormSessions`)
 - **Peer Feedback** — anonymous "two stars and a wish" submissions (`peerFeedbackSessions`)
+- **Live Quiz** — live multiple-choice quiz + derived leaderboard (`liveQuizSessions`)
 
 Every other tool is fully local (localStorage only), no backend needed.
 
-One-time setup (do this once, it covers all four tools above):
+One-time setup (do this once, it covers every tool above):
 
 1. Create a free project at console.firebase.google.com, enable **Firestore
    Database** (production mode), and register a **Web app** to get a config

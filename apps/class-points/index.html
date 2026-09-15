@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Class Points | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+    .page-wrap {
+      width: 100%;
+      max-width: 900px;
+    }
+    header {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 16px;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    header .subtitle {
+      margin-top: 4px;
+      font-size: 0.95rem;
+      color: var(--tk-text-muted);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      font-family: inherit;
+    }
+    .btn:active { transform: translateY(1px) scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--tk-primary);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { box-shadow: 0 6px 18px rgba(38,87,135,0.4); }
+    .btn-secondary {
+      background: var(--tk-surface);
+      color: var(--tk-text);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .btn-secondary:hover:not(:disabled) { background: #f0f0f0; }
+    .btn-danger {
+      background: #e74c3c;
+      color: #fff;
+    }
+    .btn-danger:hover { background: #c0392b; }
+
+    .settings-panel {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .settings-panel h2 {
+      color: var(--tk-text);
+      font-size: 1.2rem;
+      margin-bottom: 14px;
+    }
+    .settings-panel label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      font-size: 0.9rem;
+      margin-bottom: 14px;
+    }
+    .settings-panel textarea,
+    .settings-panel select {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      font-weight: normal;
+      color: var(--tk-text);
+    }
+    .settings-panel textarea:focus,
+    .settings-panel select:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .settings-panel textarea { resize: vertical; min-height: 120px; }
+    .settings-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .settings-panel .hint {
+      font-size: 0.8rem;
+      color: var(--tk-text-muted);
+      margin-top: 10px;
+      font-weight: normal;
+      line-height: 1.4;
+    }
+
+    .empty-state {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 30px;
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-size: 1.05rem;
+    }
+
+    .points-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+    .points-card {
+      position: relative;
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 20px 14px;
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .points-card .rank-badge {
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      background: var(--tk-accent);
+      color: #fff;
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .points-card .points-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--tk-text);
+      text-align: center;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+    .points-card .points-total {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: #1e7e42;
+      line-height: 1;
+    }
+    .points-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .btn-plus {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      padding: 12px 20px;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(40,167,69,0.35);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+      font-family: inherit;
+    }
+    .btn-plus:active { transform: scale(0.93); }
+    .btn-minus {
+      background: transparent;
+      color: var(--tk-text-muted);
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 10px;
+      cursor: pointer;
+      opacity: 0.7;
+      touch-action: manipulation;
+      font-family: inherit;
+    }
+    .btn-minus:hover { opacity: 1; background: #f7f7f7; }
+    .btn-minus:active { transform: scale(0.95); }
+
+    @keyframes tk-points-pulse {
+      0% { transform: scale(1); }
+      35% { transform: scale(1.06); box-shadow: 0 0 0 8px rgba(40,167,69,0.15), var(--tk-shadow); }
+      100% { transform: scale(1); }
+    }
+    .points-card.pulse { animation: tk-points-pulse 0.32s ease; }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a {
+      color: var(--tk-primary);
+      text-decoration: none;
+    }
+
+    @media (max-width: 480px) {
+      .points-card { min-height: 130px; padding: 16px 10px; }
+      .points-card .points-name { font-size: 1rem; }
+      .points-card .points-total { font-size: 2rem; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <script src="../shell/escape.js"></script>
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+</head>
+<body>
+  <div class="page-wrap">
+    <header>
+      <h1>🌟 Class Points</h1>
+      <p class="subtitle">Tap +1 to reward great behaviour or effort — individually or by team.</p>
+    </header>
+
+    <div class="toolbar">
+      <button id="toggleSettingsBtn" class="btn btn-secondary" type="button">⚙️ Settings</button>
+      <button id="leaderboardToggleBtn" class="btn btn-secondary" type="button">🏆 Leaderboard view</button>
+    </div>
+
+    <section id="settingsPanel" class="settings-panel" hidden>
+      <h2>Settings</h2>
+      <label for="modeSelect">Mode
+        <select id="modeSelect">
+          <option value="individual">Individual Students</option>
+          <option value="teams">Teams</option>
+        </select>
+      </label>
+      <label id="namesLabel" for="namesInput">Class roster (one name per line)
+        <textarea id="namesInput" rows="8" placeholder="Alice&#10;Bob&#10;Charlie"></textarea>
+      </label>
+      <div class="settings-actions">
+        <button id="saveSettingsBtn" class="btn btn-primary" type="button">Save settings</button>
+        <button id="resetPointsBtn" class="btn btn-danger" type="button">Reset all points</button>
+      </div>
+      <p class="hint">Individual and Teams keep separate name lists and point totals, so switching modes never loses either one. "Reset all points" only zeroes the totals for the mode you're currently on — the names stay put.</p>
+    </section>
+
+    <div id="emptyState" class="empty-state" hidden>Add names (or team names) in Settings above to get started.</div>
+
+    <div id="pointsGrid" class="points-grid"></div>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------
+    // Storage
+    // ---------------------------------------------------------------
+    // Individual and Teams are kept as fully separate name lists + point
+    // totals under mode-specific keys, so flipping the mode toggle back
+    // and forth never clobbers the other mode's data.
+    var LS_KEYS = {
+      mode: 'tk-class-points-mode',
+      names: {
+        individual: 'tk-class-points-names-individual',
+        teams: 'tk-class-points-names-teams'
+      },
+      totals: {
+        individual: 'tk-class-points-totals-individual',
+        teams: 'tk-class-points-totals-teams'
+      }
+    };
+
+    var DEFAULT_NAMES = {
+      individual: 'Alice\nBob\nCharlie\nDiana\nEvan',
+      teams: 'Table 1\nTable 2\nTable 3\nTable 4'
+    };
+
+    function loadNames(mode) {
+      var raw = localStorage.getItem(LS_KEYS.names[mode]);
+      return raw === null ? DEFAULT_NAMES[mode] : raw;
+    }
+
+    function loadTotals(mode) {
+      try {
+        var raw = localStorage.getItem(LS_KEYS.totals[mode]);
+        if (!raw) return {};
+        var parsed = JSON.parse(raw);
+        return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+      } catch (e) {
+        console.warn('Class Points: could not read saved totals for ' + mode + ', starting fresh.', e);
+        return {};
+      }
+    }
+
+    function loadMode() {
+      return localStorage.getItem(LS_KEYS.mode) === 'teams' ? 'teams' : 'individual';
+    }
+
+    var state = {
+      mode: loadMode(),
+      view: 'entry', // 'entry' | 'leaderboard' -- not persisted, resets to entry order on reload
+      names: {
+        individual: loadNames('individual'),
+        teams: loadNames('teams')
+      },
+      totals: {
+        individual: loadTotals('individual'),
+        teams: loadTotals('teams')
+      }
+    };
+
+    function saveMode() {
+      localStorage.setItem(LS_KEYS.mode, state.mode);
+    }
+    function saveNames(mode) {
+      localStorage.setItem(LS_KEYS.names[mode], state.names[mode]);
+    }
+    function saveTotals(mode) {
+      localStorage.setItem(LS_KEYS.totals[mode], JSON.stringify(state.totals[mode]));
+    }
+
+    function getNamesList(mode) {
+      return state.names[mode].split('\n').map(function (n) { return n.trim(); }).filter(function (n) { return n.length > 0; });
+    }
+
+    // Lazily initializes a brand-new name to 0 points rather than leaving
+    // it undefined/NaN, and self-heals any corrupted (non-numeric) entry.
+    function getPoints(mode, name) {
+      var val = state.totals[mode][name];
+      if (typeof val !== 'number' || !isFinite(val)) {
+        state.totals[mode][name] = 0;
+        return 0;
+      }
+      return val;
+    }
+
+    // ---------------------------------------------------------------
+    // Actions
+    // ---------------------------------------------------------------
+    function addPoint(name) {
+      var mode = state.mode;
+      var current = getPoints(mode, name);
+      state.totals[mode][name] = Math.max(0, current + 1);
+      saveTotals(mode);
+      renderGrid();
+      pulseCardByName(name);
+      playChime();
+    }
+
+    function removePoint(name) {
+      var mode = state.mode;
+      var current = getPoints(mode, name);
+      state.totals[mode][name] = Math.max(0, current - 1);
+      saveTotals(mode);
+      renderGrid();
+    }
+
+    function resetAllPoints() {
+      var mode = state.mode;
+      var label = mode === 'teams' ? 'teams' : 'students';
+      if (!confirm('Reset all points for the current ' + label + '? This cannot be undone.')) return;
+      state.totals[mode] = {};
+      saveTotals(mode);
+      renderGrid();
+    }
+
+    // ---------------------------------------------------------------
+    // Audio + micro-interaction
+    // ---------------------------------------------------------------
+    function playChime() {
+      var ctx = TKAudio.ctx();
+      if (!ctx) return;
+      try {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.25);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+
+    function pulseCardByName(name) {
+      var grid = document.getElementById('pointsGrid');
+      var cards = grid.querySelectorAll('.points-card');
+      for (var i = 0; i < cards.length; i++) {
+        if (cards[i].getAttribute('data-name') === name) {
+          var card = cards[i];
+          card.classList.add('pulse');
+          card.addEventListener('animationend', function () {
+            this.classList.remove('pulse');
+          }, { once: true });
+          break;
+        }
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // Rendering
+    // ---------------------------------------------------------------
+    function getOrderedNames(mode) {
+      var names = getNamesList(mode);
+      if (state.view !== 'leaderboard') return names;
+      // Stable sort descending by points, tie-broken by original entry
+      // order (not by name) so ties don't jump around unpredictably.
+      return names
+        .map(function (name, i) { return { name: name, i: i, points: getPoints(mode, name) }; })
+        .sort(function (a, b) { return b.points - a.points || a.i - b.i; })
+        .map(function (entry) { return entry.name; });
+    }
+
+    function renderGrid() {
+      var grid = document.getElementById('pointsGrid');
+      var empty = document.getElementById('emptyState');
+      var mode = state.mode;
+      var names = getOrderedNames(mode);
+      var isLeaderboard = state.view === 'leaderboard';
+
+      if (names.length === 0) {
+        grid.innerHTML = '';
+        empty.hidden = false;
+        return;
+      }
+      empty.hidden = true;
+
+      grid.innerHTML = names.map(function (name, idx) {
+        var pts = getPoints(mode, name);
+        var rank = isLeaderboard ? '<span class="rank-badge">#' + (idx + 1) + '</span>' : '';
+        return (
+          '<div class="points-card" data-name="' + escapeHtml(name) + '">' +
+            rank +
+            '<div class="points-name">' + escapeHtml(name) + '</div>' +
+            '<div class="points-total">' + pts + '</div>' +
+            '<div class="points-actions">' +
+              '<button class="btn-minus" type="button" data-action="minus" aria-label="Remove one point from ' + escapeHtml(name) + '">−1</button>' +
+              '<button class="btn-plus" type="button" data-action="plus" aria-label="Add one point to ' + escapeHtml(name) + '">+1</button>' +
+            '</div>' +
+          '</div>'
+        );
+      }).join('');
+
+      // Persist any newly-initialized (0-point) names from getPoints above.
+      saveTotals(mode);
+    }
+
+    document.getElementById('pointsGrid').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      var card = btn.closest('.points-card');
+      if (!card) return;
+      var name = card.getAttribute('data-name');
+      if (btn.getAttribute('data-action') === 'plus') addPoint(name);
+      else if (btn.getAttribute('data-action') === 'minus') removePoint(name);
+    });
+
+    // ---------------------------------------------------------------
+    // Leaderboard toggle
+    // ---------------------------------------------------------------
+    function updateLeaderboardBtnLabel() {
+      var btn = document.getElementById('leaderboardToggleBtn');
+      btn.textContent = state.view === 'leaderboard' ? '🔤 Entry order' : '🏆 Leaderboard view';
+    }
+
+    document.getElementById('leaderboardToggleBtn').addEventListener('click', function () {
+      state.view = state.view === 'leaderboard' ? 'entry' : 'leaderboard';
+      updateLeaderboardBtnLabel();
+      renderGrid();
+    });
+
+    // ---------------------------------------------------------------
+    // Settings panel
+    // ---------------------------------------------------------------
+    var settingsPanel = document.getElementById('settingsPanel');
+    document.getElementById('toggleSettingsBtn').addEventListener('click', function () {
+      settingsPanel.hidden = !settingsPanel.hidden;
+    });
+
+    function updateNamesLabel() {
+      var label = document.getElementById('namesLabel');
+      label.childNodes[0].nodeValue = state.mode === 'teams'
+        ? 'Team / table names (one per line)'
+        : 'Class roster (one name per line)';
+    }
+
+    function populateSettingsForm() {
+      document.getElementById('modeSelect').value = state.mode;
+      document.getElementById('namesInput').value = state.names[state.mode];
+      updateNamesLabel();
+    }
+
+    document.getElementById('modeSelect').addEventListener('change', function (e) {
+      // Persist any unsaved edits to the mode we're leaving before
+      // switching, so flipping back and forth never silently drops
+      // in-progress edits to either list.
+      state.names[state.mode] = document.getElementById('namesInput').value;
+      saveNames(state.mode);
+
+      state.mode = e.target.value === 'teams' ? 'teams' : 'individual';
+      saveMode();
+      populateSettingsForm();
+      renderGrid();
+    });
+
+    document.getElementById('saveSettingsBtn').addEventListener('click', function () {
+      state.names[state.mode] = document.getElementById('namesInput').value;
+      saveNames(state.mode);
+      renderGrid();
+    });
+
+    document.getElementById('resetPointsBtn').addEventListener('click', resetAllPoints);
+
+    // ---------------------------------------------------------------
+    // Init
+    // ---------------------------------------------------------------
+    populateSettingsForm();
+    updateLeaderboardBtnLabel();
+    renderGrid();
+  </script>
+  <script>window.TK_CURRENT = 'class-points';</script>
+  <script src="../shell/audio.js"></script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+</body>
+</html>
