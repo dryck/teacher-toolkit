@@ -25,7 +25,8 @@ for tool in quick-poll random-picker visual-timer research zones \
             think-time rotation-timer chili-challenge help-ladder \
             coin-flip break-timer board \
             homework-menu behaviour-reflection \
-            brainstorm-timer behaviour-log; do
+            brainstorm-timer behaviour-log \
+            step-by-step hint-envelopes jigsaw-coordinator peer-feedback; do
   mkdir -p "dist/$tool"
   cp -r "apps/$tool/." "dist/$tool/"
 done

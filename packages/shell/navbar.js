@@ -38,6 +38,10 @@
     { key: 'behaviour-reflection', label: 'Behaviour Reflection', href: 'behaviour-reflection/' },
     { key: 'brainstorm-timer', label: 'Brainstorm Timer', href: 'brainstorm-timer/teacher.html' },
     { key: 'behaviour-log', label: 'Behaviour Log', href: 'behaviour-log/' },
+    { key: 'step-by-step', label: 'Step-by-Step Display', href: 'step-by-step/' },
+    { key: 'hint-envelopes', label: 'Hint Envelopes', href: 'hint-envelopes/' },
+    { key: 'jigsaw-coordinator', label: 'Jigsaw Coordinator', href: 'jigsaw-coordinator/' },
+    { key: 'peer-feedback', label: 'Peer Feedback', href: 'peer-feedback/teacher.html' },
     { key: 'research', label: 'Research', href: 'research/' }
   ];
 

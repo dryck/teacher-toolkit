@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jigsaw Coordinator | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .hidden { display: none !important; }
+
+    /* ---------- Setup screen ---------- */
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    .section {
+      margin: 22px 0;
+    }
+    label.field-label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+    .field-hint {
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      margin-top: 6px;
+    }
+    textarea {
+      width: 100%;
+      height: 160px;
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      resize: vertical;
+      font-family: inherit;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+
+    /* Topics list */
+    #topicRows { display: flex; flex-direction: column; gap: 10px; }
+    .topic-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .topic-index {
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #f0efff;
+      color: var(--tk-primary-dark);
+      font-weight: 700;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .topic-input {
+      flex: 1;
+      min-width: 0;
+      padding: 12px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .topic-input:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .topic-remove-btn {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 8px;
+      background: #f7f7f7;
+      color: #b8382f;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .topic-remove-btn:hover { background: #fbe4e2; }
+    .topic-remove-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .topic-add-btn {
+      align-self: flex-start;
+      margin-top: 4px;
+      padding: 10px 16px;
+      border: 2px dashed #cfd3e0;
+      border-radius: 10px;
+      background: none;
+      color: var(--tk-primary-dark);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .topic-add-btn:hover {
+      border-color: var(--tk-primary);
+      background: #f2f2fb;
+    }
+
+    /* Durations */
+    .durations-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .duration-field {
+      flex: 1;
+      min-width: 200px;
+    }
+    .duration-field label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--tk-text-muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .duration-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .duration-input-wrap input[type="number"] {
+      width: 90px;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: bold;
+      font-family: inherit;
+    }
+    .duration-input-wrap input[type="number"]:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .duration-input-wrap span {
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+
+    .warning-message {
+      display: none;
+      background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+      color: #856404;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      border: 2px solid #ffeaa7;
+      margin: 16px 0;
+    }
+    .error-message {
+      display: none;
+      background: linear-gradient(135deg, #fdeceb 0%, #fbe0de 100%);
+      color: #8a2f27;
+      padding: 16px 20px;
+      border-radius: 12px;
+      font-size: 1rem;
+      border: 2px solid #f3b8b3;
+      text-align: center;
+      margin: 16px 0;
+    }
+
+    .btn-generate {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      padding: 16px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--tk-primary);
+      color: white;
+      transition: all 0.3s ease;
+    }
+    .btn-generate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(38, 87, 135, 0.4);
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a {
+      color: var(--tk-primary);
+      text-decoration: none;
+    }
+
+    /* ---------- Stage screen ---------- */
+    .stage-wrap {
+      max-width: 1100px;
+      width: 100%;
+    }
+    .stage {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: clamp(20px, 4vw, 40px);
+    }
+    .phase-banner {
+      text-align: center;
+      font-size: clamp(1.3rem, 3.5vw, 1.9rem);
+      font-weight: 800;
+      color: var(--tk-primary-dark);
+      margin-bottom: 6px;
+    }
+    .phase-sub {
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 18px;
+    }
+
+    .timer-block {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+    .timer-display {
+      font-family: 'Courier New', monospace;
+      font-weight: 800;
+      font-size: clamp(3rem, 10vw, 5.5rem);
+      color: var(--tk-primary);
+      line-height: 1;
+      transition: color 0.4s ease;
+    }
+    .timer-display.time-up {
+      color: #d9482f;
+      animation: pulseUp 1s infinite;
+    }
+    @keyframes pulseUp {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.06); opacity: 0.75; }
+    }
+    .progress-container {
+      width: 100%;
+      max-width: 520px;
+      margin: 10px auto 0;
+      height: 18px;
+      background: #ecf0f1;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 100%;
+      background: var(--tk-primary);
+      border-radius: 12px;
+      transition: width 1s linear, background 0.4s ease;
+    }
+    .progress-bar.time-up {
+      background: linear-gradient(90deg, #e67e22 0%, #d9482f 100%);
+    }
+
+    .timer-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .timer-controls button {
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: rgba(0,0,0,0.06);
+      color: #444;
+      transition: all 0.2s ease;
+    }
+    .timer-controls button:hover { background: rgba(0,0,0,0.12); }
+    .timer-controls button.accent {
+      background: var(--tk-primary);
+      color: #fff;
+    }
+    .timer-controls button.accent:hover { background: var(--tk-primary-dark); }
+
+    /* Groups grid */
+    .groups-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin: 22px 0;
+    }
+    .group-card {
+      background: #f8f9fa;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
+    .group-header {
+      color: white;
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: 0.02em;
+      text-align: center;
+      padding: 14px 10px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.25);
+    }
+    .group-members {
+      list-style: none;
+      padding: 14px 16px 18px;
+    }
+    .group-members li {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #333;
+      padding: 8px 4px;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .group-members li:last-child { border-bottom: none; }
+    .group-members li .member-topic {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--tk-text-muted);
+      margin-top: 2px;
+    }
+    .group-empty-note {
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      padding: 4px;
+      font-style: italic;
+    }
+
+    .phase-controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .phase-controls button {
+      padding: 13px 22px;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .btn-secondary:hover { background: #e0e0e0; }
+    .btn-primary {
+      background: var(--tk-primary);
+      color: white;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(38, 87, 135, 0.4);
+    }
+    .btn-danger-outline {
+      background: none;
+      border: 2px solid #e0b3ae;
+      color: #8a2f27;
+    }
+    .btn-danger-outline:hover { background: #fdeceb; }
+
+    @media (max-width: 480px) {
+      .durations-row { flex-direction: column; }
+    }
+
+    @media print {
+      .tk-navbar, .footer, .timer-controls, .phase-controls, .timer-block { display: none !important; }
+      body { background: #fff; padding: 0; }
+      .stage { box-shadow: none; padding: 0; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <script src="../shell/escape.js"></script>
+  <link rel="stylesheet" href="../shell/navbar.css">
+</head>
+<body>
+
+  <!-- ============ SETUP SCREEN ============ -->
+  <div class="container" id="setupScreen">
+    <h1>🧩 Jigsaw Coordinator</h1>
+    <p class="subtitle">Automatically build expert groups and home groups for the Jigsaw technique</p>
+
+    <div class="section">
+      <label class="field-label" for="rosterInput">Class roster (one name per line)</label>
+      <textarea id="rosterInput" placeholder="Alice&#10;Bob&#10;Charlie&#10;Diana&#10;Evan"></textarea>
+    </div>
+
+    <div class="section">
+      <label class="field-label">Topics (each becomes one expert group)</label>
+      <div id="topicRows"></div>
+      <button type="button" class="topic-add-btn" id="addTopicBtn">+ Add topic</button>
+      <p class="field-hint">Works best with 3–6 topics.</p>
+    </div>
+
+    <div class="section durations-row">
+      <div class="duration-field">
+        <label for="expertMinutesInput">Expert group time</label>
+        <div class="duration-input-wrap">
+          <input type="number" id="expertMinutesInput" min="1" max="120" value="10">
+          <span>minutes</span>
+        </div>
+      </div>
+      <div class="duration-field">
+        <label for="homeMinutesInput">Home group time</label>
+        <div class="duration-input-wrap">
+          <input type="number" id="homeMinutesInput" min="1" max="120" value="15">
+          <span>minutes</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="warning-message" id="warningMessage"></div>
+    <div class="error-message" id="errorMessage"></div>
+
+    <button class="btn-generate" id="generateBtn">🧩 Generate Groups</button>
+  </div>
+
+  <!-- ============ STAGE SCREEN ============ -->
+  <div class="stage-wrap hidden" id="stageScreen">
+    <div class="stage" id="stage">
+
+      <!-- Phase 1: Expert Groups -->
+      <div id="expertPhaseView">
+        <div class="phase-banner">Phase 1: Expert Groups</div>
+        <div class="phase-sub">Study your topic together</div>
+
+        <div class="timer-block">
+          <div class="timer-display" id="expertTimerDisplay">10:00</div>
+          <div class="progress-container"><div class="progress-bar" id="expertProgressBar"></div></div>
+          <div class="timer-controls">
+            <button class="accent" id="expertStartPauseBtn">▶ Start</button>
+          </div>
+        </div>
+
+        <div class="groups-grid" id="expertGroupsGrid"></div>
+
+        <div class="phase-controls">
+          <button class="btn-secondary" id="reshuffleBtn">🔄 Reshuffle</button>
+          <button class="btn-primary" id="toHomePhaseBtn">Next Phase: Home Groups →</button>
+        </div>
+      </div>
+
+      <!-- Phase 2: Home Groups -->
+      <div id="homePhaseView" class="hidden">
+        <div class="phase-banner">Phase 2: Home Groups</div>
+        <div class="phase-sub">Teach each other</div>
+
+        <div class="timer-block">
+          <div class="timer-display" id="homeTimerDisplay">15:00</div>
+          <div class="progress-container"><div class="progress-bar" id="homeProgressBar"></div></div>
+          <div class="timer-controls">
+            <button class="accent" id="homeStartPauseBtn">▶ Start</button>
+          </div>
+        </div>
+
+        <div class="groups-grid" id="homeGroupsGrid"></div>
+
+        <div class="phase-controls">
+          <button class="btn-secondary" id="backToExpertBtn">← Back to Expert Groups</button>
+          <button class="btn-danger-outline" id="startOverBtn">Start Over</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    // ---------------- Persistence keys ----------------
+    const ROSTER_KEY = 'tk-jigsaw-coordinator-roster';
+    const TOPICS_KEY = 'tk-jigsaw-coordinator-topics';
+    const DURATIONS_KEY = 'tk-jigsaw-coordinator-durations';
+
+    const DEFAULT_TOPICS = ['Topic 1', 'Topic 2', 'Topic 3', 'Topic 4'];
+    const MIN_RECOMMENDED_TOPICS = 3;
+    const MAX_RECOMMENDED_TOPICS = 6;
+
+    const GROUP_COLORS = [
+      '#265787', '#1c4368', '#b86f55', '#4facfe',
+      '#00c9a7', '#a770ef', '#f5576c', '#30cfd0'
+    ];
+
+    // ---------------- State ----------------
+    let expertGroups = [];   // array (index = topic index) of arrays of {name}
+    let homeGroups = [];     // array of arrays of {name, topicIndex}
+    let topicNames = [];     // topic names used for the current generated groups
+
+    // ---------------- Fisher-Yates shuffle (same implementation as group-generator) ----------------
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // ---------------- Roster persistence ----------------
+    function loadRosterText() {
+      const saved = localStorage.getItem(ROSTER_KEY);
+      return saved !== null ? saved : '';
+    }
+    function persistRosterText() {
+      localStorage.setItem(ROSTER_KEY, document.getElementById('rosterInput').value);
+    }
+    function getRosterNames() {
+      return document.getElementById('rosterInput').value
+        .split('\n')
+        .map(n => n.trim())
+        .filter(n => n.length > 0);
+    }
+
+    // ---------------- Topics: dynamic rows + persistence ----------------
+    function loadSavedTopics() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(TOPICS_KEY));
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) { /* fall through to default */ }
+      return DEFAULT_TOPICS.slice();
+    }
+
+    function persistTopics() {
+      localStorage.setItem(TOPICS_KEY, JSON.stringify(getTopicInputValues()));
+    }
+
+    function getTopicInputValues() {
+      return Array.from(document.querySelectorAll('#topicRows .topic-input')).map(i => i.value);
+    }
+
+    function getTopicNames() {
+      return getTopicInputValues().map(t => t.trim()).filter(t => t.length > 0);
+    }
+
+    function renderTopicRows(values) {
+      const wrap = document.getElementById('topicRows');
+      wrap.innerHTML = '';
+      values.forEach((val, i) => addTopicRow(val, i));
+      updateTopicRemoveButtons();
+    }
+
+    function addTopicRow(value, index) {
+      const wrap = document.getElementById('topicRows');
+      const row = document.createElement('div');
+      row.className = 'topic-row';
+
+      const badge = document.createElement('span');
+      badge.className = 'topic-index';
+      badge.textContent = (typeof index === 'number' ? index : wrap.children.length) + 1;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'topic-input';
+      input.value = value || '';
+      input.placeholder = `Topic ${(typeof index === 'number' ? index : wrap.children.length) + 1}`;
+      input.addEventListener('input', () => { persistTopics(); refreshTopicWarning(); });
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'topic-remove-btn';
+      removeBtn.textContent = '×';
+      removeBtn.title = 'Remove topic';
+      removeBtn.addEventListener('click', () => {
+        row.remove();
+        renumberTopicRows();
+        persistTopics();
+        refreshTopicWarning();
+        updateTopicRemoveButtons();
+      });
+
+      row.appendChild(badge);
+      row.appendChild(input);
+      row.appendChild(removeBtn);
+      wrap.appendChild(row);
+    }
+
+    function renumberTopicRows() {
+      document.querySelectorAll('#topicRows .topic-row').forEach((row, i) => {
+        row.querySelector('.topic-index').textContent = i + 1;
+        const input = row.querySelector('.topic-input');
+        input.placeholder = `Topic ${i + 1}`;
+      });
+    }
+
+    function updateTopicRemoveButtons() {
+      const rows = document.querySelectorAll('#topicRows .topic-row');
+      const disable = rows.length <= 1;
+      rows.forEach(row => { row.querySelector('.topic-remove-btn').disabled = disable; });
+    }
+
+    document.getElementById('addTopicBtn').addEventListener('click', () => {
+      const wrap = document.getElementById('topicRows');
+      addTopicRow('', wrap.children.length);
+      updateTopicRemoveButtons();
+      persistTopics();
+      refreshTopicWarning();
+    });
+
+    function refreshTopicWarning() {
+      const count = getTopicNames().length;
+      const warningEl = document.getElementById('warningMessage');
+      if (count > 0 && (count < MIN_RECOMMENDED_TOPICS || count > MAX_RECOMMENDED_TOPICS)) {
+        warningEl.textContent = `⚠️ Jigsaw works best with ${MIN_RECOMMENDED_TOPICS}-${MAX_RECOMMENDED_TOPICS} topics (you have ${count}). You can still generate groups.`;
+        warningEl.style.display = 'block';
+      } else {
+        warningEl.style.display = 'none';
+      }
+    }
+
+    // ---------------- Durations persistence ----------------
+    function loadSavedDurations() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(DURATIONS_KEY));
+        if (parsed && typeof parsed === 'object') {
+          return {
+            expertMinutes: Number(parsed.expertMinutes) > 0 ? Number(parsed.expertMinutes) : 10,
+            homeMinutes: Number(parsed.homeMinutes) > 0 ? Number(parsed.homeMinutes) : 15
+          };
+        }
+      } catch (e) { /* fall through to default */ }
+      return { expertMinutes: 10, homeMinutes: 15 };
+    }
+
+    function persistDurations() {
+      localStorage.setItem(DURATIONS_KEY, JSON.stringify(getDurationsFromInputs()));
+    }
+
+    function getDurationsFromInputs() {
+      const expertMinutes = Math.max(1, parseInt(document.getElementById('expertMinutesInput').value, 10) || 10);
+      const homeMinutes = Math.max(1, parseInt(document.getElementById('homeMinutesInput').value, 10) || 15);
+      return { expertMinutes, homeMinutes };
+    }
+
+    // ---------------- Assignment algorithm ----------------
+    // 1) Shuffle the roster. 2) Deal students round-robin into K expert
+    // groups (student i -> group i % K), which balances group sizes to
+    // within 1 of each other regardless of whether N divides evenly by K.
+    function buildExpertGroups(students, topics) {
+      const k = topics.length;
+      const groups = Array.from({ length: k }, () => []);
+      students.forEach((student, i) => {
+        groups[i % k].push(student);
+      });
+      return groups;
+    }
+
+    // 3) homeGroupCount = size of the largest expert group. Home group i is
+    // the transpose: the i-th member of expert-group-0, the i-th member of
+    // expert-group-1, ... skipping any expert group that has no i-th member
+    // (which happens when expert groups are uneven sizes).
+    function buildHomeGroups(expertGroups) {
+      const homeGroupCount = expertGroups.reduce((max, g) => Math.max(max, g.length), 0);
+      const homeGroups = Array.from({ length: homeGroupCount }, () => []);
+      for (let i = 0; i < homeGroupCount; i++) {
+        expertGroups.forEach((group, topicIndex) => {
+          if (group[i]) {
+            homeGroups[i].push({ name: group[i].name, topicIndex });
+          }
+        });
+      }
+      return homeGroups;
+    }
+
+    function generateAssignments(names, topics) {
+      const shuffled = shuffleArray(names.slice()).map(name => ({ name }));
+      const eGroups = buildExpertGroups(shuffled, topics);
+      const hGroups = buildHomeGroups(eGroups);
+      return { expertGroups: eGroups, homeGroups: hGroups };
+    }
+
+    // ---------------- Rendering: groups ----------------
+    function renderExpertGroups() {
+      const grid = document.getElementById('expertGroupsGrid');
+      grid.innerHTML = expertGroups.map((group, i) => {
+        const color = GROUP_COLORS[i % GROUP_COLORS.length];
+        const members = group.length
+          ? group.map(s => `<li>${escapeHtml(s.name)}</li>`).join('')
+          : '<li class="group-empty-note">No students assigned</li>';
+        return `
+          <div class="group-card">
+            <div class="group-header" style="background:${color}">${escapeHtml(topicNames[i])}</div>
+            <ul class="group-members">${members}</ul>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderHomeGroups() {
+      const grid = document.getElementById('homeGroupsGrid');
+      grid.innerHTML = homeGroups.map((group, i) => {
+        const color = GROUP_COLORS[i % GROUP_COLORS.length];
+        const members = group.length
+          ? group.map(m => `<li>${escapeHtml(m.name)}<span class="member-topic">${escapeHtml(topicNames[m.topicIndex])}</span></li>`).join('')
+          : '<li class="group-empty-note">No students assigned</li>';
+        return `
+          <div class="group-card">
+            <div class="group-header" style="background:${color}">Home Group ${i + 1}</div>
+            <ul class="group-members">${members}</ul>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ---------------- Screen management ----------------
+    function showSetupScreen() {
+      document.getElementById('stageScreen').classList.add('hidden');
+      document.getElementById('setupScreen').classList.remove('hidden');
+    }
+
+    function showStageScreen() {
+      document.getElementById('setupScreen').classList.add('hidden');
+      document.getElementById('stageScreen').classList.remove('hidden');
+    }
+
+    function showExpertPhaseView() {
+      document.getElementById('homePhaseView').classList.add('hidden');
+      document.getElementById('expertPhaseView').classList.remove('hidden');
+      setupPhaseTimer('expert');
+    }
+
+    function showHomePhaseView() {
+      document.getElementById('expertPhaseView').classList.add('hidden');
+      document.getElementById('homePhaseView').classList.remove('hidden');
+      setupPhaseTimer('home');
+    }
+
+    // ---------------- Generate / Reshuffle / Start Over ----------------
+    function showError(message) {
+      const el = document.getElementById('errorMessage');
+      el.textContent = message;
+      el.style.display = message ? 'block' : 'none';
+    }
+
+    function generateGroups() {
+      showError('');
+      persistRosterText();
+      persistTopics();
+      persistDurations();
+
+      const names = getRosterNames();
+      const topics = getTopicNames();
+
+      if (names.length === 0) {
+        showError('👋 Please add some student names to the roster first.');
+        return;
+      }
+      if (topics.length === 0) {
+        showError('👋 Please add at least one topic.');
+        return;
+      }
+
+      topicNames = topics;
+      const assignments = generateAssignments(names, topics);
+      expertGroups = assignments.expertGroups;
+      homeGroups = assignments.homeGroups;
+
+      renderExpertGroups();
+      renderHomeGroups();
+
+      showStageScreen();
+      showExpertPhaseView();
+    }
+
+    function reshuffleGroups() {
+      const names = getRosterNames();
+      if (names.length === 0 || topicNames.length === 0) return;
+      const assignments = generateAssignments(names, topicNames);
+      expertGroups = assignments.expertGroups;
+      homeGroups = assignments.homeGroups;
+      renderExpertGroups();
+      renderHomeGroups();
+    }
+
+    function startOver() {
+      expertGroups = [];
+      homeGroups = [];
+      topicNames = [];
+      stopTicking();
+      showSetupScreen();
+    }
+
+    document.getElementById('generateBtn').addEventListener('click', generateGroups);
+    document.getElementById('reshuffleBtn').addEventListener('click', reshuffleGroups);
+    document.getElementById('toHomePhaseBtn').addEventListener('click', showHomePhaseView);
+    document.getElementById('backToExpertBtn').addEventListener('click', showExpertPhaseView);
+    document.getElementById('startOverBtn').addEventListener('click', startOver);
+
+    // ---------------- Phase timer (deadline-based, drift-proof) ----------------
+    // Countdown state is always derived from a wall-clock deadline
+    // (Date.now() target), never from decrementing a counter on a fixed
+    // 1s tick — a throttled/backgrounded tab can silently skip setInterval
+    // ticks, so a naive `remaining--` per tick drifts. Recomputing
+    // remaining = deadline - Date.now() on every tick self-corrects
+    // regardless of how many ticks a throttled tab actually delivered.
+    let currentPhaseKind = null;     // 'expert' | 'home'
+    let phaseTotalMs = 0;
+    let deadline = 0;                // ms timestamp the current phase counts down to
+    let pausedRemainingMs = null;    // non-null while idle/paused: remaining ms frozen
+    let tickHandle = null;
+    let chimePlayedForPhase = false;
+
+    function phaseElements(kind) {
+      const prefix = kind === 'expert' ? 'expert' : 'home';
+      return {
+        display: document.getElementById(prefix + 'TimerDisplay'),
+        bar: document.getElementById(prefix + 'ProgressBar'),
+        btn: document.getElementById(prefix + 'StartPauseBtn')
+      };
+    }
+
+    function setupPhaseTimer(kind) {
+      stopTicking();
+      currentPhaseKind = kind;
+      const durations = getDurationsFromInputs();
+      const minutes = kind === 'expert' ? durations.expertMinutes : durations.homeMinutes;
+      phaseTotalMs = Math.max(1, minutes) * 60000;
+      pausedRemainingMs = phaseTotalMs; // idle: full time, not running
+      deadline = 0;
+      chimePlayedForPhase = false;
+      clearTimeUpState(kind);
+      renderTimer(kind);
+      updateStartPauseButton(kind);
+    }
+
+    function toggleStartPause() {
+      const kind = currentPhaseKind;
+      if (pausedRemainingMs !== null) {
+        // start (from idle) or resume (from paused): re-anchor deadline to now + remaining
+        deadline = Date.now() + pausedRemainingMs;
+        pausedRemainingMs = null;
+        startTicking();
+      } else {
+        // pause: freeze the remaining time, stop deriving from the deadline
+        pausedRemainingMs = Math.max(0, deadline - Date.now());
+        stopTicking();
+      }
+      updateStartPauseButton(kind);
+    }
+
+    document.getElementById('expertStartPauseBtn').addEventListener('click', toggleStartPause);
+    document.getElementById('homeStartPauseBtn').addEventListener('click', toggleStartPause);
+
+    function startTicking() {
+      stopTicking();
+      tickHandle = setInterval(tick, 250);
+    }
+    function stopTicking() {
+      if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
+    }
+
+    function remainingMsNow() {
+      if (pausedRemainingMs !== null) return pausedRemainingMs;
+      return deadline - Date.now();
+    }
+
+    function tick() {
+      if (pausedRemainingMs !== null) return; // paused/idle — nothing to recompute
+      const kind = currentPhaseKind;
+      const remainingMs = remainingMsNow();
+
+      if (remainingMs <= 0) {
+        renderTimer(kind); // show 00:00
+        pausedRemainingMs = 0;
+        stopTicking();
+        if (!chimePlayedForPhase) {
+          chimePlayedForPhase = true;
+          playChime();
+        }
+        markTimeUp(kind);
+        updateStartPauseButton(kind);
+      } else {
+        renderTimer(kind);
+      }
+    }
+
+    function renderTimer(kind) {
+      kind = kind || currentPhaseKind;
+      const els = phaseElements(kind);
+      const remainingMs = Math.max(0, remainingMsNow());
+      const remainingSec = Math.round(remainingMs / 1000);
+      els.display.textContent = formatTime(remainingSec);
+      const fraction = phaseTotalMs > 0 ? Math.max(0, Math.min(1, remainingMs / phaseTotalMs)) : 0;
+      els.bar.style.width = (fraction * 100) + '%';
+    }
+
+    function markTimeUp(kind) {
+      const els = phaseElements(kind);
+      els.display.classList.add('time-up');
+      els.bar.classList.add('time-up');
+    }
+
+    function clearTimeUpState(kind) {
+      const els = phaseElements(kind);
+      els.display.classList.remove('time-up');
+      els.bar.classList.remove('time-up');
+    }
+
+    function updateStartPauseButton(kind) {
+      const els = phaseElements(kind);
+      if (pausedRemainingMs !== null && pausedRemainingMs === phaseTotalMs) {
+        els.btn.textContent = '▶ Start';
+      } else if (pausedRemainingMs !== null) {
+        els.btn.textContent = '▶ Resume';
+      } else {
+        els.btn.textContent = '⏸ Pause';
+      }
+    }
+
+    function formatTime(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    // ---------------- Sound cue (Web Audio API via the shared context) ----------------
+    function playTone(frequency, duration, delay) {
+      delay = delay || 0;
+      setTimeout(() => {
+        const ctx = TKAudio.ctx();
+        if (!ctx) return;
+        try {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = frequency;
+          osc.type = 'sine';
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + duration);
+        } catch (e) { /* audio not supported */ }
+      }, delay);
+    }
+
+    function playChime() {
+      const pattern = [880, 660, 880, 1046];
+      pattern.forEach((freq, i) => playTone(freq, 0.3, i * 220));
+    }
+
+    // ---------------- Wiring ----------------
+    document.getElementById('rosterInput').addEventListener('input', persistRosterText);
+    document.getElementById('expertMinutesInput').addEventListener('input', persistDurations);
+    document.getElementById('homeMinutesInput').addEventListener('input', persistDurations);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('rosterInput').value = loadRosterText();
+      renderTopicRows(loadSavedTopics());
+      refreshTopicWarning();
+      const durations = loadSavedDurations();
+      document.getElementById('expertMinutesInput').value = durations.expertMinutes;
+      document.getElementById('homeMinutesInput').value = durations.homeMinutes;
+    });
+  </script>
+  <script>window.TK_CURRENT = 'jigsaw-coordinator';</script>
+  <script src="../shell/audio.js"></script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

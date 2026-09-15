@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Peer Feedback</title>
+  <!-- No shared navbar/branding here on purpose: students land on this
+       page directly via a link/QR code their teacher gives them, and
+       should never see (or be able to navigate to) the rest of the
+       teacher-facing toolkit. Only theme.css (CSS variables) is kept. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      max-width: 520px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+      color: var(--tk-text);
+      margin: 12px 0 4px;
+    }
+
+    /* Join-by-code screen (shown if no ?session= in the URL, or an unknown code) */
+    #joinScreen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #joinScreen p { color: var(--tk-text-muted); }
+    #joinScreen input {
+      font-size: 1.6rem;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 220px;
+    }
+    #joinScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+    #joinScreen button:disabled { opacity: 0.6; cursor: not-allowed; }
+    #errorMsg { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; }
+
+    /* Feedback form screen */
+    #formScreen { display: none; flex: 1; flex-direction: column; gap: 14px; padding: 10px 0; }
+    #formScreen .lead { text-align: center; color: var(--tk-text-muted); font-size: 0.95rem; }
+    #formScreen label { font-weight: 600; color: var(--tk-text); font-size: 0.9rem; }
+    #formScreen select,
+    #formScreen input[type="text"] {
+      width: 100%;
+      font-size: 1rem;
+      padding: 12px 14px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      font-family: inherit;
+      margin-top: 6px;
+    }
+    #formScreen select:focus,
+    #formScreen input[type="text"]:focus { outline: none; border-color: var(--tk-primary); }
+    .field { display: flex; flex-direction: column; }
+    #submitBtn {
+      margin-top: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 14px;
+      padding: 16px;
+      cursor: pointer;
+    }
+    #submitBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+    #formError { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; text-align: center; }
+
+    /* Thanks screen */
+    #thanksScreen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 14px;
+    }
+    #thanksScreen .wave { font-size: 3.4rem; }
+    #thanksScreen h2 { font-size: 1.3rem; color: var(--tk-text); }
+    #thanksScreen p { color: var(--tk-text-muted); font-size: 0.95rem; max-width: 320px; }
+    #anotherBtn {
+      margin-top: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>⭐ Peer Feedback</h1>
+
+    <div id="joinScreen">
+      <p>Enter the code your teacher gave you:</p>
+      <input type="text" id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+      <div id="errorMsg"></div>
+      <button type="button" id="joinBtn">Join</button>
+    </div>
+
+    <div id="formScreen">
+      <p class="lead">Two Stars and a Wish: two things that went well, and one thing to work on.</p>
+
+      <div class="field" id="targetField" style="display:none">
+        <label for="targetSelect">Who is this feedback for?</label>
+        <select id="targetSelect">
+          <option value="">Choose…</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="star1Input">⭐ Star 1 — something that went well</label>
+        <input type="text" id="star1Input" maxlength="150" placeholder="e.g. Your explanation of the graph was really clear" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="star2Input">⭐ Star 2 — another thing that went well</label>
+        <input type="text" id="star2Input" maxlength="150" placeholder="e.g. Great eye contact with the audience" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="wishInput">💡 Wish — one thing to improve next time</label>
+        <input type="text" id="wishInput" maxlength="150" placeholder="e.g. Try slowing down a little during the middle section" autocomplete="off">
+      </div>
+
+      <div id="formError"></div>
+      <button type="button" id="submitBtn">Submit feedback</button>
+    </div>
+
+    <div id="thanksScreen">
+      <div class="wave">🙌</div>
+      <h2>Thanks!</h2>
+      <p>Your feedback has been sent anonymously.</p>
+      <button type="button" id="anotherBtn">Submit feedback for someone else?</button>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="peer-feedback.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+
+    const joinScreen = document.getElementById('joinScreen');
+    const formScreen = document.getElementById('formScreen');
+    const thanksScreen = document.getElementById('thanksScreen');
+    const errorMsg = document.getElementById('errorMsg');
+    const joinBtn = document.getElementById('joinBtn');
+
+    const targetField = document.getElementById('targetField');
+    const targetSelect = document.getElementById('targetSelect');
+    const star1Input = document.getElementById('star1Input');
+    const star2Input = document.getElementById('star2Input');
+    const wishInput = document.getElementById('wishInput');
+    const formError = document.getElementById('formError');
+    const submitBtn = document.getElementById('submitBtn');
+    const anotherBtn = document.getElementById('anotherBtn');
+
+    // Fully anonymous: no nickname/student-id screen at all -- feedback is
+    // stored one-per-doc with no identity attached, so there's nothing to
+    // collect before jumping straight into the form. Mirrors
+    // apps/brainstorm-timer/index.html.
+    let sessionTargets = [];
+    let submitting = false;
+
+    function showScreen(el) {
+      joinScreen.style.display = 'none';
+      formScreen.style.display = 'none';
+      thanksScreen.style.display = 'none';
+      el.style.display = 'flex';
+    }
+
+    function renderTargetOptions() {
+      if (sessionTargets.length === 0) {
+        targetField.style.display = 'none';
+        return;
+      }
+      targetField.style.display = 'flex';
+      targetSelect.innerHTML = '<option value="">Choose…</option>';
+      sessionTargets.forEach(target => {
+        const opt = document.createElement('option');
+        opt.value = target;
+        opt.textContent = target;
+        targetSelect.appendChild(opt);
+      });
+    }
+
+    function loadSessionAndShow(id) {
+      joinBtn.disabled = true;
+
+      // Without this, a bad connection/config leaves this read pending
+      // indefinitely (Firestore's own retry/backoff can run far longer than
+      // 8s) and the student is stuck on a blank/unresponsive join screen
+      // with no feedback — same failure mode guarded against everywhere
+      // else reads/writes happen in this tool. Mirrors
+      // apps/help-ladder/index.html's loadSessionAndShow().
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        joinBtn.disabled = false;
+        errorMsg.textContent = 'Could not load this session — check your connection and try again.';
+        showScreen(joinScreen);
+      }, 8000);
+
+      TKPeerFeedback.sessionDocRef(id).get().then(doc => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        joinBtn.disabled = false;
+
+        if (!doc.exists) {
+          errorMsg.textContent = 'That code was not found — double-check with your teacher.';
+          showScreen(joinScreen);
+          return;
+        }
+
+        const data = doc.data() || {};
+        sessionTargets = Array.isArray(data.targets) ? data.targets : [];
+        renderTargetOptions();
+        resetForm();
+        showScreen(formScreen);
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        joinBtn.disabled = false;
+        console.error(err);
+        errorMsg.textContent = 'Could not load this session — check your connection and try again.';
+        showScreen(joinScreen);
+      });
+    }
+
+    document.getElementById('joinBtn').onclick = () => {
+      const code = document.getElementById('codeInput').value.trim().toUpperCase();
+      if (code.length !== 5) {
+        errorMsg.textContent = 'Enter the 5-letter code your teacher gave you.';
+        return;
+      }
+      errorMsg.textContent = '';
+      sessionId = code;
+      const url = new URL(location.href);
+      url.searchParams.set('session', sessionId);
+      history.replaceState(null, '', url);
+      loadSessionAndShow(sessionId);
+    };
+
+    // Clears the form fields (but keeps the chosen target, since students
+    // likely give feedback to multiple presenters in one sitting and re-
+    // picking the same name each time would be annoying) -- also used on
+    // first entry to the form.
+    function resetForm() {
+      star1Input.value = '';
+      star2Input.value = '';
+      wishInput.value = '';
+      formError.textContent = '';
+    }
+
+    submitBtn.onclick = () => {
+      if (submitting) return;
+
+      const target = sessionTargets.length > 0 ? targetSelect.value : '';
+      const star1 = star1Input.value.trim().slice(0, TKPeerFeedback.MAX_FIELD_LEN);
+      const star2 = star2Input.value.trim().slice(0, TKPeerFeedback.MAX_FIELD_LEN);
+      const wish = wishInput.value.trim().slice(0, TKPeerFeedback.MAX_FIELD_LEN);
+
+      if (sessionTargets.length > 0 && !target) {
+        formError.textContent = 'Please choose who this feedback is for.';
+        return;
+      }
+      if (!star1 || !star2 || !wish) {
+        formError.textContent = 'Please fill in both stars and a wish.';
+        return;
+      }
+      formError.textContent = '';
+
+      submitting = true;
+      submitBtn.disabled = true;
+
+      // Without this, a bad connection or misconfigured Firebase project
+      // leaves the write pending forever with zero feedback -- time it out.
+      // Mirrors apps/brainstorm-timer/index.html's submitIdea().
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        submitting = false;
+        submitBtn.disabled = false;
+        TKToast.show('Could not send your feedback — check your connection and try again.');
+      }, 8000);
+
+      TKPeerFeedback.feedbackCollRef(sessionId).add({
+        target: target || null,
+        stars: [star1, star2],
+        wish,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        submitting = false;
+        submitBtn.disabled = false;
+        showScreen(thanksScreen);
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        submitting = false;
+        submitBtn.disabled = false;
+        console.error(err);
+        TKToast.show('Could not send your feedback — check your connection and try again.');
+      });
+    };
+
+    // Loops back to the form rather than dead-ending -- students likely
+    // give feedback to multiple presenters/groups in one sitting.
+    anotherBtn.onclick = () => {
+      resetForm();
+      showScreen(formScreen);
+    };
+
+    if (sessionId) {
+      loadSessionAndShow(sessionId);
+    }
+  </script>
+</body>
+</html>

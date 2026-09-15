@@ -40,6 +40,10 @@ apps/
   behaviour-reflection/  static — 5-step guided post-incident reflection + private log (local only)
   brainstorm-timer/      static — random object + live class idea counter (Firebase-backed)
   behaviour-log/         static — ABC incident logging + per-student pattern view (local only)
+  step-by-step/          static — projected instructions revealed one at a time (local only)
+  hint-envelopes/        static — sequential hint reveal for a task (URL + localStorage only)
+  jigsaw-coordinator/    static — auto-builds Jigsaw expert/home groups + phase timer (local only)
+  peer-feedback/         static — anonymous "two stars and a wish" peer feedback (Firebase-backed)
 packages/
   shell/          shared navbar + theme (theme.css, navbar.css, navbar.js),
                   plus the shared Firebase config + Firestore rules
@@ -83,7 +87,7 @@ dist/
 
 ## Firebase setup
 
-Nine tools need a live backend — student phones/devices write to it, a
+Ten tools need a live backend — student phones/devices write to it, a
 teacher screen watches it update in real time — and they all share **one**
 Firebase project via `packages/shell/firebase-config.js`:
 
@@ -96,6 +100,7 @@ Firebase project via `packages/shell/firebase-config.js`:
 - **Chili Challenge** — per-student difficulty choice (`chiliChallengeSessions`)
 - **Help Ladder** — its "Ask 3 Before Me" mode only; anonymous "still stuck" signals (`helpLadderSessions`) — the ladder display itself is fully local
 - **Brainstorm Timer** — anonymous live idea count (`brainstormSessions`)
+- **Peer Feedback** — anonymous "two stars and a wish" submissions (`peerFeedbackSessions`)
 
 Every other tool is fully local (localStorage only), no backend needed.
 

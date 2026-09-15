@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Step-by-Step Display | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .hidden { display: none !important; }
+
+    /* ---------- Builder screen ---------- */
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 1.6rem;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 26px;
+      font-size: 0.95rem;
+    }
+    .section-title {
+      font-weight: 600;
+      color: var(--tk-text);
+      margin: 0 0 12px;
+      font-size: 1rem;
+    }
+
+    #savedListsSection { margin-bottom: 24px; }
+    .saved-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .saved-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: 2px solid #e4e4ef;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--tk-primary-dark);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .saved-chip:hover { border-color: var(--tk-primary); background: #f2f6fa; }
+    .saved-chip .chip-count {
+      color: var(--tk-text-muted);
+      font-weight: 400;
+    }
+
+    .field-block { margin-bottom: 18px; }
+    .field-block label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    .field-block input[type="text"],
+    .field-block textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .field-block input:focus,
+    .field-block textarea:focus { outline: none; border-color: var(--tk-primary); }
+    .field-block input.invalid,
+    .field-block textarea.invalid { border-color: #c0392b; }
+    .field-block textarea { resize: vertical; min-height: 220px; line-height: 1.5; }
+    .field-hint {
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      margin-top: 6px;
+    }
+    .field-error {
+      display: block;
+      color: #c0392b;
+      font-size: 0.85rem;
+      margin-top: 6px;
+      min-height: 1.1em;
+    }
+
+    .btn-start {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 16px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--tk-primary);
+      color: #fff;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-start:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(38, 87, 135, 0.4);
+    }
+
+    /* ---------- Display screen ---------- */
+    .display-wrap {
+      max-width: 900px;
+      width: 100%;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: var(--tk-primary);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-size: 0.95rem;
+      padding: 0;
+    }
+    .display-stage {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: clamp(24px, 5vw, 56px);
+      text-align: center;
+    }
+    .list-title-display {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--tk-text-muted);
+      margin-bottom: 18px;
+    }
+    .step-label {
+      font-size: clamp(0.9rem, 2vw, 1.1rem);
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--tk-primary-dark);
+      margin-bottom: 14px;
+    }
+    .step-text {
+      font-size: clamp(1.8rem, 5vw, 3.4rem);
+      font-weight: 800;
+      color: var(--tk-text);
+      line-height: 1.35;
+      word-break: break-word;
+      white-space: pre-wrap;
+      min-height: 2.6em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .progress-dots {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 26px 0 6px;
+    }
+    .dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #e4e4ef;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .dot.done { background: var(--tk-primary); }
+    .dot.current { background: var(--tk-accent); transform: scale(1.35); }
+    .progress-text {
+      color: var(--tk-text-muted);
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 26px 0 6px;
+    }
+    .nav-controls {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    .btn {
+      padding: 14px 30px;
+      font-size: 1.05rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      color: #fff;
+    }
+    .btn:hover:not(:disabled) { transform: translateY(-2px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--tk-primary);
+      box-shadow: 0 8px 20px rgba(38, 87, 135, 0.4);
+    }
+    .btn-secondary {
+      background: #6b7280;
+      box-shadow: 0 8px 20px rgba(107, 114, 128, 0.3);
+    }
+    .btn-finish {
+      background: var(--tk-accent);
+      box-shadow: 0 8px 20px rgba(184, 111, 85, 0.4);
+    }
+
+    .complete-message {
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 800;
+      color: #1e7e42;
+      padding: 20px 0;
+    }
+
+    .keyboard-hint {
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      margin-top: 16px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .step-text { font-size: 1.8rem; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+</head>
+<body>
+
+  <!-- ============ BUILDER SCREEN ============ -->
+  <div class="container" id="builderScreen">
+    <h1>📋 Step-by-Step Display</h1>
+    <p class="subtitle">Type or paste your steps, then reveal them one at a time on the big screen — no more overwhelmed students staring at a wall of text.</p>
+
+    <div id="savedListsSection" class="hidden">
+      <div class="section-title">Recent step lists</div>
+      <div class="saved-chips" id="savedChips"></div>
+    </div>
+
+    <div class="field-block">
+      <label for="titleInput">List title</label>
+      <input type="text" id="titleInput" placeholder="e.g. Volcano Experiment Steps">
+    </div>
+
+    <div class="field-block">
+      <label for="stepsInput">Steps (one per line)</label>
+      <textarea id="stepsInput" rows="10" placeholder="Put on safety goggles&#10;Measure 50ml of vinegar into the beaker&#10;Add 2 spoons of baking soda&#10;Stand back and observe"></textarea>
+      <span class="field-hint">Each line becomes one step, revealed one at a time on the display.</span>
+      <span class="field-error" id="stepsError"></span>
+    </div>
+
+    <button type="button" class="btn-start" id="startDisplayBtn">▶ Start Display</button>
+  </div>
+
+  <div class="footer" id="builderFooter">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <!-- ============ DISPLAY SCREEN ============ -->
+  <div class="display-wrap hidden" id="displayScreen">
+    <button type="button" class="back-link" id="editStepsBtn">← Edit steps</button>
+
+    <div class="display-stage" id="displayStage">
+
+      <div id="activeView">
+        <div class="list-title-display" id="listTitleDisplay"></div>
+        <div class="step-label" id="stepLabel">Step 1</div>
+        <div class="step-text" id="stepText"></div>
+
+        <div class="progress-dots hidden" id="progressDots"></div>
+        <div class="progress-text hidden" id="progressText"></div>
+
+        <div class="nav-controls">
+          <button type="button" class="btn btn-secondary" id="prevBtn">⬅ Prev</button>
+          <button type="button" class="btn btn-primary" id="nextBtn">Next ➡</button>
+        </div>
+        <div class="keyboard-hint">Use ← → or Space to navigate</div>
+      </div>
+
+      <div id="completeView" class="hidden">
+        <div class="complete-message">✅ All done!</div>
+        <div class="nav-controls">
+          <button type="button" class="btn btn-secondary" id="backToBuilderBtn">↩ Back to Builder</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var DRAFT_KEY = 'tk-step-by-step-draft';
+      var SAVED_KEY = 'tk-step-by-step-saved';
+      var MAX_SAVED = 10;
+      var DOT_MODE_MAX_STEPS = 12;
+
+      var builderScreen = document.getElementById('builderScreen');
+      var builderFooter = document.getElementById('builderFooter');
+      var displayScreen = document.getElementById('displayScreen');
+      var savedListsSection = document.getElementById('savedListsSection');
+      var savedChips = document.getElementById('savedChips');
+      var titleInput = document.getElementById('titleInput');
+      var stepsInput = document.getElementById('stepsInput');
+      var stepsError = document.getElementById('stepsError');
+      var startDisplayBtn = document.getElementById('startDisplayBtn');
+
+      var activeView = document.getElementById('activeView');
+      var completeView = document.getElementById('completeView');
+      var listTitleDisplay = document.getElementById('listTitleDisplay');
+      var stepLabel = document.getElementById('stepLabel');
+      var stepText = document.getElementById('stepText');
+      var progressDots = document.getElementById('progressDots');
+      var progressText = document.getElementById('progressText');
+      var prevBtn = document.getElementById('prevBtn');
+      var nextBtn = document.getElementById('nextBtn');
+      var editStepsBtn = document.getElementById('editStepsBtn');
+      var backToBuilderBtn = document.getElementById('backToBuilderBtn');
+
+      // ---------------- Display state ----------------
+      var currentTitle = '';
+      var steps = [];
+      var currentIndex = 0;
+      var phase = 'idle'; // 'idle' | 'active' | 'complete'
+
+      // ======================================================================
+      // DRAFT PERSISTENCE (builder)
+      // ======================================================================
+      function loadDraft() {
+        var raw;
+        try { raw = localStorage.getItem(DRAFT_KEY); } catch (e) { raw = null; }
+        if (!raw) return;
+        var draft;
+        try { draft = JSON.parse(raw); } catch (e) { return; }
+        if (!draft || typeof draft !== 'object') return;
+        titleInput.value = draft.title || '';
+        stepsInput.value = draft.stepsText || '';
+      }
+
+      function persistDraft() {
+        var draft = {
+          title: titleInput.value,
+          stepsText: stepsInput.value
+        };
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) { /* storage unavailable -- ignore */ }
+      }
+
+      titleInput.addEventListener('input', persistDraft);
+      stepsInput.addEventListener('input', persistDraft);
+
+      // ======================================================================
+      // SAVED (RECENT) STEP LISTS
+      // ======================================================================
+      function loadSavedLists() {
+        var raw;
+        try { raw = localStorage.getItem(SAVED_KEY); } catch (e) { raw = null; }
+        if (!raw) return [];
+        var parsed;
+        try { parsed = JSON.parse(raw); } catch (e) { return []; }
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(function (entry) {
+          return entry && typeof entry === 'object' && Array.isArray(entry.steps) && entry.steps.length > 0;
+        });
+      }
+
+      function saveList(title, stepsArr) {
+        var lists = loadSavedLists();
+        var normalizedTitle = title.trim().toLowerCase();
+        // Replace any existing entry with the same title (case-insensitive)
+        // rather than piling up duplicates every time the same lab/activity
+        // is reused across classes -- reusing a list re-surfaces it at the
+        // front instead of cluttering the chip row with repeats.
+        lists = lists.filter(function (entry) {
+          return (entry.title || '').trim().toLowerCase() !== normalizedTitle;
+        });
+        lists.unshift({ title: title, steps: stepsArr });
+        lists = lists.slice(0, MAX_SAVED);
+        try { localStorage.setItem(SAVED_KEY, JSON.stringify(lists)); } catch (e) { /* storage unavailable -- ignore */ }
+        renderSavedChips();
+      }
+
+      function renderSavedChips() {
+        var lists = loadSavedLists();
+        savedChips.innerHTML = '';
+        if (lists.length === 0) {
+          savedListsSection.classList.add('hidden');
+          return;
+        }
+        savedListsSection.classList.remove('hidden');
+        lists.forEach(function (entry) {
+          var chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'saved-chip';
+          var label = document.createElement('span');
+          label.textContent = entry.title || '(untitled)';
+          var count = document.createElement('span');
+          count.className = 'chip-count';
+          count.textContent = '(' + entry.steps.length + ')';
+          chip.appendChild(label);
+          chip.appendChild(count);
+          chip.addEventListener('click', function () {
+            titleInput.value = entry.title || '';
+            stepsInput.value = entry.steps.join('\n');
+            persistDraft();
+          });
+          savedChips.appendChild(chip);
+        });
+      }
+
+      // ======================================================================
+      // BUILDER -> START DISPLAY
+      // ======================================================================
+      function parseSteps(text) {
+        return text.split('\n')
+          .map(function (line) { return line.trim(); })
+          .filter(function (line) { return line.length > 0; });
+      }
+
+      function clearErrors() {
+        stepsError.textContent = '';
+        stepsInput.classList.remove('invalid');
+      }
+
+      startDisplayBtn.addEventListener('click', function () {
+        clearErrors();
+        var title = titleInput.value.trim() || 'Untitled';
+        var parsedSteps = parseSteps(stepsInput.value);
+
+        if (parsedSteps.length === 0) {
+          stepsError.textContent = 'Please enter at least one step.';
+          stepsInput.classList.add('invalid');
+          return;
+        }
+
+        saveList(title, parsedSteps);
+
+        currentTitle = title;
+        steps = parsedSteps;
+        currentIndex = 0;
+        phase = 'active';
+
+        showDisplayScreen();
+        renderActive();
+      });
+
+      // ======================================================================
+      // DISPLAY SCREEN
+      // ======================================================================
+      function showDisplayScreen() {
+        builderScreen.classList.add('hidden');
+        builderFooter.classList.add('hidden');
+        displayScreen.classList.remove('hidden');
+        activeView.classList.remove('hidden');
+        completeView.classList.add('hidden');
+      }
+
+      function showBuilderScreen() {
+        displayScreen.classList.add('hidden');
+        builderScreen.classList.remove('hidden');
+        builderFooter.classList.remove('hidden');
+      }
+
+      function renderActive() {
+        listTitleDisplay.textContent = currentTitle;
+        stepLabel.textContent = 'Step ' + (currentIndex + 1);
+        stepText.textContent = steps[currentIndex];
+
+        prevBtn.disabled = currentIndex === 0;
+        var isLastStep = currentIndex === steps.length - 1;
+        nextBtn.textContent = isLastStep ? 'Finish ✓' : 'Next ➡';
+        nextBtn.classList.toggle('btn-primary', !isLastStep);
+        nextBtn.classList.toggle('btn-finish', isLastStep);
+
+        renderProgress();
+      }
+
+      function renderProgress() {
+        if (steps.length <= DOT_MODE_MAX_STEPS) {
+          progressDots.classList.remove('hidden');
+          progressText.classList.add('hidden');
+          progressDots.innerHTML = '';
+          steps.forEach(function (_, i) {
+            var dot = document.createElement('span');
+            dot.className = 'dot';
+            if (i === currentIndex) {
+              dot.classList.add('current');
+            } else if (i < currentIndex) {
+              dot.classList.add('done');
+            }
+            progressDots.appendChild(dot);
+          });
+        } else {
+          progressDots.classList.add('hidden');
+          progressText.classList.remove('hidden');
+          progressText.textContent = 'Step ' + (currentIndex + 1) + ' of ' + steps.length;
+        }
+      }
+
+      function goNext() {
+        if (phase !== 'active') return;
+        if (currentIndex < steps.length - 1) {
+          currentIndex++;
+          renderActive();
+        } else {
+          showComplete();
+        }
+      }
+
+      function goPrev() {
+        if (phase !== 'active') return;
+        if (currentIndex > 0) {
+          currentIndex--;
+          renderActive();
+        }
+      }
+
+      function showComplete() {
+        phase = 'complete';
+        activeView.classList.add('hidden');
+        completeView.classList.remove('hidden');
+      }
+
+      nextBtn.addEventListener('click', goNext);
+      prevBtn.addEventListener('click', goPrev);
+
+      editStepsBtn.addEventListener('click', function () {
+        showBuilderScreen();
+      });
+
+      backToBuilderBtn.addEventListener('click', function () {
+        phase = 'idle';
+        showBuilderScreen();
+      });
+
+      // Keyboard navigation only takes effect while the display screen is
+      // actually showing -- the builder screen has its own textarea/input
+      // fields that need arrow keys and spacebar to work normally for typing.
+      document.addEventListener('keydown', function (e) {
+        if (displayScreen.classList.contains('hidden')) return;
+        if (phase !== 'active') return;
+
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.code === 'Space') {
+          e.preventDefault();
+          goNext();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          goPrev();
+        }
+      });
+
+      // ---------------- Init ----------------
+      loadDraft();
+      renderSavedChips();
+    })();
+  </script>
+
+  <script>window.TK_CURRENT = 'step-by-step';</script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+</body>
+</html>

@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hint Envelopes | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .hidden { display: none !important; }
+
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 680px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 1.6rem;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 26px;
+      font-size: 0.95rem;
+    }
+    .section-title {
+      font-weight: 600;
+      color: var(--tk-text);
+      margin: 22px 0 12px;
+      font-size: 1rem;
+    }
+
+    /* ---------- Builder form ---------- */
+    .field-block { margin-bottom: 18px; }
+    .field-block label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    .field-block input[type="text"],
+    .field-block textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .field-block textarea { min-height: 90px; resize: vertical; }
+    .field-block input:focus,
+    .field-block textarea:focus { outline: none; border-color: var(--tk-primary); }
+    .field-block input.invalid { border-color: #c0392b; }
+    .field-error {
+      display: block;
+      color: #c0392b;
+      font-size: 0.85rem;
+      margin-top: 6px;
+      min-height: 1.1em;
+    }
+
+    #hintsContainer { display: flex; flex-direction: column; gap: 14px; }
+    .hint-card-edit {
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .hint-card-edit-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      color: var(--tk-text);
+      font-size: 0.9rem;
+    }
+    .btn-remove-hint {
+      background: none;
+      border: none;
+      color: #c0392b;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 8px;
+    }
+    .hint-card-edit input,
+    .hint-card-edit textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+    .hint-card-edit textarea { min-height: 70px; resize: vertical; }
+    .hint-card-edit input:focus,
+    .hint-card-edit textarea:focus { outline: none; border-color: var(--tk-primary); }
+    .hint-card-edit .label-input { max-width: 260px; }
+
+    .btn-add-hint {
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      padding: 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: 2px dashed var(--tk-primary);
+      border-radius: 12px;
+      background: none;
+      color: var(--tk-primary);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-add-hint:hover { background: rgba(38, 87, 135, 0.08); }
+
+    .btn-generate {
+      display: block;
+      width: 100%;
+      margin-top: 26px;
+      padding: 16px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--tk-primary);
+      color: #fff;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-generate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(38, 87, 135, 0.4);
+    }
+
+    /* ---------- Result panel ---------- */
+    .result-panel {
+      margin-top: 26px;
+      padding-top: 22px;
+      border-top: 2px solid #eeece3;
+    }
+    .result-panel h2 {
+      font-size: 1.15rem;
+      color: var(--tk-text);
+      margin-bottom: 14px;
+      text-align: center;
+    }
+    .result-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .result-row img { width: 140px; height: 140px; border-radius: 8px; }
+    .result-info { flex: 1; min-width: 200px; }
+    .result-url {
+      font-size: 0.9rem;
+      color: var(--tk-text-muted);
+      word-break: break-all;
+      margin-bottom: 10px;
+    }
+    .result-info button {
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 10px 18px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--tk-primary);
+      cursor: pointer;
+    }
+    .result-info button:hover { background: #f2f6fa; }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
+
+    /* ---------- Student/display view ---------- */
+    .student-container {
+      max-width: 800px;
+      width: 100%;
+    }
+    .student-header {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 26px;
+      box-shadow: var(--tk-shadow);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .student-desc {
+      color: var(--tk-text);
+      font-size: 0.98rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      margin-top: 10px;
+    }
+    .hint-counter {
+      display: inline-block;
+      margin-top: 16px;
+      background: #f0efe8;
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
+
+    .envelopes-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    @media (min-width: 620px) {
+      .envelopes-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    }
+    .envelope-card {
+      position: relative;
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 22px;
+      border: 3px solid transparent;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .envelope-card.opened { border-color: var(--tk-accent); }
+    .envelope-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .envelope-num {
+      font-weight: 700;
+      color: var(--tk-text);
+      font-size: 1rem;
+    }
+    .envelope-label {
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      font-style: italic;
+    }
+    .envelope-sealed {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 0 6px;
+    }
+    .envelope-icon { font-size: 2.2rem; }
+    .envelope-card.locked .envelope-icon { opacity: 0.45; }
+    .btn-open-hint {
+      padding: 10px 22px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--tk-primary);
+      color: #fff;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-open-hint:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(38, 87, 135, 0.35); }
+    .btn-open-hint:disabled {
+      background: #dcdcdc;
+      color: #8b8b8b;
+      cursor: not-allowed;
+    }
+    .envelope-revealed { animation: none; }
+    .envelope-revealed.envelope-reveal-anim { animation: revealHint 0.35s ease; }
+    @keyframes revealHint {
+      from { opacity: 0; transform: scale(0.94) translateY(-6px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .envelope-text {
+      color: var(--tk-text);
+      font-size: 0.98rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .reset-row {
+      text-align: center;
+      margin-top: 26px;
+    }
+    .btn-reset-hints {
+      background: none;
+      border: none;
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 6px 10px;
+    }
+    .btn-reset-hints:hover { color: var(--tk-text); }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+</head>
+<body>
+
+  <!-- ============ BUILDER (no ?hints= param) ============ -->
+  <div class="container" id="builderScreen">
+    <h1>✉️ Hint Envelopes</h1>
+    <p class="subtitle">Write a sequence of hints for a task, get one link to share — students open one at a time, in order, only as stuck as they need to be</p>
+
+    <div id="builderForm">
+      <div class="field-block">
+        <label for="titleInput">Task / problem title</label>
+        <input type="text" id="titleInput" placeholder="e.g. Solve for x: 2x + 5 = 17">
+        <span class="field-error" id="titleError"></span>
+      </div>
+
+      <div class="field-block">
+        <label for="descriptionInput">Problem description / instructions (optional)</label>
+        <textarea id="descriptionInput" placeholder="Any extra context or instructions for students"></textarea>
+      </div>
+
+      <div class="section-title">Hints (2–5, increasing in specificity)</div>
+      <div id="hintsContainer"></div>
+      <button type="button" class="btn-add-hint" id="addHintBtn">+ Add another hint</button>
+      <span class="field-error" id="hintsError"></span>
+
+      <button type="button" class="btn-generate" id="generateBtn">🔗 Generate shareable link</button>
+    </div>
+
+    <div class="result-panel hidden" id="resultPanel">
+      <h2>Your hint sequence is ready</h2>
+      <div class="result-row">
+        <img id="qrImg" alt="QR code linking to these hint envelopes">
+        <div class="result-info">
+          <div class="result-url" id="resultUrl"></div>
+          <button type="button" id="copyBtn">Copy link</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer" id="builderFooter">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <!-- ============ STUDENT VIEW (?hints=<config> present) ============ -->
+  <div class="hidden student-container" id="studentScreen">
+    <div class="student-header">
+      <h1 id="studentTitle"></h1>
+      <p class="student-desc hidden" id="studentDesc"></p>
+      <div class="hint-counter" id="hintCounter"></div>
+    </div>
+    <div class="envelopes-grid" id="envelopesGrid"></div>
+    <div class="reset-row">
+      <button type="button" class="btn-reset-hints" id="resetBtn">Reset my hints</button>
+    </div>
+  </div>
+
+  <!-- ============ ERROR (broken ?hints= param) ============ -->
+  <div class="hidden container" id="errorScreen">
+    <h1>⚠️ Link problem</h1>
+    <p class="subtitle">This link looks broken — ask your teacher for a new one.</p>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var DRAFT_KEY = 'tk-hint-envelopes-draft';
+      var MIN_HINTS = 2;
+      var MAX_HINTS = 5;
+
+      // ---------------- shared helpers ----------------
+
+      // Small deterministic (djb2-style) string hash -- not cryptographic,
+      // just enough to give each distinct hint link its own localStorage
+      // bucket for "which hints has this student opened".
+      function simpleHash(str) {
+        var hash = 5381;
+        for (var i = 0; i < str.length; i++) {
+          hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+        }
+        return String(hash >>> 0);
+      }
+
+      // Reads the raw (still percent-encoded) value of a query param without
+      // going through URLSearchParams, which auto-decodes -- we need the raw
+      // string so we can decodeURIComponent it exactly once ourselves,
+      // mirroring the single encodeURIComponent done when the link was built.
+      function getRawQueryParam(name) {
+        var query = location.search.replace(/^\?/, '');
+        if (!query) return null;
+        var pairs = query.split('&');
+        for (var i = 0; i < pairs.length; i++) {
+          var eqIdx = pairs[i].indexOf('=');
+          var key = eqIdx === -1 ? pairs[i] : pairs[i].slice(0, eqIdx);
+          if (key === name) return eqIdx === -1 ? '' : pairs[i].slice(eqIdx + 1);
+        }
+        return null;
+      }
+
+      var rawHintsParam = getRawQueryParam('hints');
+
+      if (rawHintsParam !== null) {
+        initStudentView(rawHintsParam);
+      } else {
+        initBuilder();
+      }
+
+      // ======================================================================
+      // STUDENT / DISPLAY VIEW
+      // ======================================================================
+      function initStudentView(rawParam) {
+        document.getElementById('builderScreen').classList.add('hidden');
+        document.getElementById('builderFooter').classList.add('hidden');
+
+        var config = null;
+        try {
+          config = JSON.parse(decodeURIComponent(rawParam));
+        } catch (e) {
+          config = null;
+        }
+
+        if (!config || typeof config !== 'object' || !Array.isArray(config.hints) || config.hints.length === 0) {
+          document.getElementById('errorScreen').classList.remove('hidden');
+          return;
+        }
+
+        document.getElementById('studentScreen').classList.remove('hidden');
+        renderStudentView(config, rawParam);
+      }
+
+      function renderStudentView(config, rawParam) {
+        document.getElementById('studentTitle').textContent = config.title || 'Hint Envelopes';
+
+        var descEl = document.getElementById('studentDesc');
+        if (config.description) {
+          descEl.textContent = config.description;
+          descEl.classList.remove('hidden');
+        }
+
+        var hints = config.hints;
+        var openedKey = 'tk-hint-envelopes-opened-' + simpleHash(rawParam);
+
+        var openedCount = 0;
+        try {
+          var stored = localStorage.getItem(openedKey);
+          if (stored !== null) {
+            var n = parseInt(stored, 10);
+            if (!isNaN(n) && n >= 0) openedCount = n;
+          }
+        } catch (e) { openedCount = 0; }
+        if (openedCount > hints.length) openedCount = hints.length;
+
+        var grid = document.getElementById('envelopesGrid');
+        var counterEl = document.getElementById('hintCounter');
+        grid.innerHTML = '';
+
+        hints.forEach(function (hint, index) {
+          grid.appendChild(buildEnvelopeCard(hint, index));
+        });
+
+        function buildEnvelopeCard(hint, index) {
+          var card = document.createElement('div');
+          card.className = 'envelope-card';
+          card.dataset.index = String(index);
+
+          var header = document.createElement('div');
+          header.className = 'envelope-header';
+          var num = document.createElement('span');
+          num.className = 'envelope-num';
+          num.textContent = 'Hint ' + (index + 1);
+          header.appendChild(num);
+          if (hint && hint.label) {
+            var lbl = document.createElement('span');
+            lbl.className = 'envelope-label';
+            lbl.textContent = hint.label;
+            header.appendChild(lbl);
+          }
+          card.appendChild(header);
+
+          var sealed = document.createElement('div');
+          sealed.className = 'envelope-sealed';
+          var icon = document.createElement('div');
+          icon.className = 'envelope-icon';
+          icon.textContent = '✉️';
+          sealed.appendChild(icon);
+          var openBtn = document.createElement('button');
+          openBtn.type = 'button';
+          openBtn.className = 'btn-open-hint';
+          openBtn.textContent = 'Open';
+          openBtn.addEventListener('click', function () { openHint(index); });
+          sealed.appendChild(openBtn);
+          card.appendChild(sealed);
+
+          var revealed = document.createElement('div');
+          revealed.className = 'envelope-revealed hidden';
+          var text = document.createElement('p');
+          text.className = 'envelope-text';
+          text.textContent = (hint && hint.text) || '';
+          revealed.appendChild(text);
+          card.appendChild(revealed);
+
+          return card;
+        }
+
+        function updateEnvelopeStates(justOpenedIndex) {
+          var cards = grid.querySelectorAll('.envelope-card');
+          cards.forEach(function (card, i) {
+            var sealed = card.querySelector('.envelope-sealed');
+            var revealed = card.querySelector('.envelope-revealed');
+            var openBtn = card.querySelector('.btn-open-hint');
+            var isOpen = i < openedCount;
+            var isNext = i === openedCount;
+
+            card.classList.toggle('opened', isOpen);
+            card.classList.toggle('locked', !isOpen && !isNext);
+            sealed.classList.toggle('hidden', isOpen);
+            revealed.classList.toggle('hidden', !isOpen);
+            openBtn.disabled = !isNext;
+            openBtn.textContent = isNext ? 'Open' : (isOpen ? 'Opened' : '🔒 Locked');
+
+            revealed.classList.remove('envelope-reveal-anim');
+            if (isOpen && i === justOpenedIndex) {
+              // Force reflow so the animation class re-triggers.
+              void revealed.offsetWidth;
+              revealed.classList.add('envelope-reveal-anim');
+            }
+          });
+          counterEl.textContent = openedCount + ' of ' + hints.length + ' hints used';
+        }
+
+        function openHint(index) {
+          if (index !== openedCount) return; // hints only open in order
+          openedCount++;
+          try { localStorage.setItem(openedKey, String(openedCount)); } catch (e) { /* storage unavailable -- ignore */ }
+          updateEnvelopeStates(index);
+        }
+
+        updateEnvelopeStates(-1);
+
+        document.getElementById('resetBtn').addEventListener('click', function () {
+          if (!confirm('Reset your opened hints back to none? This cannot be undone.')) return;
+          openedCount = 0;
+          try { localStorage.removeItem(openedKey); } catch (e) { /* storage unavailable -- ignore */ }
+          updateEnvelopeStates(-1);
+        });
+      }
+
+      // ======================================================================
+      // BUILDER
+      // ======================================================================
+      function initBuilder() {
+        var hints = [
+          { label: '', text: '' },
+          { label: '', text: '' }
+        ];
+
+        var titleInput = document.getElementById('titleInput');
+        var descriptionInput = document.getElementById('descriptionInput');
+        var hintsContainer = document.getElementById('hintsContainer');
+        var addHintBtn = document.getElementById('addHintBtn');
+        var hintsError = document.getElementById('hintsError');
+        var titleError = document.getElementById('titleError');
+        var generateBtn = document.getElementById('generateBtn');
+        var resultPanel = document.getElementById('resultPanel');
+        var resultUrl = document.getElementById('resultUrl');
+        var qrImg = document.getElementById('qrImg');
+        var copyBtn = document.getElementById('copyBtn');
+
+        function loadDraft() {
+          var raw;
+          try { raw = localStorage.getItem(DRAFT_KEY); } catch (e) { raw = null; }
+          if (!raw) return;
+          var draft;
+          try { draft = JSON.parse(raw); } catch (e) { return; }
+          if (!draft || typeof draft !== 'object') return;
+
+          titleInput.value = draft.title || '';
+          descriptionInput.value = draft.description || '';
+
+          if (Array.isArray(draft.hints) && draft.hints.length > 0) {
+            hints = draft.hints.slice(0, MAX_HINTS).map(function (h) {
+              return {
+                label: (h && h.label) || '',
+                text: (h && h.text) || ''
+              };
+            });
+            while (hints.length < MIN_HINTS) hints.push({ label: '', text: '' });
+          }
+        }
+
+        function persistDraft() {
+          var draft = {
+            title: titleInput.value,
+            description: descriptionInput.value,
+            hints: hints
+          };
+          try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) { /* storage unavailable -- ignore */ }
+        }
+
+        function renderHints() {
+          hintsContainer.innerHTML = '';
+          hints.forEach(function (hint, index) {
+            var card = document.createElement('div');
+            card.className = 'hint-card-edit';
+
+            var header = document.createElement('div');
+            header.className = 'hint-card-edit-header';
+            var label = document.createElement('span');
+            label.textContent = 'Hint ' + (index + 1);
+            header.appendChild(label);
+            if (hints.length > MIN_HINTS) {
+              var removeBtn = document.createElement('button');
+              removeBtn.type = 'button';
+              removeBtn.className = 'btn-remove-hint';
+              removeBtn.textContent = '✕ Remove';
+              removeBtn.addEventListener('click', function () {
+                hints.splice(index, 1);
+                persistDraft();
+                renderHints();
+              });
+              header.appendChild(removeBtn);
+            }
+            card.appendChild(header);
+
+            var labelInput = document.createElement('input');
+            labelInput.type = 'text';
+            labelInput.className = 'label-input';
+            labelInput.placeholder = 'Optional short label (e.g. Nudge, Strategy, Almost there)';
+            labelInput.value = hint.label;
+            labelInput.addEventListener('input', function () {
+              hints[index].label = labelInput.value;
+              persistDraft();
+            });
+            card.appendChild(labelInput);
+
+            var textTextarea = document.createElement('textarea');
+            textTextarea.placeholder = 'What should this hint tell students?';
+            textTextarea.value = hint.text;
+            textTextarea.addEventListener('input', function () {
+              hints[index].text = textTextarea.value;
+              persistDraft();
+            });
+            card.appendChild(textTextarea);
+
+            hintsContainer.appendChild(card);
+          });
+
+          var atMax = hints.length >= MAX_HINTS;
+          addHintBtn.disabled = atMax;
+          addHintBtn.classList.toggle('hidden', atMax);
+        }
+
+        addHintBtn.addEventListener('click', function () {
+          if (hints.length >= MAX_HINTS) return;
+          hints.push({ label: '', text: '' });
+          persistDraft();
+          renderHints();
+        });
+
+        [titleInput, descriptionInput].forEach(function (el) {
+          el.addEventListener('input', persistDraft);
+        });
+
+        function clearErrors() {
+          titleError.textContent = '';
+          hintsError.textContent = '';
+          titleInput.classList.remove('invalid');
+        }
+
+        // Only hints with non-empty text are considered "complete" and make
+        // it into the published sequence -- a teacher who adds a 4th/5th
+        // card but leaves it blank just gets a shorter hint sequence
+        // instead of a blank envelope being shown to students.
+        function validateAndBuildConfig() {
+          clearErrors();
+          var valid = true;
+
+          var title = titleInput.value.trim();
+          if (!title) {
+            titleError.textContent = 'Please enter a task / problem title.';
+            titleInput.classList.add('invalid');
+            valid = false;
+          }
+
+          var completeHints = hints
+            .map(function (h) {
+              return {
+                label: h.label.trim(),
+                text: h.text.trim()
+              };
+            })
+            .filter(function (h) { return h.text; });
+
+          if (completeHints.length < MIN_HINTS) {
+            hintsError.textContent = 'Please fill in at least ' + MIN_HINTS + ' hints.';
+            valid = false;
+          }
+
+          if (!valid) return null;
+
+          return {
+            title: title,
+            description: descriptionInput.value.trim(),
+            hints: completeHints
+          };
+        }
+
+        generateBtn.addEventListener('click', function () {
+          var config = validateAndBuildConfig();
+          if (!config) return;
+
+          var encodedConfig = encodeURIComponent(JSON.stringify(config));
+          var generatedUrl = location.href.split('?')[0] + '?hints=' + encodedConfig;
+
+          resultUrl.textContent = generatedUrl;
+          qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(generatedUrl);
+          resultPanel.classList.remove('hidden');
+          resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+
+        copyBtn.addEventListener('click', function () {
+          navigator.clipboard.writeText(resultUrl.textContent).then(function () {
+            var original = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            setTimeout(function () { copyBtn.textContent = original; }, 1500);
+          });
+        });
+
+        loadDraft();
+        renderHints();
+      }
+    })();
+  </script>
+
+  <script>window.TK_CURRENT = 'hint-envelopes';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

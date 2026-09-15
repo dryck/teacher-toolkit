@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peer Feedback — Teacher Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      font-size: 1.8rem;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+    .card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 1.2rem;
+      color: var(--tk-text);
+      margin-bottom: 8px;
+    }
+    .hint {
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+
+    /* Setup form */
+    label { font-weight: 600; color: var(--tk-text); display: block; margin-bottom: 6px; font-size: 0.9rem; }
+    #targetsInput {
+      width: 100%;
+      min-height: 120px;
+      font-size: 0.95rem;
+      padding: 10px 14px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      font-family: inherit;
+      resize: vertical;
+      margin-bottom: 6px;
+    }
+    #targetsInput:focus { outline: none; border-color: var(--tk-primary); }
+
+    .btn-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+    .btn {
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: #fff;
+      background: var(--tk-primary);
+    }
+    .btn.secondary { background: #e0e7ff; color: #3730a3; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    #setupError { text-align: center; color: #dc3545; font-size: 0.9rem; min-height: 1.2em; margin-top: 6px; }
+
+    /* Join card */
+    .join-card {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .join-card img { width: 140px; height: 140px; border-radius: 8px; }
+    .join-info { text-align: center; }
+    .join-info .code {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--tk-primary-dark);
+    }
+    .join-info .url {
+      font-size: 0.95rem;
+      color: var(--tk-text-muted);
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .join-info button {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* Live dashboard */
+    #totalLine {
+      text-align: center;
+      font-weight: 700;
+      color: var(--tk-text);
+      font-size: 1.1rem;
+      margin-bottom: 18px;
+    }
+    .target-section { margin-bottom: 26px; }
+    .target-section:last-child { margin-bottom: 0; }
+    .target-section h3 {
+      font-family: var(--tk-font-heading);
+      color: var(--tk-primary-dark);
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #eee;
+    }
+    .feedback-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .feedback-item {
+      background: #f7f7fb;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .feedback-item .star-line,
+    .feedback-item .wish-line {
+      font-size: 0.98rem;
+      color: var(--tk-text);
+      line-height: 1.4;
+    }
+    .feedback-item .star-line + .star-line { margin-top: 4px; }
+    .feedback-item .wish-line { margin-top: 8px; }
+    #noFeedback { color: var(--tk-text-muted); text-align: center; padding: 10px 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>⭐ Peer Feedback — Teacher Dashboard</h1>
+    <p class="subtitle">Two Stars and a Wish — quick anonymous feedback after presentations</p>
+
+    <div class="card" id="setupCard">
+      <h2>Set up the session</h2>
+      <label for="targetsInput">Presenter / group names (optional, one per line)</label>
+      <textarea id="targetsInput" placeholder="Leave blank for generic feedback not tied to a name.&#10;Otherwise, one presenter or group name per line, e.g.&#10;Group 1&#10;Group 2&#10;Group 3"></textarea>
+      <p class="hint">If you list names, students pick who the feedback is for. If left empty, feedback is just general and untargeted.</p>
+      <div class="btn-row">
+        <button type="button" class="btn" id="startBtn">🔗 Start Session</button>
+        <button type="button" class="btn secondary" id="startOverBtn" style="display:none">🆕 New session / Start over</button>
+      </div>
+      <div id="setupError"></div>
+    </div>
+
+    <div class="card" id="joinCard" style="display:none">
+      <h2>Students join at</h2>
+      <div class="join-card">
+        <img id="qrImg" alt="QR code to join">
+        <div class="join-info">
+          <div class="code" id="sessionCode"></div>
+          <div class="url" id="joinUrl"></div>
+          <button type="button" id="copyBtn">Copy link</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="dashboardCard" style="display:none">
+      <h2>Live feedback</h2>
+      <div id="totalLine">0 pieces of feedback so far</div>
+      <div id="feedbackSections"></div>
+      <div id="noFeedback" style="display:none">No feedback submitted yet.</div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="peer-feedback.js"></script>
+  <script>
+    let sessionId = (new URLSearchParams(location.search).get('session') || '').toUpperCase();
+
+    // Without a timeout, a bad connection/config leaves a write pending
+    // forever with no feedback at all — same failure mode fixed on the
+    // student page. `onSuccess`/`onFailure` are mutually exclusive via the
+    // `settled` flag. Mirrors apps/chili-challenge/teacher.html.
+    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        onFailure(new Error('timeout'));
+      }, ms);
+      promise.then(result => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onSuccess(result);
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onFailure(err);
+      });
+    }
+
+    const setupCard = document.getElementById('setupCard');
+    const targetsInput = document.getElementById('targetsInput');
+    const startBtn = document.getElementById('startBtn');
+    const startOverBtn = document.getElementById('startOverBtn');
+    const setupError = document.getElementById('setupError');
+    const joinCard = document.getElementById('joinCard');
+    const dashboardCard = document.getElementById('dashboardCard');
+    const totalLineEl = document.getElementById('totalLine');
+    const feedbackSectionsEl = document.getElementById('feedbackSections');
+    const noFeedbackEl = document.getElementById('noFeedback');
+
+    let sessionTargets = [];
+    let unsubscribeFeedback = null;
+    let isFirstSnapshot = true;
+
+    function parseTargets() {
+      return targetsInput.value
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
+    }
+
+    function lockSetupForm(locked) {
+      targetsInput.disabled = locked;
+    }
+
+    function showJoinAndDashboard(id, targets) {
+      sessionTargets = targets || [];
+      const joinUrl = location.origin + location.pathname.replace('teacher.html', 'index.html') + '?session=' + id;
+      document.getElementById('sessionCode').textContent = id;
+      document.getElementById('joinUrl').textContent = joinUrl;
+      // QR image rendered via a public QR-generation service (api.qrserver.com) --
+      // the join URL contains only a random session code, no student data.
+      document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(joinUrl);
+      joinCard.style.display = 'block';
+      dashboardCard.style.display = 'block';
+      startBtn.style.display = 'none';
+      startOverBtn.style.display = 'inline-block';
+      lockSetupForm(true);
+      startFeedbackListener(id);
+    }
+
+    document.getElementById('copyBtn').onclick = () => {
+      const joinUrl = document.getElementById('joinUrl').textContent;
+      navigator.clipboard.writeText(joinUrl).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    };
+
+    startBtn.onclick = () => {
+      const targets = parseTargets();
+      const newId = TKPeerFeedback.randomSessionCode();
+      startBtn.disabled = true;
+      setupError.textContent = '';
+      withTimeout(
+        TKPeerFeedback.sessionDocRef(newId).set({
+          targets,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }),
+        () => {
+          startBtn.disabled = false;
+          sessionId = newId;
+          const url = new URL(location.href);
+          url.searchParams.set('session', sessionId);
+          history.replaceState(null, '', url);
+          showJoinAndDashboard(sessionId, targets);
+        },
+        err => {
+          startBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not create the session — check your connection and try again.');
+        }
+      );
+    };
+
+    // Goes all the way back to a blank setup form — a fresh page load with
+    // no ?session= in the URL — rather than trying to reset in place, so
+    // the old session's join link/QR and dashboard can never be confused
+    // with the new one. Mirrors apps/chili-challenge/teacher.html's
+    // startOverBtn.
+    startOverBtn.onclick = () => {
+      if (!confirm('Start a brand-new session? Students on the old link will keep working on the old one, but this dashboard will move on to a fresh session.')) return;
+      location.href = location.pathname;
+    };
+
+    // ---------------- Live feedback feed ----------------
+    function startFeedbackListener(id) {
+      if (unsubscribeFeedback) unsubscribeFeedback();
+      isFirstSnapshot = true;
+      unsubscribeFeedback = TKPeerFeedback.feedbackCollRef(id).onSnapshot(snap => {
+        const items = [];
+        snap.forEach(doc => items.push(doc.data()));
+        // Sorted client-side by createdAt rather than via .orderBy() in the
+        // query, so there's no dependency on server-assigned timestamps
+        // having already landed for docs still mid-flight from the client
+        // that just wrote them.
+        items.sort((a, b) => {
+          const at = a.createdAt ? a.createdAt.toMillis() : 0;
+          const bt = b.createdAt ? b.createdAt.toMillis() : 0;
+          return bt - at; // newest first
+        });
+        renderDashboard(items);
+
+        // Don't chime for the initial snapshot batch (every piece of
+        // feedback already submitted before this dashboard loaded) — only
+        // for genuinely new items that arrive afterwards.
+        const hasNewDocs = snap.docChanges().some(change => change.type === 'added');
+        if (!isFirstSnapshot && hasNewDocs) playChime();
+        isFirstSnapshot = false;
+      }, err => console.error(err));
+    }
+
+    function buildFeedbackItem(item) {
+      const stars = Array.isArray(item.stars) ? item.stars : ['', ''];
+      const wrap = document.createElement('div');
+      wrap.className = 'feedback-item';
+
+      const star1 = document.createElement('div');
+      star1.className = 'star-line';
+      star1.textContent = '⭐ ' + (stars[0] || '');
+      wrap.appendChild(star1);
+
+      const star2 = document.createElement('div');
+      star2.className = 'star-line';
+      star2.textContent = '⭐ ' + (stars[1] || '');
+      wrap.appendChild(star2);
+
+      const wish = document.createElement('div');
+      wish.className = 'wish-line';
+      wish.textContent = '💡 ' + (item.wish || '');
+      wrap.appendChild(wish);
+
+      return wrap;
+    }
+
+    function buildSection(label, items) {
+      const section = document.createElement('div');
+      section.className = 'target-section';
+      const h3 = document.createElement('h3');
+      h3.textContent = label;
+      section.appendChild(h3);
+      const list = document.createElement('div');
+      list.className = 'feedback-list';
+      items.forEach(item => list.appendChild(buildFeedbackItem(item)));
+      section.appendChild(list);
+      return section;
+    }
+
+    function renderDashboard(items) {
+      totalLineEl.textContent = items.length + (items.length === 1 ? ' piece of feedback so far' : ' pieces of feedback so far');
+      feedbackSectionsEl.innerHTML = '';
+      noFeedbackEl.style.display = items.length ? 'none' : 'block';
+
+      if (sessionTargets.length === 0) {
+        // No targets configured: one flat reverse-chronological list.
+        const list = document.createElement('div');
+        list.className = 'feedback-list';
+        items.forEach(item => list.appendChild(buildFeedbackItem(item)));
+        feedbackSectionsEl.appendChild(list);
+        return;
+      }
+
+      // Targets configured: a section per presenter/group name, in the
+      // order the teacher entered them, plus a "General" section for any
+      // untargeted feedback.
+      sessionTargets.forEach(target => {
+        const targetItems = items.filter(item => item.target === target);
+        if (targetItems.length === 0) return;
+        feedbackSectionsEl.appendChild(buildSection(target, targetItems));
+      });
+      const generalItems = items.filter(item => !item.target);
+      if (generalItems.length > 0) {
+        feedbackSectionsEl.appendChild(buildSection('General', generalItems));
+      }
+    }
+
+    // ---------------- Audio cue: gentle chime on new feedback ----------------
+    // Mirrors apps/brainstorm-timer/teacher.html's playChime(), reusing
+    // TKAudio's single shared context instead of `new AudioContext()`.
+    function playChime() {
+      try {
+        const ctx = TKAudio.ctx();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 660;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.16, ctx.currentTime + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.6);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+
+    // If a session code is already in the URL, load its existing config
+    // and jump straight to the join + dashboard view.
+    if (sessionId) {
+      TKPeerFeedback.sessionDocRef(sessionId).get().then(doc => {
+        if (doc.exists) {
+          const data = doc.data() || {};
+          targetsInput.value = (data.targets || []).join('\n');
+          showJoinAndDashboard(sessionId, data.targets || []);
+        } else {
+          // Stale/unknown code in the URL — fall back to a blank editor.
+          sessionId = '';
+          const url = new URL(location.href);
+          url.searchParams.delete('session');
+          history.replaceState(null, '', url);
+        }
+      }).catch(err => console.error(err));
+    }
+  </script>
+  <script>window.TK_CURRENT = 'peer-feedback';</script>
+  <script src="../shell/audio.js"></script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>
