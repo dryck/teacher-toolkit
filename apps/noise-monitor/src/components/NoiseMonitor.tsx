@@ -10,7 +10,15 @@ import { WeatherTheme } from '../themes/WeatherTheme'
 import { VolcanoTheme } from '../themes/VolcanoTheme'
 import { useAudio } from '../hooks/useAudio'
 import { useTTS, TTSConfig } from '../hooks/useTTS'
-import { calculateNoiseLevel, getNoiseLevelNumber } from '../utils/noiseCalculator'
+import { calculateNoiseLevel, getNoiseLevelNumber, smoothNoiseLevel } from '../utils/noiseCalculator'
+
+// Time constant (seconds) for the exponential moving average applied to the
+// raw per-frame mic reading. A single frame of FFT data is extremely noisy
+// (a cough, a chair scrape, or just mic self-noise can spike or dip one
+// frame), so the displayed level tracks this smoothed average instead of
+// the instantaneous sample -- same idea as the "Fast"/"Slow" response
+// setting on a real sound level meter.
+const SMOOTHING_TAU = 0.3
 
 interface NoiseMonitorProps {
   theme: Theme
@@ -55,12 +63,17 @@ export function NoiseMonitor({
   const analyserRef = useRef<AnalyserNode | null>(null)
   const microphoneRef = useRef<MediaStreamAudioSourceNode | null>(null)
   const animationFrameRef = useRef<number | null>(null)
-  const wasTooLoudRef = useRef(false)
   const upDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const downDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingUpRef = useRef(false)
   const pendingDownRef = useRef(false)
-  const latestLevelRef = useRef(0)
+  // The smoothed level is the source of truth for both the continuous
+  // visual display and the alert/threshold logic below; committedLevelNumberRef
+  // tracks the last level number (1-4) that actually got "confirmed" through
+  // the up/down delay, separate from the live, every-frame smoothed value.
+  const smoothedLevelRef = useRef(0)
+  const lastFrameTimeRef = useRef<number | null>(null)
+  const committedLevelNumberRef = useRef(1)
   
   const { triggerAlerts, stopAlerts } = useAudio(selectedSound, customSounds, isMuted, soundSettings)
 
@@ -108,6 +121,9 @@ export function NoiseMonitor({
     if (downDelayTimerRef.current) clearTimeout(downDelayTimerRef.current)
     pendingUpRef.current = false
     pendingDownRef.current = false
+    smoothedLevelRef.current = 0
+    lastFrameTimeRef.current = null
+    committedLevelNumberRef.current = 1
     stopAlerts()
     stopTTS()
   }, [stopAlerts, stopTTS])
@@ -121,49 +137,62 @@ export function NoiseMonitor({
       if (!analyserRef.current) return
 
       analyserRef.current.getByteFrequencyData(dataArray)
-      const level = calculateNoiseLevel(dataArray)
-      latestLevelRef.current = level
-      onNoiseLevelChange?.(level)
+      const rawLevel = calculateNoiseLevel(dataArray)
 
-      const currentLevelNumber = getNoiseLevelNumber(displayLevel, threshold)
-      const newLevelNumber = getNoiseLevelNumber(level, threshold)
+      // Time-based EMA rather than a fixed per-frame factor, so the
+      // smoothing window stays the same real-world duration regardless of
+      // display refresh rate (a 30Hz vs 144Hz screen shouldn't smooth
+      // differently). Clamp dt so resuming a backgrounded/throttled tab
+      // doesn't produce one huge, meaningless jump.
+      const now = performance.now()
+      const dt = lastFrameTimeRef.current != null
+        ? Math.min((now - lastFrameTimeRef.current) / 1000, 0.5)
+        : 1 / 60
+      lastFrameTimeRef.current = now
+      const alpha = 1 - Math.exp(-dt / SMOOTHING_TAU)
+      smoothedLevelRef.current = smoothNoiseLevel(smoothedLevelRef.current, rawLevel, alpha)
+      const smoothedLevel = smoothedLevelRef.current
 
-      // Delay logic: level only changes after sustained time at new level
+      // Continuous, every-frame update -- this is what themes animate
+      // against, so the visual tracks the room smoothly instead of sitting
+      // frozen and then jumping to a single sample once a delay elapses.
+      setDisplayLevel(smoothedLevel)
+      onNoiseLevelChange?.(smoothedLevel)
+
+      // Alerts/status still only change after sustained time at a new
+      // level, same as before -- but now gated on the already-smoothed
+      // signal, so a brief spike has to actually persist to flip anything.
+      const currentLevelNumber = committedLevelNumberRef.current
+      const newLevelNumber = getNoiseLevelNumber(smoothedLevel, threshold)
+
       if (newLevelNumber > currentLevelNumber) {
-        // Level increasing - apply upDelay
         if (!pendingUpRef.current) {
           pendingUpRef.current = true
           upDelayTimerRef.current = setTimeout(() => {
-            const freshLevel = latestLevelRef.current
-            const freshLevelNumber = getNoiseLevelNumber(freshLevel, threshold)
-            const oldLevelNumber = getNoiseLevelNumber(displayLevel, threshold)
+            const freshLevelNumber = getNoiseLevelNumber(smoothedLevelRef.current, threshold)
+            const oldLevelNumber = committedLevelNumberRef.current
             if (freshLevelNumber > oldLevelNumber) {
-              setDisplayLevel(freshLevel)
-              setIsTooLoud(freshLevel > threshold)
+              committedLevelNumberRef.current = freshLevelNumber
+              setIsTooLoud(freshLevelNumber >= 4)
               if (freshLevelNumber >= 4 && oldLevelNumber < 4) {
                 triggerAlerts()
                 triggerTTS()
               }
-              wasTooLoudRef.current = freshLevel > threshold
             }
             pendingUpRef.current = false
           }, _upDelay * 1000)
         }
-        // Cancel any pending down delay
         if (downDelayTimerRef.current) clearTimeout(downDelayTimerRef.current)
         pendingDownRef.current = false
       } else if (newLevelNumber < currentLevelNumber) {
-        // Level decreasing - apply downDelay
         if (!pendingDownRef.current) {
           pendingDownRef.current = true
           downDelayTimerRef.current = setTimeout(() => {
-            const freshLevel = latestLevelRef.current
-            const freshLevelNumber = getNoiseLevelNumber(freshLevel, threshold)
-            const oldLevelNumber = getNoiseLevelNumber(displayLevel, threshold)
+            const freshLevelNumber = getNoiseLevelNumber(smoothedLevelRef.current, threshold)
+            const oldLevelNumber = committedLevelNumberRef.current
             if (freshLevelNumber < oldLevelNumber) {
-              setDisplayLevel(freshLevel)
-              setIsTooLoud(freshLevel > threshold)
-              wasTooLoudRef.current = freshLevel > threshold
+              committedLevelNumberRef.current = freshLevelNumber
+              setIsTooLoud(freshLevelNumber >= 4)
               if (freshLevelNumber < 4) {
                 stopAlerts()
                 stopTTS()
@@ -172,11 +201,9 @@ export function NoiseMonitor({
             pendingDownRef.current = false
           }, _downDelay * 1000)
         }
-        // Cancel any pending up delay
         if (upDelayTimerRef.current) clearTimeout(upDelayTimerRef.current)
         pendingUpRef.current = false
       } else {
-        // Same level - clear pending flags, keep current display
         pendingUpRef.current = false
         pendingDownRef.current = false
       }
@@ -191,7 +218,7 @@ export function NoiseMonitor({
         cancelAnimationFrame(animationFrameRef.current)
       }
     }
-  }, [isListening, threshold, displayLevel, _upDelay, _downDelay, triggerAlerts, triggerTTS, stopAlerts, stopTTS])
+  }, [isListening, threshold, _upDelay, _downDelay, triggerAlerts, triggerTTS, stopAlerts, stopTTS, onNoiseLevelChange])
 
   useEffect(() => {
     return () => {
