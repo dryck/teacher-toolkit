@@ -72,7 +72,11 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    // No error-reporting service consumes these, so shipping them only
+    // published ~692KB of maps (4x the app itself) and the full TS source
+    // to GitHub Pages. Flip back to true, or 'hidden', if we ever wire up
+    // something like Sentry that needs them.
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {

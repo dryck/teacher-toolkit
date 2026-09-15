@@ -8,7 +8,12 @@
   ],
   "scripts": {
     "dev:noise-monitor": "npm run dev --workspace apps/noise-monitor",
-    "build": "bash scripts/build.sh"
+    "build": "bash scripts/build.sh",
+    "serve": "node scripts/serve.mjs",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
   },
   "license": "MIT"
 }

@@ -363,6 +363,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="../shell/theme.css">
+  <script src="../shell/escape.js"></script>
   <link rel="stylesheet" href="../shell/navbar.css">
 </head>
 <body>
@@ -573,11 +574,6 @@
       startStation(0);
     });
 
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
 
     document.getElementById('backToSetupBtn').addEventListener('click', backToSetup);
     document.getElementById('newRotationBtn').addEventListener('click', backToSetup);

@@ -384,6 +384,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="../shell/theme.css">
+  <script src="../shell/escape.js"></script>
   <link rel="stylesheet" href="../shell/navbar.css">
   <link rel="stylesheet" href="../shell/fullscreen.css">
 </head>
@@ -546,11 +547,6 @@
       container.innerHTML = `<div class="section-title" style="margin-bottom:0;">Questions</div><ol>${items}</ol>`;
     }
 
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
 
     document.addEventListener('DOMContentLoaded', () => {
       buildTypeGrid();
