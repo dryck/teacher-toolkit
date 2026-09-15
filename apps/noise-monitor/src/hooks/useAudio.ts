@@ -84,11 +84,15 @@ export function useAudio(
     const audio = audioRef.current
     audio.currentTime = 0
     
-    // Play with error handling
+    // Play with error handling. AbortError here just means a pause()
+    // (mute toggle, sound change, etc.) interrupted this same play() call
+    // before it settled -- expected and harmless, not worth a warning.
     const playPromise = audio.play()
     if (playPromise !== undefined) {
       playPromise.catch((error) => {
-        console.warn('Audio play failed:', error)
+        if (error?.name !== 'AbortError') {
+          console.warn('Audio play failed:', error)
+        }
       })
     }
   }, [getSelectedSound, isMuted])

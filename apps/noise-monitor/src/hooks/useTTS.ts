@@ -101,10 +101,15 @@ export function useTTS(config: TTSConfig, isMuted: boolean) {
     }
     const audio = audioRef.current
     audio.currentTime = 0
+    // AbortError here just means a pause() (mute toggle, sound change,
+    // etc.) interrupted this same play() call before it settled --
+    // expected and harmless, not worth a warning.
     const promise = audio.play()
     if (promise !== undefined) {
       promise.catch((err) => {
-        console.warn('Audio play failed:', err)
+        if (err?.name !== 'AbortError') {
+          console.warn('Audio play failed:', err)
+        }
       })
     }
   }, [isMuted])
