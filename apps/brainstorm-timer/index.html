@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Brainstorm Timer</title>
+  <!-- No shared navbar/branding here on purpose: students land on this
+       page directly via a link/QR code their teacher gives them, and
+       should never see (or be able to navigate to) the rest of the
+       teacher-facing toolkit. Only theme.css (CSS variables) is kept. -->
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      max-width: 640px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+      color: var(--tk-text);
+      margin: 12px 0 4px;
+    }
+
+    /* Join-by-code screen (shown if no ?session= in the URL) */
+    #joinScreen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #joinScreen p { color: var(--tk-text-muted); }
+    #joinScreen input {
+      font-size: 1.6rem;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 220px;
+    }
+    #joinScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+    #errorMsg { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; }
+
+    /* Main screen */
+    #mainScreen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #objectLine {
+      font-family: var(--tk-font-heading);
+      font-weight: 700;
+      font-size: clamp(1.4rem, 6vw, 2.2rem);
+      color: var(--tk-primary-dark);
+      text-transform: capitalize;
+    }
+    #waitingMessage {
+      color: var(--tk-text-muted);
+      font-size: 1.1rem;
+    }
+    #countdownDisplay {
+      display: none;
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: clamp(3rem, 18vw, 5.5rem);
+      color: var(--tk-primary);
+    }
+    #timesUpMessage {
+      display: none;
+      font-size: clamp(1.3rem, 4vw, 1.8rem);
+      font-weight: 700;
+      color: #16a34a;
+    }
+    #ideaFormWrap {
+      display: none;
+      width: 100%;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    #ideaInput {
+      width: 100%;
+      font-size: 1.3rem;
+      text-align: center;
+      padding: 16px 18px;
+      border: 2px solid #ddd;
+      border-radius: 14px;
+    }
+    #ideaInput:focus { outline: none; border-color: var(--tk-primary); }
+    #ideaInput:disabled { background: #f0f0f0; color: var(--tk-text-muted); }
+    #addIdeaBtn {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+    #addIdeaBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+    #personalCountLine {
+      color: var(--tk-text-muted);
+      font-size: 0.95rem;
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+</head>
+<body>
+  <main>
+    <h1>🧠 Brainstorm Timer</h1>
+
+    <div id="joinScreen">
+      <p>Enter the code your teacher gave you:</p>
+      <input type="text" id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+      <div id="errorMsg"></div>
+      <button type="button" id="joinBtn">Join</button>
+    </div>
+
+    <div id="mainScreen">
+      <div id="objectLine">Loading…</div>
+      <div id="waitingMessage">⏳ Waiting for your teacher to start…</div>
+      <div id="countdownDisplay">00:00</div>
+      <div id="timesUpMessage">⏰ Time's up! Great thinking.</div>
+
+      <div id="ideaFormWrap">
+        <input type="text" id="ideaInput" maxlength="100" placeholder="Type one idea…" autocomplete="off">
+        <button type="button" id="addIdeaBtn">Add idea ✓</button>
+        <div id="personalCountLine">You haven't added any ideas yet.</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="brainstorm-timer.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+
+    // Without a timeout, a bad connection/config leaves a write pending
+    // forever with no feedback at all. Mirrors apps/chili-challenge/index.html.
+    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        onFailure(new Error('timeout'));
+      }, ms);
+      promise.then(result => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onSuccess(result);
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onFailure(err);
+      });
+    }
+
+    const joinScreen = document.getElementById('joinScreen');
+    const mainScreen = document.getElementById('mainScreen');
+    const errorMsg = document.getElementById('errorMsg');
+    const objectLine = document.getElementById('objectLine');
+    const waitingMessage = document.getElementById('waitingMessage');
+    const countdownDisplay = document.getElementById('countdownDisplay');
+    const timesUpMessage = document.getElementById('timesUpMessage');
+    const ideaFormWrap = document.getElementById('ideaFormWrap');
+    const ideaInput = document.getElementById('ideaInput');
+    const addIdeaBtn = document.getElementById('addIdeaBtn');
+    const personalCountLine = document.getElementById('personalCountLine');
+
+    // Fully anonymous: no nickname/student-id screen at all -- ideas are
+    // stored one-per-doc with no identity attached, so there's nothing to
+    // collect before jumping straight into the brainstorm.
+    let deadline = null;
+    let countdownInterval = null;
+    let timeUp = false;
+    let personalCount = 0;
+    let submitting = false;
+
+    function formatMMSS(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      return m > 0 ? m + ':' + String(s).padStart(2, '0') : String(s);
+    }
+
+    function startSession() {
+      joinScreen.style.display = 'none';
+      mainScreen.style.display = 'flex';
+
+      // Session config: live, in case the teacher is still deciding on the
+      // object, or hasn't started the timer yet.
+      TKBrainstormTimer.sessionDocRef(sessionId).onSnapshot(doc => {
+        if (!doc.exists) {
+          objectLine.textContent = 'Session not found — check the code with your teacher.';
+          waitingMessage.style.display = 'none';
+          return;
+        }
+        const config = doc.data();
+        objectLine.textContent = config.object || '';
+
+        if (config.startedAt && deadline === null) {
+          // Deadline computed once, the first time startedAt appears --
+          // durationSeconds is written in the same doc at session creation,
+          // so it's already present alongside startedAt here.
+          deadline = config.startedAt.toMillis() + (config.durationSeconds || 0) * 1000;
+          waitingMessage.style.display = 'none';
+          if (Date.now() < deadline) {
+            countdownDisplay.style.display = 'block';
+            ideaFormWrap.style.display = 'flex';
+            startCountdownTick();
+          } else {
+            onTimeUp();
+          }
+        }
+      }, err => console.error(err));
+    }
+
+    // ---------------- Countdown: deadline-based, not a naive decrement ----------------
+    // Remaining time is always recomputed from a fixed Date.now() deadline
+    // instead of decrementing a counter, so a throttled/backgrounded tab
+    // still lands on the correct value. Mirrors apps/think-time's
+    // tickThink()/renderCountdown().
+    function startCountdownTick() {
+      if (countdownInterval) return;
+      tickCountdown();
+      countdownInterval = setInterval(tickCountdown, 200);
+    }
+
+    function tickCountdown() {
+      const remaining = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+      countdownDisplay.textContent = formatMMSS(remaining);
+      if (remaining <= 0 && !timeUp) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+        onTimeUp();
+      }
+    }
+
+    function onTimeUp() {
+      timeUp = true;
+      countdownDisplay.style.display = 'none';
+      waitingMessage.style.display = 'none';
+      timesUpMessage.style.display = 'block';
+      ideaInput.disabled = true;
+      addIdeaBtn.disabled = true;
+    }
+
+    // ---------------- Idea submission ----------------
+    function submitIdea() {
+      const text = ideaInput.value.trim().slice(0, 100);
+      if (!text || timeUp || submitting) return;
+      submitting = true;
+      addIdeaBtn.disabled = true;
+      withTimeout(
+        TKBrainstormTimer.ideasCollRef(sessionId).add({
+          text,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }),
+        () => {
+          submitting = false;
+          addIdeaBtn.disabled = false;
+          ideaInput.value = '';
+          ideaInput.focus();
+          personalCount++;
+          personalCountLine.textContent = "You've added " + personalCount + (personalCount === 1 ? ' idea.' : ' ideas.');
+        },
+        err => {
+          submitting = false;
+          addIdeaBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not save your idea — check your connection and try again.');
+        }
+      );
+    }
+    addIdeaBtn.addEventListener('click', submitIdea);
+    ideaInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitIdea();
+      }
+    });
+
+    // ---------------- Join by code ----------------
+    document.getElementById('joinBtn').onclick = () => {
+      const code = document.getElementById('codeInput').value.trim().toUpperCase();
+      if (code.length !== 5) {
+        errorMsg.textContent = 'Enter the 5-letter code your teacher gave you.';
+        return;
+      }
+      sessionId = code;
+      const url = new URL(location.href);
+      url.searchParams.set('session', sessionId);
+      history.replaceState(null, '', url);
+      startSession();
+    };
+
+    if (sessionId) {
+      startSession();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brainstorm Timer — Teacher Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 1.2rem;
+      color: var(--tk-text);
+      margin-bottom: 16px;
+    }
+
+    /* Setup screen */
+    .btn-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+    .btn {
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: #fff;
+      background: var(--tk-primary);
+    }
+    .btn.secondary { background: #e0e7ff; color: #3730a3; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .object-display-big {
+      text-align: center;
+      font-family: var(--tk-font-heading);
+      font-weight: 700;
+      font-size: clamp(1.6rem, 5vw, 2.6rem);
+      color: var(--tk-primary-dark);
+      min-height: 1.4em;
+      margin: 18px 0;
+      text-transform: capitalize;
+    }
+    .object-display-big.placeholder {
+      color: var(--tk-text-muted);
+      font-weight: 400;
+      font-size: 1.1rem;
+      text-transform: none;
+    }
+    #customObjectInput {
+      display: block;
+      width: 100%;
+      font-size: 1rem;
+      padding: 10px 14px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      margin: 14px auto 4px;
+      text-align: center;
+    }
+    #customObjectInput:focus { outline: none; border-color: var(--tk-primary); }
+    .hint-line { text-align: center; color: var(--tk-text-muted); font-size: 0.85rem; margin-bottom: 6px; }
+
+    .section-title {
+      font-weight: 600;
+      color: var(--tk-text);
+      margin: 22px 0 10px;
+      font-size: 0.95rem;
+    }
+    .duration-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .duration-btn {
+      padding: 16px 10px;
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      background: #fff;
+      color: var(--tk-text);
+      font-size: 1.15rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+    .duration-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--tk-primary);
+    }
+    .duration-btn.selected {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(38, 87, 135, 0.35);
+    }
+
+    #setupError { text-align: center; color: #dc3545; font-size: 0.9rem; min-height: 1.2em; margin-top: 6px; }
+
+    /* Join card */
+    .join-card {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .join-card img { width: 140px; height: 140px; border-radius: 8px; }
+    .join-info { text-align: center; }
+    .join-info .code {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--tk-primary-dark);
+    }
+    .join-info .url {
+      font-size: 0.95rem;
+      color: var(--tk-text-muted);
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .join-info button {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* Live dashboard */
+    #dashObjectName {
+      text-align: center;
+      font-family: var(--tk-font-heading);
+      font-weight: 700;
+      font-size: clamp(1.8rem, 6vw, 3rem);
+      color: var(--tk-primary-dark);
+      text-transform: capitalize;
+      margin-bottom: 6px;
+    }
+    #dashObjectName.pulse-in {
+      animation: object-pulse-in 0.55s ease;
+    }
+    @keyframes object-pulse-in {
+      0% { transform: scale(0.85); opacity: 0.4; }
+      55% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    #ideaCountLine {
+      text-align: center;
+      font-size: clamp(1.4rem, 4.5vw, 2.2rem);
+      font-weight: 700;
+      color: var(--tk-accent);
+      margin-bottom: 20px;
+    }
+    #countdownDisplay {
+      display: none;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: clamp(3.5rem, 16vw, 7rem);
+      color: var(--tk-primary);
+      margin-bottom: 20px;
+    }
+    #startThinkingBtn {
+      display: block;
+      margin: 0 auto;
+      font-size: 1.2rem;
+      padding: 16px 34px;
+    }
+
+    /* Review section */
+    #reviewSection { display: none; }
+    #reviewCountLine {
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-size: 1rem;
+      margin-bottom: 16px;
+    }
+    #shuffleBtn { display: block; margin: 0 auto 20px; }
+    #shuffledIdeasList {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    #shuffledIdeasList li {
+      background: var(--tk-bg);
+      border-radius: 12px;
+      padding: 16px 20px;
+      text-align: center;
+      font-size: clamp(1.2rem, 3.5vw, 1.7rem);
+      font-weight: 600;
+      color: var(--tk-text);
+    }
+    #shuffledIdeasList li.empty {
+      font-weight: 400;
+      color: var(--tk-text-muted);
+      font-size: 1rem;
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+</head>
+<body>
+  <main>
+    <h1>🧠 Brainstorm Timer — Teacher Dashboard</h1>
+
+    <div class="card" id="setupCard">
+      <h2>Set up the brainstorm</h2>
+      <div class="btn-row">
+        <button type="button" class="btn" id="randomObjectBtn">🎲 Random Object</button>
+      </div>
+      <div class="object-display-big placeholder" id="objectDisplayBig">Pick 🎲 or type an object below</div>
+      <input type="text" id="customObjectInput" maxlength="60" placeholder="Or type your own everyday object">
+      <div class="hint-line">Students will brainstorm as many uses for this object as they can.</div>
+
+      <div class="section-title">Duration</div>
+      <div class="duration-grid" id="durationGrid"></div>
+
+      <div class="btn-row">
+        <button type="button" class="btn" id="generateBtn">🔗 Generate session</button>
+        <button type="button" class="btn secondary" id="startOverBtn" style="display:none">🆕 New session / Start over</button>
+      </div>
+      <div id="setupError"></div>
+    </div>
+
+    <div class="card" id="joinCard" style="display:none">
+      <h2>Students join at</h2>
+      <div class="join-card">
+        <img id="qrImg" alt="QR code to join">
+        <div class="join-info">
+          <div class="code" id="sessionCode"></div>
+          <div class="url" id="joinUrl"></div>
+          <button type="button" id="copyBtn">Copy link</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="dashboardCard" style="display:none">
+      <div id="dashObjectName"></div>
+      <div id="ideaCountLine">🧠 0 ideas so far!</div>
+      <button type="button" class="btn" id="startThinkingBtn">▶ Start Thinking!</button>
+      <div id="countdownDisplay">00:00</div>
+
+      <div id="reviewSection">
+        <h2>Review the ideas</h2>
+        <div id="reviewCountLine"></div>
+        <button type="button" class="btn" id="shuffleBtn">🔀 Shuffle</button>
+        <ul id="shuffledIdeasList"></ul>
+      </div>
+    </div>
+  </main>
+
+  <script>window.TK_CURRENT = 'brainstorm-timer';</script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="../shell/audio.js"></script>
+  <script src="brainstorm-timer.js"></script>
+  <script>
+    let sessionId = (new URLSearchParams(location.search).get('session') || '').toUpperCase();
+
+    // Without a timeout, a bad connection/config leaves a write (or read)
+    // pending forever with no feedback at all. `onFailure` and the
+    // promise's own then/catch are mutually exclusive via the `settled`
+    // flag. Mirrors apps/chili-challenge/teacher.html.
+    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        onFailure(new Error('timeout'));
+      }, ms);
+      promise.then(result => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onSuccess(result);
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onFailure(err);
+      });
+    }
+
+    const DURATION_PRESETS = [60, 90, 120, 180];
+    let selectedSeconds = 120;
+    let selectedObject = '';
+
+    const randomObjectBtn = document.getElementById('randomObjectBtn');
+    const objectDisplayBig = document.getElementById('objectDisplayBig');
+    const customObjectInput = document.getElementById('customObjectInput');
+    const durationGrid = document.getElementById('durationGrid');
+    const generateBtn = document.getElementById('generateBtn');
+    const startOverBtn = document.getElementById('startOverBtn');
+    const setupError = document.getElementById('setupError');
+    const joinCard = document.getElementById('joinCard');
+    const dashboardCard = document.getElementById('dashboardCard');
+    const dashObjectName = document.getElementById('dashObjectName');
+    const ideaCountLine = document.getElementById('ideaCountLine');
+    const startThinkingBtn = document.getElementById('startThinkingBtn');
+    const countdownDisplay = document.getElementById('countdownDisplay');
+    const reviewSection = document.getElementById('reviewSection');
+    const reviewCountLine = document.getElementById('reviewCountLine');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const shuffledIdeasList = document.getElementById('shuffledIdeasList');
+
+    let durationSecondsGlobal = selectedSeconds;
+    let currentDeadline = 0;
+    let countdownInterval = null;
+    let lastShownSeconds = null;
+    let unsubscribeIdeas = null;
+    let allIdeas = [];
+
+    // ---------------- Setup screen: duration presets ----------------
+    function renderDurationPresets() {
+      durationGrid.innerHTML = '';
+      DURATION_PRESETS.forEach(seconds => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'duration-btn';
+        btn.textContent = seconds + 's';
+        btn.dataset.seconds = seconds;
+        if (seconds === selectedSeconds) btn.classList.add('selected');
+        btn.addEventListener('click', () => selectDuration(seconds));
+        durationGrid.appendChild(btn);
+      });
+    }
+    function selectDuration(seconds) {
+      selectedSeconds = seconds;
+      document.querySelectorAll('.duration-btn').forEach(btn => {
+        btn.classList.toggle('selected', parseInt(btn.dataset.seconds, 10) === seconds);
+      });
+    }
+
+    // ---------------- Setup screen: object picker ----------------
+    function updateObjectDisplay() {
+      if (selectedObject) {
+        objectDisplayBig.textContent = selectedObject;
+        objectDisplayBig.classList.remove('placeholder');
+      } else {
+        objectDisplayBig.textContent = 'Pick 🎲 or type an object below';
+        objectDisplayBig.classList.add('placeholder');
+      }
+    }
+    randomObjectBtn.addEventListener('click', () => {
+      selectedObject = TKBrainstormTimer.randomObject();
+      customObjectInput.value = selectedObject;
+      updateObjectDisplay();
+    });
+    customObjectInput.addEventListener('input', () => {
+      selectedObject = customObjectInput.value.trim();
+      updateObjectDisplay();
+    });
+
+    // ---------------- Generate session ----------------
+    function formatMMSS(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      return m > 0 ? m + ':' + String(s).padStart(2, '0') : String(s);
+    }
+
+    function lockSetupForm(locked) {
+      customObjectInput.disabled = locked;
+      randomObjectBtn.disabled = locked;
+    }
+
+    function showJoinAndDashboard(id, object, durationSeconds) {
+      const joinUrl = location.origin + location.pathname.replace('teacher.html', 'index.html') + '?session=' + id;
+      document.getElementById('sessionCode').textContent = id;
+      document.getElementById('joinUrl').textContent = joinUrl;
+      // QR image rendered via a public QR-generation service (api.qrserver.com) --
+      // the join URL contains only a random session code, no student data.
+      document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(joinUrl);
+      joinCard.style.display = 'block';
+      dashboardCard.style.display = 'block';
+      generateBtn.style.display = 'none';
+      startOverBtn.style.display = 'inline-block';
+      lockSetupForm(true);
+
+      durationSecondsGlobal = durationSeconds;
+      dashObjectName.textContent = object;
+      countdownDisplay.textContent = formatMMSS(durationSeconds);
+
+      startIdeaCountListener(id);
+    }
+
+    document.getElementById('copyBtn').onclick = () => {
+      const joinUrl = document.getElementById('joinUrl').textContent;
+      navigator.clipboard.writeText(joinUrl).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    };
+
+    generateBtn.onclick = () => {
+      const object = selectedObject.trim();
+      if (!object) {
+        setupError.textContent = 'Pick a random object or type your own first.';
+        return;
+      }
+      setupError.textContent = '';
+      const durationSeconds = DURATION_PRESETS.includes(selectedSeconds) ? selectedSeconds : 120;
+      const newId = TKBrainstormTimer.randomSessionCode();
+      generateBtn.disabled = true;
+      withTimeout(
+        TKBrainstormTimer.sessionDocRef(newId).set({
+          object,
+          durationSeconds,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }),
+        () => {
+          generateBtn.disabled = false;
+          sessionId = newId;
+          const url = new URL(location.href);
+          url.searchParams.set('session', sessionId);
+          history.replaceState(null, '', url);
+          showJoinAndDashboard(sessionId, object, durationSeconds);
+        },
+        err => {
+          generateBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not create the session — check your connection and try again.');
+        }
+      );
+    };
+
+    // Goes all the way back to a blank setup form -- a fresh page load with
+    // no ?session= in the URL -- rather than trying to reset in place, so
+    // the old session's join link/QR and dashboard can never be confused
+    // with the new one. Mirrors apps/chili-challenge/teacher.html's
+    // startOverBtn.
+    startOverBtn.onclick = () => {
+      if (!confirm('Start a brand-new session? Students on the old link will keep working on the old one, but this dashboard will move on to a fresh session.')) return;
+      location.href = location.pathname;
+    };
+
+    // ---------------- Live idea count ----------------
+    function startIdeaCountListener(id) {
+      if (unsubscribeIdeas) unsubscribeIdeas();
+      unsubscribeIdeas = TKBrainstormTimer.ideasCollRef(id).onSnapshot(snap => {
+        ideaCountLine.textContent = '🧠 ' + snap.size + (snap.size === 1 ? ' idea so far!' : ' ideas so far!');
+      }, err => console.error(err));
+    }
+
+    // ---------------- Start Thinking! (deadline-based countdown) ----------------
+    startThinkingBtn.onclick = () => {
+      startThinkingBtn.disabled = true;
+      withTimeout(
+        TKBrainstormTimer.sessionDocRef(sessionId).set({
+          startedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }),
+        () => {
+          startThinkingBtn.disabled = false;
+          startThinkingBtn.style.display = 'none';
+          beginCountdown(Date.now() + durationSecondsGlobal * 1000);
+        },
+        err => {
+          startThinkingBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not start the timer — check your connection and try again.');
+        }
+      );
+    };
+
+    function beginCountdown(deadline) {
+      currentDeadline = deadline;
+      lastShownSeconds = null;
+      countdownDisplay.style.display = 'block';
+      reviewSection.style.display = 'none';
+
+      // A brief pulse/scale-in on the object name when thinking starts.
+      dashObjectName.classList.remove('pulse-in');
+      void dashObjectName.offsetWidth; // restart the CSS animation
+      dashObjectName.classList.add('pulse-in');
+
+      tickCountdown();
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(tickCountdown, 200);
+    }
+
+    // Countdown is deadline-based, not a naive per-tick decrement -- remaining
+    // time is always recomputed from a fixed Date.now() deadline, so a
+    // throttled/backgrounded tab (browsers throttle timers there) still lands
+    // on the correct value instead of drifting. Mirrors apps/think-time's
+    // tickThink()/renderCountdown().
+    function tickCountdown() {
+      const remaining = Math.max(0, Math.round((currentDeadline - Date.now()) / 1000));
+      if (remaining !== lastShownSeconds) {
+        lastShownSeconds = remaining;
+        countdownDisplay.textContent = formatMMSS(remaining);
+      }
+      if (remaining <= 0) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+        onCountdownComplete();
+      }
+    }
+
+    function onCountdownComplete() {
+      playChime();
+      if (unsubscribeIdeas) { unsubscribeIdeas(); unsubscribeIdeas = null; }
+      countdownDisplay.style.display = 'none';
+      startThinkingBtn.style.display = 'none';
+      loadIdeasForReview();
+    }
+
+    // ---------------- Audio cue: one gentle chime when time's up ----------------
+    // Mirrors apps/think-time/index.html's playChime() exactly.
+    function playChime() {
+      try {
+        const ctx = TKAudio.ctx();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 528;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 1.4);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+
+    // ---------------- Review ideas ----------------
+    // The brainstorm is over by this point, so ideas are fetched once with
+    // .get() rather than kept as a live listener.
+    function loadIdeasForReview() {
+      reviewSection.style.display = 'block';
+      reviewCountLine.textContent = 'Loading ideas…';
+      shuffleBtn.disabled = true;
+      withTimeout(
+        TKBrainstormTimer.ideasCollRef(sessionId).get(),
+        snap => {
+          allIdeas = [];
+          snap.forEach(doc => {
+            const text = (doc.data().text || '').trim();
+            if (text) allIdeas.push(text);
+          });
+          reviewCountLine.textContent = allIdeas.length + (allIdeas.length === 1 ? ' idea collected.' : ' ideas collected.');
+          shuffleBtn.disabled = allIdeas.length === 0;
+          renderShuffled();
+        },
+        err => {
+          console.error(err);
+          reviewCountLine.textContent = '';
+          TKToast.show('Could not load the ideas — check your connection and try again.');
+        }
+      );
+    }
+
+    function renderShuffled() {
+      shuffledIdeasList.innerHTML = '';
+      if (allIdeas.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent = 'No ideas were submitted this round.';
+        shuffledIdeasList.appendChild(li);
+        return;
+      }
+      const shuffled = allIdeas.slice().sort(() => Math.random() - 0.5);
+      const picks = shuffled.slice(0, Math.min(5, shuffled.length));
+      picks.forEach(text => {
+        const li = document.createElement('li');
+        li.textContent = text;
+        shuffledIdeasList.appendChild(li);
+      });
+    }
+    shuffleBtn.onclick = renderShuffled;
+
+    // ---------------- Resume an existing session on reload ----------------
+    // If a session code is already in the URL, load its config and jump
+    // straight to the join + dashboard view, resuming a countdown already in
+    // progress (or the review screen if time's already up). Mirrors
+    // apps/chili-challenge/teacher.html.
+    if (sessionId) {
+      withTimeout(
+        TKBrainstormTimer.sessionDocRef(sessionId).get(),
+        doc => {
+          if (!doc.exists) {
+            sessionId = '';
+            const url = new URL(location.href);
+            url.searchParams.delete('session');
+            history.replaceState(null, '', url);
+            return;
+          }
+          const data = doc.data();
+          showJoinAndDashboard(sessionId, data.object || '', data.durationSeconds || 120);
+          if (data.startedAt) {
+            const deadline = data.startedAt.toMillis() + (data.durationSeconds || 120) * 1000;
+            startThinkingBtn.style.display = 'none';
+            if (Date.now() < deadline) {
+              beginCountdown(deadline);
+            } else {
+              if (unsubscribeIdeas) { unsubscribeIdeas(); unsubscribeIdeas = null; }
+              loadIdeasForReview();
+            }
+          }
+        },
+        err => {
+          console.error(err);
+          sessionId = '';
+          TKToast.show('Could not load that session — check your connection and try again.');
+        }
+      );
+    }
+
+    // ---------------- Init ----------------
+    renderDurationPresets();
+    updateObjectDisplay();
+  </script>
+</body>
+</html>

@@ -11,9 +11,7 @@
   <link rel="stylesheet" href="../shell/navbar.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     html, body { height: 100%; }
-
     body {
       background: var(--tk-bg-gradient);
       display: flex;
@@ -21,7 +19,6 @@
       overflow: hidden;
     }
 
-    /* ---- board toolbar ---- */
     .board-bar {
       flex-shrink: 0;
       display: flex;
@@ -31,6 +28,10 @@
       flex-wrap: wrap;
     }
     .board-bar .spacer { flex: 1; }
+    .board-bar .hint {
+      font-size: 0.82rem;
+      color: var(--tk-text-muted);
+    }
     .board-bar button {
       font: inherit;
       font-size: 0.9rem;
@@ -47,86 +48,111 @@
     .board-bar button.primary { background: var(--tk-primary); color: #fff; }
     .board-bar button.primary:hover { background: var(--tk-primary-dark); }
 
-    /* ---- the grid of panes ---- */
-    #board {
+    /* ---- canvas ---- */
+    #canvas {
+      position: relative;
       flex: 1;
       min-height: 0;
-      display: grid;
-      gap: 10px;
-      padding: 0 10px 10px;
+      margin: 0 10px 10px;
     }
-    /* Layouts are chosen by pane count so there is nothing to drag or
-       arrange mid-lesson. 3 panes gives the first one the tall column,
-       since that is usually the one being watched. */
-    #board[data-count="0"], #board[data-count="1"] { grid-template-columns: 1fr; }
-    #board[data-count="2"] { grid-template-columns: 1fr 1fr; }
-    #board[data-count="3"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-    #board[data-count="3"] .pane:first-child { grid-row: span 2; }
-    #board[data-count="4"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-
-    /* Focus mode: one pane fills the board, the rest stay loaded but hidden
-       so their timers keep running. */
-    #board.focused { grid-template-columns: 1fr !important; grid-template-rows: 1fr !important; }
-    #board.focused .pane { display: none; }
-    #board.focused .pane.focus { display: flex; grid-row: auto !important; }
 
     .pane {
+      position: absolute;
       display: flex;
       flex-direction: column;
       background: var(--tk-surface);
       border-radius: var(--tk-radius);
       overflow: hidden;
       box-shadow: var(--tk-shadow);
-      min-height: 0;
     }
+    .pane.dragging { box-shadow: 0 20px 48px rgba(38, 87, 135, 0.35); }
+
     .pane-head {
       flex-shrink: 0;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      background: rgba(38, 87, 135, 0.06);
+      gap: 6px;
+      padding: 5px 8px;
+      background: rgba(38, 87, 135, 0.07);
       border-bottom: 1px solid rgba(38, 87, 135, 0.12);
+      cursor: grab;
+      touch-action: none;
     }
+    .pane-head:active { cursor: grabbing; }
     .pane-title {
       font-family: var(--tk-font-heading);
       font-weight: 700;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       color: var(--tk-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       flex: 1;
+      user-select: none;
     }
     .pane-head button {
       font: inherit;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       line-height: 1;
       border: none;
       background: transparent;
       color: var(--tk-primary);
       cursor: pointer;
-      padding: 4px 7px;
+      padding: 4px 6px;
       border-radius: 6px;
     }
-    .pane-head button:hover { background: rgba(38, 87, 135, 0.12); }
-    .pane iframe { flex: 1; width: 100%; border: 0; min-height: 0; }
+    .pane-head button:hover { background: rgba(38, 87, 135, 0.14); }
 
-    /* ---- empty state ---- */
+    /* The tool renders at a fixed logical width and is scaled to fit the
+       pane, so a smaller pane shows the whole tool shrunk rather than a
+       clipped corner of it. */
+    .pane-body { position: relative; flex: 1; overflow: hidden; }
+    .pane-body iframe {
+      position: absolute;
+      top: 0; left: 0;
+      border: 0;
+      transform-origin: 0 0;
+    }
+
+    .pane-resize {
+      position: absolute;
+      right: 0; bottom: 0;
+      width: 20px; height: 20px;
+      cursor: nwse-resize;
+      touch-action: none;
+      background:
+        linear-gradient(135deg, transparent 50%, rgba(38,87,135,0.35) 50%);
+      border-bottom-right-radius: var(--tk-radius);
+    }
+
+    /* Covers every iframe while dragging so the panes, not the embedded
+       tools, receive the pointer events. Without it a drag dies the moment
+       the cursor crosses another tool. */
+    #shield {
+      position: fixed;
+      inset: 0;
+      z-index: 400;
+      display: none;
+      cursor: grabbing;
+    }
+    #shield.on { display: block; }
+
     .empty {
+      position: absolute;
+      inset: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 14px;
+      gap: 12px;
       color: var(--tk-text-muted);
       text-align: center;
       padding: 30px;
     }
     .empty h2 { font-size: 1.4rem; color: var(--tk-text); }
-    .empty p { max-width: 420px; line-height: 1.5; }
+    .empty p { max-width: 440px; line-height: 1.5; }
 
-    /* ---- tool picker ---- */
+    /* ---- picker ---- */
     .picker-backdrop {
       position: fixed;
       inset: 0;
@@ -147,11 +173,7 @@
       max-height: 80vh;
       overflow-y: auto;
     }
-    .picker h2 {
-      font-size: 1.1rem;
-      color: var(--tk-text);
-      margin-bottom: 12px;
-    }
+    .picker h2 { font-size: 1.1rem; color: var(--tk-text); margin-bottom: 12px; }
     .picker-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -175,12 +197,15 @@
 <body>
   <div class="board-bar">
     <button id="addBtn" class="primary">+ Add tool</button>
+    <button id="tidyBtn">Tidy up</button>
     <button id="clearBtn">Clear board</button>
     <span class="spacer"></span>
+    <span class="hint">Drag the title bar to move · drag the corner to resize</span>
     <button id="fsBtn">⛶ Fullscreen</button>
   </div>
 
-  <div id="board" data-count="0"></div>
+  <div id="canvas"></div>
+  <div id="shield"></div>
 
   <div class="picker-backdrop" id="pickerBackdrop">
     <div class="picker">
@@ -193,41 +218,55 @@
   <script src="../shell/navbar.js"></script>
   <script>
   (function () {
-    // Up to four panes: beyond that nothing is readable from the back of a
-    // classroom, which is the only place this is ever viewed from.
-    var MAX_PANES = 4;
-    var STORAGE_KEY = 'tk-lesson-board';
+    var MAX_PANES = 6;
+    var STORAGE_KEY = 'tk-lesson-board-v2';
 
-    var board = document.getElementById('board');
+    // The width every embedded tool is laid out at before being scaled to
+    // fit its pane. Roughly the widest any tool's own container gets, so
+    // the tool fills the pane rather than sitting in a lake of margin.
+    var LOGICAL_W = 860;
+    // Roughly a tool's natural full-page height. Panes shorter than this
+    // scale the tool down rather than cropping the bottom off it.
+    var LOGICAL_H = 760;
+    var MIN_W = 0.14, MIN_H = 0.16;   // fractions of the canvas
+
+    var canvas = document.getElementById('canvas');
+    var shield = document.getElementById('shield');
     var backdrop = document.getElementById('pickerBackdrop');
     var grid = document.getElementById('pickerGrid');
 
-    // TK_TOOLS comes from the shared navbar script, so a tool added to the
-    // toolkit appears in this picker with no change here. The brand entry
-    // and this board itself are not things you can put *on* the board.
     var TOOLS = (window.TK_TOOLS || []).filter(function (t) {
       return !t.isBrand && t.key !== 'board' && t.key !== 'research';
     });
 
-    var pinned = load();
+    // Geometry is stored as fractions of the canvas, not pixels, so a board
+    // built on a laptop still makes sense projected at a different size.
+    var panes = load();
+    var zTop = 1;
 
     function load() {
       try {
-        var raw = localStorage.getItem(STORAGE_KEY);
-        var keys = raw ? JSON.parse(raw) : [];
-        // Drop anything that no longer exists so a renamed tool can't
-        // leave a permanently broken pane behind.
-        return keys.filter(function (k) { return TOOLS.some(function (t) { return t.key === k; }); })
-                   .slice(0, MAX_PANES);
-      } catch (e) {
-        return [];
-      }
+        var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        return raw
+          .filter(function (p) { return TOOLS.some(function (t) { return t.key === p.key; }); })
+          .slice(0, MAX_PANES)
+          .map(function (p) {
+            return {
+              key: p.key,
+              x: clamp(p.x, 0, 0.95), y: clamp(p.y, 0, 0.95),
+              w: clamp(p.w, MIN_W, 1), h: clamp(p.h, MIN_H, 1)
+            };
+          });
+      } catch (e) { return []; }
     }
 
     function save() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(pinned));
-      } catch (e) { /* private mode — board just won't persist */ }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(panes)); } catch (e) {}
+    }
+
+    function clamp(v, lo, hi) {
+      v = typeof v === 'number' && isFinite(v) ? v : lo;
+      return Math.min(hi, Math.max(lo, v));
     }
 
     function toolFor(key) {
@@ -235,49 +274,91 @@
     }
 
     function srcFor(tool) {
-      // embed=1 tells the shared shell to drop the navbar and footer.
       return '../' + tool.href + (tool.href.indexOf('?') === -1 ? '?' : '&') + 'embed=1';
     }
 
-    /* Rebuilding every pane on each render would reload the iframes and
-       kill anything running in them, so panes are created once and only
-       added/removed as needed. */
-    function render() {
-      board.dataset.count = String(pinned.length);
+    /* A fresh pane drops into the next quadrant so a new board looks tidy
+       before anyone drags anything. */
+    function defaultRect(i) {
+      var slots = [
+        { x: 0.01, y: 0.01, w: 0.48, h: 0.48 },
+        { x: 0.51, y: 0.01, w: 0.48, h: 0.48 },
+        { x: 0.01, y: 0.51, w: 0.48, h: 0.48 },
+        { x: 0.51, y: 0.51, w: 0.48, h: 0.48 },
+        { x: 0.26, y: 0.26, w: 0.48, h: 0.48 },
+        { x: 0.16, y: 0.16, w: 0.48, h: 0.48 }
+      ];
+      return slots[i % slots.length];
+    }
 
-      if (!pinned.length) {
-        board.classList.remove('focused');
-        board.innerHTML =
-          '<div class="empty">' +
-            '<h2>Your lesson board is empty</h2>' +
-            '<p>Add the tools you want on screen together — a noise monitor and a timer, say — ' +
-            'and they stay pinned here. Timers keep running even while another tool is in focus.</p>' +
-          '</div>';
+    /* ---------------- rendering ----------------
+       Panes are created once and then only repositioned; rebuilding them
+       would reload the iframes and stop anything running inside. */
+    function render() {
+      var emptyEl = canvas.querySelector('.empty');
+      if (!panes.length) {
+        Array.prototype.slice.call(canvas.querySelectorAll('.pane')).forEach(function (p) { p.remove(); });
+        if (!emptyEl) {
+          canvas.insertAdjacentHTML('beforeend',
+            '<div class="empty"><h2>Your lesson board is empty</h2>' +
+            '<p>Add the tools you want on screen together, then drag them where you want ' +
+            'and size them to suit. Timers keep running even while you work in another tool.</p></div>');
+        }
         return;
       }
+      if (emptyEl) emptyEl.remove();
 
-      var empty = board.querySelector('.empty');
-      if (empty) empty.remove();
-
-      // Remove panes that are no longer pinned.
-      Array.prototype.slice.call(board.children).forEach(function (pane) {
-        if (pinned.indexOf(pane.dataset.key) === -1) pane.remove();
+      var keys = panes.map(function (p) { return p.key; });
+      Array.prototype.slice.call(canvas.querySelectorAll('.pane')).forEach(function (el) {
+        if (keys.indexOf(el.dataset.key) === -1) el.remove();
       });
 
-      // Add any newly pinned tools, then put panes in the pinned order.
-      pinned.forEach(function (key) {
-        if (!board.querySelector('[data-key="' + key + '"]')) board.appendChild(makePane(key));
-      });
-      pinned.forEach(function (key) {
-        board.appendChild(board.querySelector('[data-key="' + key + '"]'));
+      panes.forEach(function (p) {
+        var el = canvas.querySelector('.pane[data-key="' + p.key + '"]');
+        if (!el) el = makePane(p);
+        place(el, p);
       });
     }
 
-    function makePane(key) {
-      var tool = toolFor(key);
-      var pane = document.createElement('div');
-      pane.className = 'pane';
-      pane.dataset.key = key;
+    function place(el, p) {
+      el.style.left = (p.x * 100) + '%';
+      el.style.top = (p.y * 100) + '%';
+      el.style.width = (p.w * 100) + '%';
+      el.style.height = (p.h * 100) + '%';
+      rescale(el);
+    }
+
+    /* Scale the embedded tool so the whole of it fits the pane. The iframe
+       is laid out at a fixed logical size and then transform-scaled, which
+       keeps the tool's own layout intact instead of squeezing it into a
+       narrow column.
+
+       Both axes matter: scaling on width alone leaves a tall tool taller
+       than its pane and it clips, which is the exact problem this is meant
+       to solve. Taking the smaller of the two ratios fits the whole tool
+       and letterboxes whatever space is left over. */
+    function rescale(el) {
+      var body = el.querySelector('.pane-body');
+      var frame = el.querySelector('iframe');
+      if (!body || !frame) return;
+      var w = body.clientWidth, h = body.clientHeight;
+      if (!w || !h) return;
+
+      var scale = Math.min(w / LOGICAL_W, h / LOGICAL_H);
+      frame.style.width = LOGICAL_W + 'px';
+      frame.style.height = LOGICAL_H + 'px';
+      // Centre the letterboxed result inside the pane.
+      var left = (w - LOGICAL_W * scale) / 2;
+      var top = (h - LOGICAL_H * scale) / 2;
+      frame.style.transform = 'translate(' + left + 'px,' + top + 'px) scale(' + scale + ')';
+    }
+
+    function makePane(p) {
+      var tool = toolFor(p.key);
+      var el = document.createElement('div');
+      el.className = 'pane';
+      el.dataset.key = p.key;
+      el.style.zIndex = String(++zTop);
 
       var head = document.createElement('div');
       head.className = 'pane-head';
@@ -286,69 +367,125 @@
       title.className = 'pane-title';
       title.textContent = tool.label;
 
-      var focusBtn = document.createElement('button');
-      focusBtn.type = 'button';
-      focusBtn.title = 'Focus this tool';
-      focusBtn.setAttribute('aria-label', 'Focus ' + tool.label);
-      focusBtn.textContent = '⛶';
-      focusBtn.addEventListener('click', function () { toggleFocus(pane); });
+      var maxBtn = document.createElement('button');
+      maxBtn.type = 'button';
+      maxBtn.textContent = '⛶';
+      maxBtn.title = 'Maximise / restore';
+      maxBtn.setAttribute('aria-label', 'Maximise ' + tool.label);
+      maxBtn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+      maxBtn.addEventListener('click', function () { toggleMax(p, el); });
 
       var closeBtn = document.createElement('button');
       closeBtn.type = 'button';
+      closeBtn.textContent = '✕';
       closeBtn.title = 'Remove from board';
       closeBtn.setAttribute('aria-label', 'Remove ' + tool.label);
-      closeBtn.textContent = '✕';
+      closeBtn.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
       closeBtn.addEventListener('click', function () {
-        pinned = pinned.filter(function (k) { return k !== key; });
-        board.classList.remove('focused');
+        panes = panes.filter(function (q) { return q.key !== p.key; });
         save();
         render();
       });
 
       head.appendChild(title);
-      head.appendChild(focusBtn);
+      head.appendChild(maxBtn);
       head.appendChild(closeBtn);
 
+      var body = document.createElement('div');
+      body.className = 'pane-body';
       var frame = document.createElement('iframe');
       frame.src = srcFor(tool);
-      // Noise Monitor needs the mic; the timers request fullscreen.
       frame.setAttribute('allow', 'microphone; fullscreen; autoplay');
       frame.title = tool.label;
+      body.appendChild(frame);
 
-      pane.appendChild(head);
-      pane.appendChild(frame);
-      return pane;
+      var handle = document.createElement('div');
+      handle.className = 'pane-resize';
+      handle.title = 'Drag to resize';
+
+      el.appendChild(head);
+      el.appendChild(body);
+      el.appendChild(handle);
+      canvas.appendChild(el);
+
+      el.addEventListener('pointerdown', function () { el.style.zIndex = String(++zTop); }, true);
+      head.addEventListener('pointerdown', function (e) { startDrag(e, p, el, 'move'); });
+      handle.addEventListener('pointerdown', function (e) { startDrag(e, p, el, 'resize'); });
+
+      return el;
     }
 
-    function toggleFocus(pane) {
-      var already = pane.classList.contains('focus');
-      Array.prototype.forEach.call(board.children, function (p) { p.classList.remove('focus'); });
-      if (already) {
-        board.classList.remove('focused');
+    function toggleMax(p, el) {
+      if (p.prev) {
+        p.x = p.prev.x; p.y = p.prev.y; p.w = p.prev.w; p.h = p.prev.h;
+        delete p.prev;
       } else {
-        pane.classList.add('focus');
-        board.classList.add('focused');
+        p.prev = { x: p.x, y: p.y, w: p.w, h: p.h };
+        p.x = 0; p.y = 0; p.w = 1; p.h = 1;
+        el.style.zIndex = String(++zTop);
       }
+      place(el, p);
+      save();
     }
 
-    /* ---- picker ---- */
+    /* ---------------- drag + resize ---------------- */
+    function startDrag(e, p, el, mode) {
+      if (e.button !== undefined && e.button !== 0) return;
+      e.preventDefault();
+
+      var rect = canvas.getBoundingClientRect();
+      var startX = e.clientX, startY = e.clientY;
+      var orig = { x: p.x, y: p.y, w: p.w, h: p.h };
+
+      shield.classList.add('on');
+      el.classList.add('dragging');
+      shield.setPointerCapture(e.pointerId);
+
+      function onMove(ev) {
+        var dx = (ev.clientX - startX) / rect.width;
+        var dy = (ev.clientY - startY) / rect.height;
+
+        if (mode === 'move') {
+          // Kept fully on the canvas, so a tool can never be dragged out of
+          // sight mid-lesson.
+          p.x = clamp(orig.x + dx, 0, 1 - orig.w);
+          p.y = clamp(orig.y + dy, 0, 1 - orig.h);
+        } else {
+          p.w = clamp(orig.w + dx, MIN_W, 1 - orig.x);
+          p.h = clamp(orig.h + dy, MIN_H, 1 - orig.y);
+        }
+        delete p.prev;      // any manual change ends "maximised" state
+        place(el, p);
+      }
+
+      function onUp(ev) {
+        shield.releasePointerCapture(ev.pointerId);
+        shield.removeEventListener('pointermove', onMove);
+        shield.removeEventListener('pointerup', onUp);
+        shield.removeEventListener('pointercancel', onUp);
+        shield.classList.remove('on');
+        el.classList.remove('dragging');
+        save();
+      }
+
+      shield.addEventListener('pointermove', onMove);
+      shield.addEventListener('pointerup', onUp);
+      shield.addEventListener('pointercancel', onUp);
+    }
+
+    /* ---------------- picker ---------------- */
     function openPicker() {
       grid.innerHTML = '';
       TOOLS.forEach(function (tool) {
         var b = document.createElement('button');
         b.type = 'button';
-        b.textContent = tool.label;
-        var on = pinned.indexOf(tool.key) !== -1;
-        if (on) {
-          b.disabled = true;
-          b.textContent = tool.label + ' ✓';
-        } else if (pinned.length >= MAX_PANES) {
-          b.disabled = true;
-        }
+        var on = panes.some(function (p) { return p.key === tool.key; });
+        b.textContent = on ? tool.label + ' ✓' : tool.label;
+        b.disabled = on || panes.length >= MAX_PANES;
         b.addEventListener('click', function () {
-          if (pinned.length >= MAX_PANES || pinned.indexOf(tool.key) !== -1) return;
-          pinned.push(tool.key);
-          board.classList.remove('focused');
+          if (b.disabled) return;
+          var r = defaultRect(panes.length);
+          panes.push({ key: tool.key, x: r.x, y: r.y, w: r.w, h: r.h });
           save();
           render();
           closePicker();
@@ -357,23 +494,27 @@
       });
       backdrop.classList.add('open');
     }
-
     function closePicker() { backdrop.classList.remove('open'); }
 
     document.getElementById('addBtn').addEventListener('click', openPicker);
-    backdrop.addEventListener('click', function (e) {
-      if (e.target === backdrop) closePicker();
-    });
+    backdrop.addEventListener('click', function (e) { if (e.target === backdrop) closePicker(); });
     document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape') return;
-      if (backdrop.classList.contains('open')) closePicker();
-      else if (board.classList.contains('focused')) board.classList.remove('focused');
+      if (e.key === 'Escape' && backdrop.classList.contains('open')) closePicker();
+    });
+
+    document.getElementById('tidyBtn').addEventListener('click', function () {
+      panes.forEach(function (p, i) {
+        var r = defaultRect(i);
+        p.x = r.x; p.y = r.y; p.w = r.w; p.h = r.h;
+        delete p.prev;
+      });
+      save();
+      render();
     });
 
     document.getElementById('clearBtn').addEventListener('click', function () {
-      if (pinned.length && !confirm('Remove all tools from the board?')) return;
-      pinned = [];
-      board.classList.remove('focused');
+      if (panes.length && !confirm('Remove all tools from the board?')) return;
+      panes = [];
       save();
       render();
     });
@@ -381,6 +522,12 @@
     document.getElementById('fsBtn').addEventListener('click', function () {
       if (!document.fullscreenElement) document.documentElement.requestFullscreen();
       else document.exitFullscreen();
+    });
+
+    // Panes are sized in percentages, so every tool needs rescaling when the
+    // window (or the projector) changes size.
+    window.addEventListener('resize', function () {
+      Array.prototype.slice.call(canvas.querySelectorAll('.pane')).forEach(rescale);
     });
 
     render();

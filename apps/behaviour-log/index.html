@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Behaviour Log | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .page-wrap {
+      width: 100%;
+      max-width: 900px;
+    }
+    header {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 16px;
+    }
+    header h1 { font-size: 1.8rem; }
+    header .subtitle {
+      margin-top: 4px;
+      font-size: 0.95rem;
+      color: var(--tk-text-muted);
+    }
+
+    /* ---------- Tabs ---------- */
+    .mode-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .mode-tab-btn {
+      flex: 1;
+      min-width: 130px;
+      padding: 14px 10px;
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      background: #fff;
+      color: var(--tk-text);
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .mode-tab-btn.active {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+      color: #fff;
+    }
+    .mode-panel { display: none; }
+    .mode-panel.active { display: block; }
+
+    .card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      color: var(--tk-text);
+      font-size: 1.2rem;
+      margin-bottom: 18px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      font-family: inherit;
+    }
+    .btn:active { transform: translateY(1px) scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--tk-primary); color: #fff; }
+    .btn-primary:hover:not(:disabled) { box-shadow: 0 6px 18px rgba(38,87,135,0.4); }
+    .btn-secondary {
+      background: #fff;
+      color: var(--tk-text);
+      border: 2px solid #e4e4ef;
+    }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--tk-primary); }
+    .btn-block { width: 100%; }
+
+    /* ---------- Entry form ---------- */
+    .field-block { margin-bottom: 22px; }
+    .field-block:last-of-type { margin-bottom: 0; }
+    .field-block label {
+      display: block;
+      font-weight: 700;
+      color: var(--tk-text);
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+    }
+    .field-block select,
+    .field-block input[type="text"] {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      font-family: inherit;
+      color: var(--tk-text);
+    }
+    .field-block select:focus,
+    .field-block input[type="text"]:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .pill-btn {
+      padding: 13px 18px;
+      border: 2px solid #e4e4ef;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--tk-text);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+      touch-action: manipulation;
+    }
+    .pill-btn.active {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+      color: #fff;
+    }
+    /* Triggers use the accent colour when active, so they read as visually
+       distinct from the (single-select) activity row above them. */
+    .pill-btn.trigger-btn.active {
+      background: var(--tk-accent);
+      border-color: var(--tk-accent);
+      color: #fff;
+    }
+
+    .severity-row { display: flex; gap: 10px; }
+    .severity-btn {
+      flex: 1;
+      padding: 16px 10px;
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      background: #fff;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+      font-family: inherit;
+    }
+    .severity-btn .dots {
+      display: block;
+      font-size: 1.3rem;
+      letter-spacing: 3px;
+      color: var(--tk-primary-dark);
+      margin-bottom: 4px;
+    }
+    .severity-btn .label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--tk-text-muted);
+    }
+    .severity-btn.active {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+    }
+    .severity-btn.active .dots,
+    .severity-btn.active .label { color: #fff; }
+
+    .log-it-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .log-it-row .btn { flex: 1; min-width: 200px; padding: 18px 20px; font-size: 1.1rem; }
+    .logged-flash {
+      font-weight: 700;
+      color: var(--tk-primary-dark);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .logged-flash.show { opacity: 1; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--tk-text-muted);
+      font-size: 1.05rem;
+      padding: 10px;
+    }
+    .empty-state .btn { margin-top: 14px; }
+
+    /* ---------- Log list ---------- */
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .filter-row label { font-weight: 600; color: var(--tk-text); font-size: 0.9rem; }
+    .filter-row select {
+      padding: 10px 12px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--tk-text);
+    }
+    .filter-row .spacer { flex: 1; }
+
+    .entry-list { display: flex; flex-direction: column; gap: 12px; }
+    .entry-row {
+      border: 2px solid #eee;
+      border-radius: 14px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .entry-row:hover { border-color: var(--tk-primary); background: #f7f9fb; }
+    .entry-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .entry-student { font-weight: 700; color: var(--tk-text); font-size: 1.05rem; }
+    .entry-meta { color: var(--tk-text-muted); font-size: 0.85rem; }
+    .entry-dots { color: var(--tk-primary-dark); letter-spacing: 2px; }
+    .entry-preview { color: var(--tk-text); font-size: 0.95rem; margin-bottom: 8px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      background: #f0ece4;
+      color: var(--tk-text-muted);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    /* ---------- Patterns ---------- */
+    .pattern-line {
+      font-size: 1.02rem;
+      color: var(--tk-text);
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .pattern-line strong { color: var(--tk-primary-dark); }
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 24px;
+      height: 150px;
+      margin: 18px 0 8px;
+      padding: 0 6px;
+    }
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      height: 100%;
+    }
+    .bar-count { font-weight: 700; color: var(--tk-text); margin-bottom: 6px; font-size: 0.95rem; }
+    .bar {
+      width: 100%;
+      max-width: 70px;
+      background: var(--tk-primary);
+      border-radius: 8px 8px 0 0;
+      transition: height 0.3s ease;
+      min-height: 4px;
+    }
+    .bar-label { margin-top: 8px; font-size: 0.85rem; color: var(--tk-text-muted); text-align: center; }
+
+    /* ---------- Settings ---------- */
+    .settings-panel label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      font-size: 0.9rem;
+      margin-bottom: 14px;
+    }
+    .settings-panel textarea {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      font-weight: normal;
+      color: var(--tk-text);
+      resize: vertical;
+      min-height: 140px;
+    }
+    .settings-panel textarea:focus { outline: none; border-color: var(--tk-primary); }
+    .settings-panel .hint {
+      font-size: 0.8rem;
+      color: var(--tk-text-muted);
+      margin-top: 10px;
+      font-weight: normal;
+      line-height: 1.4;
+    }
+
+    /* ---------- Modal ---------- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 16px;
+    }
+    .modal-overlay[hidden] { display: none; }
+    .modal {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 22px;
+      width: 100%;
+      max-width: 460px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal h3 { color: var(--tk-text); margin-bottom: 4px; font-size: 1.2rem; }
+    .modal .modal-meta { color: var(--tk-text-muted); font-size: 0.9rem; margin-bottom: 16px; }
+    .modal .modal-field { margin-bottom: 14px; }
+    .modal .modal-field .k { font-weight: 700; color: var(--tk-text); font-size: 0.85rem; display: block; margin-bottom: 4px; }
+    .modal .modal-field .v { color: var(--tk-text); font-size: 1rem; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px; }
+
+    .footer {
+      text-align: center;
+      margin-top: 10px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
+
+    @media (max-width: 480px) {
+      .mode-tab-btn { min-width: 100%; }
+      .card { padding: 18px; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <script src="../shell/escape.js"></script>
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+</head>
+<body>
+  <div class="page-wrap">
+    <header>
+      <h1>📔 Behaviour Log</h1>
+      <p class="subtitle">Quick ABC logging to spot patterns over time — not a punishment tracker.</p>
+    </header>
+
+    <div class="mode-tabs">
+      <button type="button" class="mode-tab-btn active" id="tabEntryBtn">➕ Log Incident</button>
+      <button type="button" class="mode-tab-btn" id="tabLogBtn">📋 Log</button>
+      <button type="button" class="mode-tab-btn" id="tabPatternsBtn">📊 Patterns</button>
+      <button type="button" class="mode-tab-btn" id="tabSettingsBtn">⚙️ Settings</button>
+    </div>
+
+    <!-- ============ LOG INCIDENT ============ -->
+    <section class="mode-panel active" id="panelEntry">
+      <div class="card">
+        <div id="entryEmptyState" class="empty-state" hidden>
+          <p>No students in your class list yet.</p>
+          <button type="button" class="btn btn-primary" id="entryGoToSettingsBtn">⚙️ Add students in Settings</button>
+        </div>
+
+        <form id="entryForm">
+          <div class="field-block">
+            <label for="entryStudentSelect">Student</label>
+            <select id="entryStudentSelect"></select>
+          </div>
+
+          <div class="field-block">
+            <label>Current activity</label>
+            <div class="pill-row" id="activityRow"></div>
+          </div>
+
+          <div class="field-block">
+            <label for="entryWhatHappened">What happened</label>
+            <input type="text" id="entryWhatHappened" maxlength="100" placeholder="Brief description">
+          </div>
+
+          <div class="field-block">
+            <label>Possible trigger (tap any that apply)</label>
+            <div class="pill-row" id="triggerRow"></div>
+          </div>
+
+          <div class="field-block">
+            <label>Severity</label>
+            <div class="severity-row" id="severityRow"></div>
+          </div>
+
+          <div class="log-it-row">
+            <button type="submit" class="btn btn-primary" id="logItBtn">✓ Log it</button>
+            <span class="logged-flash" id="loggedFlash">Logged ✓</span>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============ LOG (list) ============ -->
+    <section class="mode-panel" id="panelLog">
+      <div class="card">
+        <div class="filter-row">
+          <label for="logFilterSelect">Student:</label>
+          <select id="logFilterSelect"></select>
+          <div class="spacer"></div>
+          <button type="button" class="btn btn-secondary" id="exportLogBtn">📄 Export as text</button>
+        </div>
+        <div id="logEmptyState" class="empty-state" hidden>No incidents logged yet.</div>
+        <div class="entry-list" id="entryList"></div>
+      </div>
+    </section>
+
+    <!-- ============ PATTERNS ============ -->
+    <section class="mode-panel" id="panelPatterns">
+      <div class="card">
+        <h2>Patterns</h2>
+        <div class="filter-row">
+          <label for="patternsStudentSelect">Student:</label>
+          <select id="patternsStudentSelect"></select>
+        </div>
+        <div id="patternsEmptyState" class="empty-state" hidden>Select a student to see their patterns.</div>
+        <div id="patternsNoData" class="empty-state" hidden>No incidents logged for this student yet.</div>
+        <div id="patternsContent" hidden>
+          <p class="pattern-line" id="patternActivity"></p>
+          <p class="pattern-line" id="patternTrigger"></p>
+          <p class="pattern-line" id="patternCounts"></p>
+          <div class="bar-chart" id="barChart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SETTINGS ============ -->
+    <section class="mode-panel" id="panelSettings">
+      <div class="card settings-panel">
+        <h2>Settings</h2>
+        <label for="rosterInput">Class roster (one name per line)
+          <textarea id="rosterInput" rows="10" placeholder="Alice&#10;Bob&#10;Charlie"></textarea>
+        </label>
+        <button type="button" class="btn btn-primary" id="saveRosterBtn">Save roster</button>
+        <p class="hint">This list is used everywhere in Behaviour Log — as the student picker when logging an incident, and as the filter in the Log and Patterns tabs.</p>
+      </div>
+    </section>
+
+    <div class="footer">
+      Made for teachers | <a href="../">More Tools</a>
+    </div>
+  </div>
+
+  <div id="modalOverlay" class="modal-overlay" hidden>
+    <div class="modal" id="modalContent"></div>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------
+    // Storage
+    // ---------------------------------------------------------------
+    const ROSTER_KEY = 'tk-behaviour-log-roster';
+    const ENTRIES_KEY = 'tk-behaviour-log-entries';
+
+    const ACTIVITIES = ['Lesson', 'Transition', 'Break', 'Group work', 'Independent work', 'Other'];
+    const TRIGGERS = ['Noise level', 'Change in routine', 'Specific task', 'Social interaction', 'Sensory environment', 'Unknown'];
+    const SEVERITY_LABELS = { 1: 'Mild', 2: 'Moderate', 3: 'Significant' };
+
+    function loadRosterText() {
+      const raw = localStorage.getItem(ROSTER_KEY);
+      return raw === null ? 'Alice\nBob\nCharlie' : raw;
+    }
+    function saveRosterText(text) {
+      localStorage.setItem(ROSTER_KEY, text);
+    }
+    function getRosterNames() {
+      return loadRosterText().split('\n').map(n => n.trim()).filter(n => n.length > 0);
+    }
+
+    function loadEntries() {
+      try {
+        const raw = localStorage.getItem(ENTRIES_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.warn('Behaviour Log: could not read saved entries, starting fresh.', e);
+        return [];
+      }
+    }
+    function saveEntries(entries) {
+      localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+    }
+
+    let entries = loadEntries();
+
+    function uid() {
+      return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('id-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+    }
+
+    // Union of the current roster (in roster order) plus any student names
+    // that appear on existing entries but have since been removed from the
+    // roster — so old incidents stay filterable/visible even after a roster
+    // edit, instead of silently disappearing from the Log/Patterns pickers.
+    function getKnownStudentNames() {
+      const roster = getRosterNames();
+      const known = roster.slice();
+      entries.forEach(e => {
+        if (e.student && known.indexOf(e.student) === -1) known.push(e.student);
+      });
+      return known;
+    }
+
+    // ---------------------------------------------------------------
+    // Formatting helpers
+    // ---------------------------------------------------------------
+    function formatTs(ts) {
+      const d = new Date(ts);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+        ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+    function severityDots(severity) {
+      const filled = Math.max(0, Math.min(3, severity || 0));
+      return '●'.repeat(filled) + '○'.repeat(3 - filled);
+    }
+
+    // ---------------------------------------------------------------
+    // Tabs
+    // ---------------------------------------------------------------
+    const tabs = {
+      entry: { btn: document.getElementById('tabEntryBtn'), panel: document.getElementById('panelEntry') },
+      log: { btn: document.getElementById('tabLogBtn'), panel: document.getElementById('panelLog') },
+      patterns: { btn: document.getElementById('tabPatternsBtn'), panel: document.getElementById('panelPatterns') },
+      settings: { btn: document.getElementById('tabSettingsBtn'), panel: document.getElementById('panelSettings') }
+    };
+    function switchTab(name) {
+      Object.keys(tabs).forEach(key => {
+        const active = key === name;
+        tabs[key].btn.classList.toggle('active', active);
+        tabs[key].panel.classList.toggle('active', active);
+      });
+      if (name === 'log') renderLogList();
+      if (name === 'patterns') renderPatterns();
+    }
+    Object.keys(tabs).forEach(key => {
+      tabs[key].btn.addEventListener('click', () => switchTab(key));
+    });
+    document.getElementById('entryGoToSettingsBtn').addEventListener('click', () => switchTab('settings'));
+
+    // ---------------------------------------------------------------
+    // Entry form: build pill rows
+    // ---------------------------------------------------------------
+    let selectedActivity = '';
+    let selectedTriggers = [];
+    let selectedSeverity = 1; // pre-selected default (mildest) so logging stays a single tap per field
+
+    const activityRow = document.getElementById('activityRow');
+    ACTIVITIES.forEach(label => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pill-btn';
+      btn.textContent = label;
+      btn.dataset.value = label;
+      btn.addEventListener('click', () => {
+        selectedActivity = (selectedActivity === label) ? '' : label;
+        renderActivityRow();
+      });
+      activityRow.appendChild(btn);
+    });
+    function renderActivityRow() {
+      activityRow.querySelectorAll('.pill-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === selectedActivity);
+      });
+    }
+
+    const triggerRow = document.getElementById('triggerRow');
+    TRIGGERS.forEach(label => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pill-btn trigger-btn';
+      btn.textContent = label;
+      btn.dataset.value = label;
+      btn.addEventListener('click', () => {
+        const idx = selectedTriggers.indexOf(label);
+        if (idx === -1) selectedTriggers.push(label); else selectedTriggers.splice(idx, 1);
+        renderTriggerRow();
+      });
+      triggerRow.appendChild(btn);
+    });
+    function renderTriggerRow() {
+      triggerRow.querySelectorAll('.pill-btn').forEach(btn => {
+        btn.classList.toggle('active', selectedTriggers.indexOf(btn.dataset.value) !== -1);
+      });
+    }
+
+    const severityRow = document.getElementById('severityRow');
+    [1, 2, 3].forEach(n => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'severity-btn';
+      btn.dataset.value = String(n);
+      btn.innerHTML = '<span class="dots">' + '●'.repeat(n) + '</span><span class="label">' + SEVERITY_LABELS[n] + '</span>';
+      btn.addEventListener('click', () => {
+        selectedSeverity = n;
+        renderSeverityRow();
+      });
+      severityRow.appendChild(btn);
+    });
+    function renderSeverityRow() {
+      severityRow.querySelectorAll('.severity-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.value, 10) === selectedSeverity);
+      });
+    }
+    renderActivityRow();
+    renderTriggerRow();
+    renderSeverityRow();
+
+    // ---------------------------------------------------------------
+    // Entry form: student select + roster-empty state
+    // ---------------------------------------------------------------
+    const entryStudentSelect = document.getElementById('entryStudentSelect');
+    const entryForm = document.getElementById('entryForm');
+    const entryEmptyState = document.getElementById('entryEmptyState');
+
+    function populateEntryStudentSelect(keepSelection) {
+      const roster = getRosterNames();
+      const previous = keepSelection ? entryStudentSelect.value : null;
+      entryStudentSelect.innerHTML = roster.map(name =>
+        '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>'
+      ).join('');
+      if (previous && roster.indexOf(previous) !== -1) entryStudentSelect.value = previous;
+
+      const hasRoster = roster.length > 0;
+      entryEmptyState.hidden = hasRoster;
+      entryForm.hidden = !hasRoster;
+    }
+
+    // ---------------------------------------------------------------
+    // Entry form: submit (logs and resets, keeps the selected student —
+    // see rationale in the report / README for this deliberate choice)
+    // ---------------------------------------------------------------
+    let loggedFlashTimer = null;
+    entryForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const student = entryStudentSelect.value;
+      if (!student) return; // roster empty — form is hidden in that case anyway
+
+      const entry = {
+        id: uid(),
+        timestamp: Date.now(),
+        student: student,
+        activity: selectedActivity,
+        whatHappened: document.getElementById('entryWhatHappened').value.trim().slice(0, 100),
+        triggers: selectedTriggers.slice(),
+        severity: selectedSeverity
+      };
+      entries.unshift(entry);
+      saveEntries(entries);
+
+      // Reset the fast-changing fields for the next entry, but deliberately
+      // keep the Student selection — a single incident is often logged as
+      // several quick successive entries for the same child (e.g. an
+      // escalating sequence), so re-picking the student every time would
+      // slow down exactly the moment this tool needs to be fastest.
+      selectedActivity = '';
+      selectedTriggers = [];
+      selectedSeverity = 1;
+      document.getElementById('entryWhatHappened').value = '';
+      renderActivityRow();
+      renderTriggerRow();
+      renderSeverityRow();
+
+      flashLogged();
+      refreshStudentPickers();
+    });
+
+    function flashLogged() {
+      const flash = document.getElementById('loggedFlash');
+      flash.classList.add('show');
+      if (loggedFlashTimer) clearTimeout(loggedFlashTimer);
+      loggedFlashTimer = setTimeout(() => flash.classList.remove('show'), 1400);
+    }
+
+    // ---------------------------------------------------------------
+    // Log list
+    // ---------------------------------------------------------------
+    const logFilterSelect = document.getElementById('logFilterSelect');
+    const entryList = document.getElementById('entryList');
+    const logEmptyState = document.getElementById('logEmptyState');
+
+    function populateLogFilterSelect() {
+      const names = getKnownStudentNames();
+      const previous = logFilterSelect.value;
+      logFilterSelect.innerHTML = '<option value="">All students</option>' +
+        names.map(name => '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>').join('');
+      if (previous && (names.indexOf(previous) !== -1 || previous === '')) logFilterSelect.value = previous;
+    }
+
+    function getFilteredEntries() {
+      const filter = logFilterSelect.value;
+      const list = entries.slice().sort((a, b) => b.timestamp - a.timestamp);
+      return filter ? list.filter(e => e.student === filter) : list;
+    }
+
+    function renderLogList() {
+      const filtered = getFilteredEntries();
+      if (filtered.length === 0) {
+        entryList.innerHTML = '';
+        logEmptyState.hidden = false;
+        return;
+      }
+      logEmptyState.hidden = true;
+      entryList.innerHTML = filtered.map(entry => {
+        const preview = entry.whatHappened
+          ? (entry.whatHappened.length > 70 ? entry.whatHappened.slice(0, 70) + '…' : entry.whatHappened)
+          : '(no description)';
+        const chips = entry.triggers.map(t => '<span class="chip">' + escapeHtml(t) + '</span>').join('');
+        return (
+          '<div class="entry-row" data-id="' + escapeHtml(entry.id) + '">' +
+            '<div class="entry-top">' +
+              '<span class="entry-student">' + escapeHtml(entry.student) + '</span>' +
+              '<span class="entry-meta">' + escapeHtml(entry.activity || 'Activity not set') + ' · ' + formatTs(entry.timestamp) + '</span>' +
+            '</div>' +
+            '<div class="entry-top">' +
+              '<span class="entry-dots">' + severityDots(entry.severity) + '</span>' +
+            '</div>' +
+            '<div class="entry-preview">' + escapeHtml(preview) + '</div>' +
+            (chips ? '<div class="chip-row">' + chips + '</div>' : '') +
+          '</div>'
+        );
+      }).join('');
+      entryList.querySelectorAll('.entry-row').forEach(row => {
+        row.addEventListener('click', () => openEntryModal(row.getAttribute('data-id')));
+      });
+    }
+
+    logFilterSelect.addEventListener('change', renderLogList);
+
+    document.getElementById('exportLogBtn').addEventListener('click', () => {
+      const filtered = getFilteredEntries();
+      const text = filtered.map(entry => {
+        const triggerText = entry.triggers.length ? entry.triggers.join(', ') : 'none noted';
+        return [
+          formatTs(entry.timestamp),
+          entry.student,
+          'Activity: ' + (entry.activity || 'not set'),
+          'What happened: ' + (entry.whatHappened || '(no description)'),
+          'Possible trigger(s): ' + triggerText,
+          'Severity: ' + (entry.severity || 0) + '/3'
+        ].join('\n');
+      }).join('\n\n');
+
+      const btn = document.getElementById('exportLogBtn');
+      navigator.clipboard.writeText(text || 'No entries to export.').then(() => {
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    });
+
+    // ---------------------------------------------------------------
+    // Modal (view full entry detail)
+    // ---------------------------------------------------------------
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalContent = document.getElementById('modalContent');
+    function openModal(html) {
+      modalContent.innerHTML = html;
+      modalOverlay.hidden = false;
+    }
+    function closeModal() {
+      modalOverlay.hidden = true;
+      modalContent.innerHTML = '';
+    }
+    modalOverlay.addEventListener('click', e => {
+      if (e.target === modalOverlay) closeModal();
+    });
+
+    function openEntryModal(id) {
+      const entry = entries.find(e => e.id === id);
+      if (!entry) return;
+      const triggerText = entry.triggers.length ? entry.triggers.join(', ') : '(none noted)';
+      openModal(
+        '<h3>' + escapeHtml(entry.student) + '</h3>' +
+        '<div class="modal-meta">' + formatTs(entry.timestamp) + '</div>' +
+        '<div class="modal-field"><span class="k">Activity</span><span class="v">' + escapeHtml(entry.activity || 'Not set') + '</span></div>' +
+        '<div class="modal-field"><span class="k">What happened</span><span class="v">' + escapeHtml(entry.whatHappened || '(no description)') + '</span></div>' +
+        '<div class="modal-field"><span class="k">Possible trigger(s)</span><span class="v">' + escapeHtml(triggerText) + '</span></div>' +
+        '<div class="modal-field"><span class="k">Severity</span><span class="v">' + severityDots(entry.severity) + ' (' + (entry.severity || 0) + '/3)</span></div>' +
+        '<div class="modal-actions"><button class="btn btn-secondary" type="button" data-action="close">Close</button></div>'
+      );
+      modalContent.querySelector('[data-action="close"]').addEventListener('click', closeModal);
+    }
+
+    // ---------------------------------------------------------------
+    // Patterns
+    // ---------------------------------------------------------------
+    const patternsStudentSelect = document.getElementById('patternsStudentSelect');
+    const patternsEmptyState = document.getElementById('patternsEmptyState');
+    const patternsNoData = document.getElementById('patternsNoData');
+    const patternsContent = document.getElementById('patternsContent');
+
+    function populatePatternsStudentSelect() {
+      const names = getKnownStudentNames();
+      const previous = patternsStudentSelect.value;
+      patternsStudentSelect.innerHTML = '<option value="">Select a student…</option>' +
+        names.map(name => '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>').join('');
+      if (previous && names.indexOf(previous) !== -1) patternsStudentSelect.value = previous;
+    }
+
+    function rankCounts(items) {
+      const counts = {};
+      items.forEach(item => { if (item) counts[item] = (counts[item] || 0) + 1; });
+      return Object.keys(counts)
+        .map(key => ({ key: key, count: counts[key] }))
+        .sort((a, b) => b.count - a.count);
+    }
+
+    function renderPatterns() {
+      const student = patternsStudentSelect.value;
+      patternsEmptyState.hidden = !!student;
+      if (!student) {
+        patternsNoData.hidden = true;
+        patternsContent.hidden = true;
+        return;
+      }
+
+      const studentEntries = entries.filter(e => e.student === student);
+      if (studentEntries.length === 0) {
+        patternsNoData.hidden = false;
+        patternsContent.hidden = true;
+        return;
+      }
+      patternsNoData.hidden = true;
+      patternsContent.hidden = false;
+
+      const total = studentEntries.length;
+
+      // Most common activity (blank activities are excluded from ranking
+      // but still counted in the "of N incidents" denominator).
+      const activityRanked = rankCounts(studentEntries.map(e => e.activity));
+      const activityEl = document.getElementById('patternActivity');
+      if (activityRanked.length === 0) {
+        activityEl.textContent = 'No activity data recorded yet.';
+      } else {
+        const top = activityRanked[0];
+        activityEl.innerHTML = 'Most often during: <strong>' + escapeHtml(top.key) + '</strong> (' + top.count + ' of ' + total + ' incidents)';
+      }
+
+      // Most common trigger — count each trigger tag's total occurrences
+      // across the student's entries (an entry can contribute to more than
+      // one trigger since triggers are multi-select).
+      const allTriggers = [];
+      studentEntries.forEach(e => e.triggers.forEach(t => allTriggers.push(t)));
+      const triggerRanked = rankCounts(allTriggers);
+      const triggerEl = document.getElementById('patternTrigger');
+      if (triggerRanked.length === 0) {
+        triggerEl.textContent = 'No trigger data recorded yet.';
+      } else {
+        const top = triggerRanked[0];
+        triggerEl.innerHTML = 'Most common trigger: <strong>' + escapeHtml(top.key) + '</strong> (' + top.count + ' of ' + total + ' incidents)';
+      }
+
+      // Total + last-4-weeks count.
+      const fourWeeksAgo = Date.now() - 28 * 24 * 60 * 60 * 1000;
+      const recentCount = studentEntries.filter(e => e.timestamp >= fourWeeksAgo).length;
+      document.getElementById('patternCounts').innerHTML =
+        '<strong>' + total + '</strong> incidents total, <strong>' + recentCount + '</strong> in the last 4 weeks.';
+
+      // Time-of-day buckets: Morning (<12:00), Midday (12:00–15:00), Afternoon (>=15:00).
+      const buckets = { Morning: 0, Midday: 0, Afternoon: 0 };
+      studentEntries.forEach(e => {
+        const hour = new Date(e.timestamp).getHours();
+        if (hour < 12) buckets.Morning++;
+        else if (hour < 15) buckets.Midday++;
+        else buckets.Afternoon++;
+      });
+      const maxBucket = Math.max(buckets.Morning, buckets.Midday, buckets.Afternoon, 1);
+      const barChart = document.getElementById('barChart');
+      barChart.innerHTML = ['Morning', 'Midday', 'Afternoon'].map(label => {
+        const count = buckets[label];
+        const pct = count === 0 ? 3 : Math.max(8, Math.round((count / maxBucket) * 100));
+        return (
+          '<div class="bar-col">' +
+            '<span class="bar-count">' + count + '</span>' +
+            '<div class="bar" style="height:' + pct + '%"></div>' +
+            '<span class="bar-label">' + label + '</span>' +
+          '</div>'
+        );
+      }).join('');
+    }
+
+    patternsStudentSelect.addEventListener('change', renderPatterns);
+
+    // ---------------------------------------------------------------
+    // Settings (roster)
+    // ---------------------------------------------------------------
+    const rosterInput = document.getElementById('rosterInput');
+    rosterInput.value = loadRosterText();
+
+    document.getElementById('saveRosterBtn').addEventListener('click', () => {
+      saveRosterText(rosterInput.value);
+      refreshStudentPickers();
+    });
+
+    // ---------------------------------------------------------------
+    // Shared refresh: called on init, after saving the roster, and after
+    // logging a new entry (a new entry's student is guaranteed to already
+    // be in the roster, but this also keeps the Log/Patterns pickers'
+    // "known student" unions current).
+    // ---------------------------------------------------------------
+    function refreshStudentPickers() {
+      populateEntryStudentSelect(true);
+      populateLogFilterSelect();
+      populatePatternsStudentSelect();
+    }
+
+    // ---------------------------------------------------------------
+    // Init
+    // ---------------------------------------------------------------
+    refreshStudentPickers();
+    renderLogList();
+    renderPatterns();
+  </script>
+  <script>window.TK_CURRENT = 'behaviour-log';</script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+</body>
+</html>
