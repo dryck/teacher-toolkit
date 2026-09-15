@@ -23,7 +23,8 @@ for tool in quick-poll random-picker visual-timer research zones \
             growth-mindset kagan-timer choice-board presentation-timer \
             assessment-checklist snowball-wall question-builder challenge-deck \
             think-time rotation-timer chili-challenge help-ladder \
-            coin-flip break-timer board; do
+            coin-flip break-timer board \
+            homework-menu behaviour-reflection; do
   mkdir -p "dist/$tool"
   cp -r "apps/$tool/." "dist/$tool/"
 done

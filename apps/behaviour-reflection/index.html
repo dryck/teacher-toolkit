@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Behaviour Reflection | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .hidden { display: none !important; }
+
+    .page-wrap {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+    header h1 {
+      color: var(--tk-text);
+      font-size: 1.7rem;
+    }
+    header .subtitle {
+      color: var(--tk-text-muted);
+      margin-top: 4px;
+      font-size: 0.95rem;
+    }
+
+    /* ---------- Tabs ---------- */
+    .mode-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .mode-tab-btn {
+      flex: 1;
+      padding: 14px 10px;
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      background: var(--tk-surface);
+      color: var(--tk-text);
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .mode-tab-btn.active {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+      color: #fff;
+    }
+    .mode-panel { display: none; }
+    .mode-panel.active { display: block; }
+
+    /* ---------- Generic container / buttons ---------- */
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 28px;
+      box-shadow: var(--tk-shadow);
+      margin-bottom: 20px;
+    }
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 16px 22px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+    }
+    .btn:active { transform: translateY(1px) scale(0.99); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--tk-primary);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { box-shadow: 0 8px 22px rgba(38, 87, 135, 0.35); }
+    .btn-secondary {
+      background: #f0f0f5;
+      color: var(--tk-text);
+    }
+    .btn-secondary:hover:not(:disabled) { background: #e4e4ee; }
+    .btn-block { width: 100%; display: block; text-align: center; }
+
+    /* ---------- Privacy note ---------- */
+    .privacy-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f2f6fa;
+      color: var(--tk-text-muted);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    /* ---------- Progress indicator ---------- */
+    .progress-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 22px;
+    }
+    .progress-text {
+      font-weight: 700;
+      color: var(--tk-text);
+      font-size: 0.95rem;
+      letter-spacing: 0.3px;
+    }
+    .progress-dots {
+      display: flex;
+      gap: 8px;
+    }
+    .progress-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #e4e4ee;
+      transition: background 0.2s ease;
+    }
+    .progress-dot.filled { background: var(--tk-primary); }
+
+    /* ---------- Step panels ---------- */
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+
+    .field-block { margin-bottom: 18px; }
+    .field-block label {
+      display: block;
+      font-weight: 700;
+      color: var(--tk-text);
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+    }
+    .field-block .optional-hint {
+      display: block;
+      font-weight: 400;
+      color: var(--tk-text-muted);
+      font-size: 0.82rem;
+      margin-top: 3px;
+    }
+    .field-block input[type="text"],
+    .field-block textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--tk-text);
+    }
+    .field-block textarea {
+      min-height: 130px;
+      resize: vertical;
+    }
+    .field-block input:focus,
+    .field-block textarea:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+
+    .step-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--tk-text);
+      margin-bottom: 16px;
+    }
+
+    /* ---------- Feeling grid (step 2) ---------- */
+    .feeling-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .feeling-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 16px 6px;
+      border: 2px solid #e4e4ef;
+      border-radius: 14px;
+      background: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+      min-height: 88px;
+    }
+    .feeling-btn:hover { transform: translateY(-2px); border-color: var(--tk-primary); }
+    .feeling-btn.selected {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+    }
+    .feeling-emoji { font-size: 1.8rem; line-height: 1; }
+    .feeling-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--tk-text);
+      text-align: center;
+    }
+    .feeling-btn.selected .feeling-label { color: #fff; }
+
+    /* ---------- Chips (step 4) ---------- */
+    .chips-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .chip-btn {
+      padding: 12px 18px;
+      border: 2px solid #e4e4ef;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--tk-text);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .chip-btn:hover { border-color: var(--tk-primary); }
+    .chip-btn.selected {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+      color: #fff;
+    }
+
+    /* ---------- Step nav ---------- */
+    .step-nav {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .step-nav .btn { flex: 1; }
+
+    /* ---------- Confirmation screen ---------- */
+    .confirm-screen {
+      text-align: center;
+      padding: 20px 10px;
+    }
+    .confirm-icon { font-size: 2.6rem; margin-bottom: 10px; }
+    .confirm-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--tk-text);
+      margin-bottom: 8px;
+    }
+    .confirm-sub {
+      color: var(--tk-text-muted);
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+
+    /* ---------- History tab ---------- */
+    .history-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .history-toolbar input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+      padding: 14px 16px;
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .history-toolbar input[type="text"]:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+
+    .history-empty {
+      text-align: center;
+      color: var(--tk-text-muted);
+      padding: 30px 10px;
+      font-size: 1rem;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .history-row {
+      background: #f8f9fb;
+      border-radius: 12px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .history-row:hover { background: #eef1f6; }
+    .history-row:active { transform: scale(0.995); }
+    .history-row-date {
+      font-size: 0.78rem;
+      color: var(--tk-text-muted);
+      margin-bottom: 4px;
+    }
+    .history-row-name {
+      font-weight: 700;
+      color: var(--tk-text);
+      margin-bottom: 2px;
+    }
+    .history-row-summary {
+      color: var(--tk-text-muted);
+      font-size: 0.92rem;
+    }
+
+    /* ---------- Modal ---------- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 16px;
+    }
+    .modal-overlay[hidden] { display: none; }
+    .modal {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 84vh;
+      overflow-y: auto;
+    }
+    .modal h3 { color: var(--tk-text); margin-bottom: 4px; font-size: 1.2rem; }
+    .modal-date {
+      color: var(--tk-text-muted);
+      font-size: 0.82rem;
+      margin-bottom: 16px;
+    }
+    .modal-field { margin-bottom: 16px; }
+    .modal-label {
+      font-weight: 700;
+      color: var(--tk-text);
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+    .modal-value {
+      color: var(--tk-text);
+      font-size: 0.98rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .modal-empty { color: var(--tk-text-muted); font-size: 0.9rem; }
+    .chips-static-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chip-static {
+      background: #f2f6fa;
+      color: var(--tk-primary-dark);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 10px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
+
+    @media (max-width: 480px) {
+      .feeling-grid { grid-template-columns: repeat(2, 1fr); }
+      .container { padding: 20px; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <script src="../shell/escape.js"></script>
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+</head>
+<body>
+  <div class="page-wrap">
+    <header>
+      <h1>🌱 Behaviour Reflection</h1>
+      <p class="subtitle">A calm, guided conversation after a tricky moment — not a punishment.</p>
+    </header>
+
+    <div class="mode-tabs">
+      <button type="button" class="mode-tab-btn active" id="tabNewBtn">📝 New Reflection</button>
+      <button type="button" class="mode-tab-btn" id="tabHistoryBtn">📋 History</button>
+    </div>
+
+    <!-- ============ NEW REFLECTION ============ -->
+    <section class="mode-panel active" id="newPanel">
+      <div class="privacy-note">🔒 This is between you and your teacher.</div>
+
+      <div class="container" id="formWrap">
+        <div class="progress-wrap">
+          <div class="progress-text" id="progressText">Step 1 of 5</div>
+          <div class="progress-dots" id="progressDots"></div>
+        </div>
+
+        <!-- Step 1 -->
+        <div class="step-panel active" data-step="1">
+          <div class="step-title">What happened?</div>
+          <div class="field-block">
+            <label for="studentNameInput">Student name
+              <span class="optional-hint">Optional — leave blank to keep this anonymous.</span>
+            </label>
+            <input type="text" id="studentNameInput" placeholder="e.g. Sam">
+          </div>
+          <div class="field-block">
+            <label for="whatHappenedInput">In your own words</label>
+            <textarea id="whatHappenedInput" placeholder="In your own words, what happened?"></textarea>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-panel" data-step="2">
+          <div class="step-title">How are you feeling right now?</div>
+          <div class="feeling-grid" id="feelingGrid"></div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-panel" data-step="3">
+          <div class="step-title">Who was affected by what happened?</div>
+          <div class="field-block">
+            <textarea id="whoAffectedInput" placeholder="Think about everyone involved — including yourself."></textarea>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step-panel" data-step="4">
+          <div class="step-title">What can you do right now to make things better?</div>
+          <div class="chips-wrap" id="chipsWrap"></div>
+          <div class="field-block">
+            <label for="improveNowTextInput">Anything else?
+              <span class="optional-hint">Optional — add your own idea.</span>
+            </label>
+            <textarea id="improveNowTextInput" placeholder="Anything else you could do?"></textarea>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="step-panel" data-step="5">
+          <div class="step-title">What will you do differently next time?</div>
+          <div class="field-block">
+            <textarea id="differentlyInput" placeholder="What's one thing you could try next time instead?"></textarea>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button type="button" class="btn btn-secondary" id="backBtn">← Back</button>
+          <button type="button" class="btn btn-primary" id="nextBtn">Next →</button>
+        </div>
+      </div>
+
+      <div class="container confirm-screen hidden" id="confirmScreen">
+        <div class="confirm-icon">💚</div>
+        <div class="confirm-title">Saved. Thanks for reflecting together.</div>
+        <p class="confirm-sub">You can find this in History any time.</p>
+        <button type="button" class="btn btn-primary btn-block" id="startNewBtn">Start a new reflection</button>
+      </div>
+    </section>
+
+    <!-- ============ HISTORY ============ -->
+    <section class="mode-panel" id="historyPanel">
+      <div class="container">
+        <div class="history-toolbar">
+          <input type="text" id="searchInput" placeholder="Search by name or what was written…">
+          <button type="button" class="btn btn-secondary" id="exportBtn">📤 Export as text</button>
+        </div>
+        <p class="history-empty" id="historyEmpty" hidden>No reflections yet. Once you save one, it'll show up here.</p>
+        <div class="history-list" id="historyList"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay" hidden>
+    <div class="modal" id="modalContent"></div>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------
+    // Storage
+    // ---------------------------------------------------------------
+    const LS_KEY = 'tk-behaviour-reflection-log';
+
+    function loadLog() {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.warn('Behaviour Reflection: could not read saved log, starting fresh.', e);
+        return [];
+      }
+    }
+
+    function saveLog(log) {
+      localStorage.setItem(LS_KEY, JSON.stringify(log));
+    }
+
+    // ---------------------------------------------------------------
+    // Tabs
+    // ---------------------------------------------------------------
+    const tabNewBtn = document.getElementById('tabNewBtn');
+    const tabHistoryBtn = document.getElementById('tabHistoryBtn');
+    const newPanel = document.getElementById('newPanel');
+    const historyPanel = document.getElementById('historyPanel');
+
+    function switchTab(tab) {
+      const isNew = tab === 'new';
+      tabNewBtn.classList.toggle('active', isNew);
+      tabHistoryBtn.classList.toggle('active', !isNew);
+      newPanel.classList.toggle('active', isNew);
+      historyPanel.classList.toggle('active', !isNew);
+      if (!isNew) renderHistoryList();
+    }
+    tabNewBtn.addEventListener('click', () => switchTab('new'));
+    tabHistoryBtn.addEventListener('click', () => switchTab('history'));
+
+    // ---------------------------------------------------------------
+    // New Reflection: 5-step form
+    // ---------------------------------------------------------------
+    const TOTAL_STEPS = 5;
+    let currentStep = 1;
+    let selectedFeeling = null;
+    let selectedChips = new Set();
+
+    const FEELINGS = [
+      { emoji: '😠', label: 'Angry' },
+      { emoji: '😢', label: 'Sad' },
+      { emoji: '😳', label: 'Embarrassed' },
+      { emoji: '😨', label: 'Scared' },
+      { emoji: '😐', label: 'Numb' },
+      { emoji: '😤', label: 'Frustrated' },
+      { emoji: '😔', label: 'Disappointed' },
+      { emoji: '😕', label: 'Confused' }
+    ];
+
+    const CHIPS = [
+      'Apologize',
+      'Fix what I broke or moved',
+      'Talk to them',
+      'Give them space',
+      'Ask a teacher for help',
+      'Take a moment to calm down'
+    ];
+
+    function renderFeelingGrid() {
+      const grid = document.getElementById('feelingGrid');
+      grid.innerHTML = '';
+      FEELINGS.forEach(f => {
+        const value = f.emoji + ' ' + f.label;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'feeling-btn';
+        btn.innerHTML =
+          '<span class="feeling-emoji">' + f.emoji + '</span>' +
+          '<span class="feeling-label">' + f.label + '</span>';
+        btn.addEventListener('click', () => {
+          selectedFeeling = value;
+          document.querySelectorAll('.feeling-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+        });
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderChips() {
+      const wrap = document.getElementById('chipsWrap');
+      wrap.innerHTML = '';
+      CHIPS.forEach(label => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'chip-btn';
+        btn.textContent = label;
+        btn.addEventListener('click', () => {
+          if (selectedChips.has(label)) {
+            selectedChips.delete(label);
+            btn.classList.remove('selected');
+          } else {
+            selectedChips.add(label);
+            btn.classList.add('selected');
+          }
+        });
+        wrap.appendChild(btn);
+      });
+    }
+
+    function updateProgress() {
+      document.getElementById('progressText').textContent = 'Step ' + currentStep + ' of ' + TOTAL_STEPS;
+      const dotsWrap = document.getElementById('progressDots');
+      dotsWrap.innerHTML = '';
+      for (let i = 1; i <= TOTAL_STEPS; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'progress-dot' + (i <= currentStep ? ' filled' : '');
+        dotsWrap.appendChild(dot);
+      }
+    }
+
+    function updateNav() {
+      const backBtn = document.getElementById('backBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      backBtn.style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+      nextBtn.textContent = currentStep === TOTAL_STEPS ? '✅ Save Reflection' : 'Next →';
+    }
+
+    function showStep() {
+      document.querySelectorAll('.step-panel').forEach(panel => {
+        panel.classList.toggle('active', parseInt(panel.dataset.step, 10) === currentStep);
+      });
+      updateProgress();
+      updateNav();
+    }
+
+    document.getElementById('backBtn').addEventListener('click', () => {
+      if (currentStep > 1) {
+        currentStep--;
+        showStep();
+      }
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      if (currentStep < TOTAL_STEPS) {
+        currentStep++;
+        showStep();
+      } else {
+        saveReflection();
+      }
+    });
+
+    function saveReflection() {
+      const entry = {
+        id: 'r' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+        timestamp: Date.now(),
+        studentName: document.getElementById('studentNameInput').value.trim(),
+        whatHappened: document.getElementById('whatHappenedInput').value.trim(),
+        feeling: selectedFeeling || '',
+        whoAffected: document.getElementById('whoAffectedInput').value.trim(),
+        improveNowChips: Array.from(selectedChips),
+        improveNowText: document.getElementById('improveNowTextInput').value.trim(),
+        differentlyNextTime: document.getElementById('differentlyInput').value.trim()
+      };
+      const log = loadLog();
+      log.push(entry);
+      saveLog(log);
+      showConfirmScreen();
+    }
+
+    function showConfirmScreen() {
+      document.getElementById('formWrap').classList.add('hidden');
+      document.getElementById('confirmScreen').classList.remove('hidden');
+    }
+
+    function resetForm() {
+      currentStep = 1;
+      selectedFeeling = null;
+      selectedChips = new Set();
+      document.getElementById('studentNameInput').value = '';
+      document.getElementById('whatHappenedInput').value = '';
+      document.getElementById('whoAffectedInput').value = '';
+      document.getElementById('improveNowTextInput').value = '';
+      document.getElementById('differentlyInput').value = '';
+      document.querySelectorAll('.feeling-btn').forEach(b => b.classList.remove('selected'));
+      document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('selected'));
+      showStep();
+      document.getElementById('confirmScreen').classList.add('hidden');
+      document.getElementById('formWrap').classList.remove('hidden');
+    }
+
+    document.getElementById('startNewBtn').addEventListener('click', resetForm);
+
+    // ---------------------------------------------------------------
+    // History
+    // ---------------------------------------------------------------
+    function getFilteredLog() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const log = loadLog().slice().sort((a, b) => b.timestamp - a.timestamp);
+      if (!q) return log;
+      return log.filter(r => {
+        const haystack = [r.studentName, r.whatHappened, r.whoAffected, r.improveNowText, r.differentlyNextTime]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(q);
+      });
+    }
+
+    function formatDate(ts) {
+      const d = new Date(ts);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) +
+        ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function truncate(text, maxLen) {
+      if (!text) return '';
+      return text.length > maxLen ? text.slice(0, maxLen).trimEnd() + '…' : text;
+    }
+
+    function renderHistoryList() {
+      const list = document.getElementById('historyList');
+      const empty = document.getElementById('historyEmpty');
+      const entries = getFilteredLog();
+
+      if (entries.length === 0) {
+        list.innerHTML = '';
+        empty.hidden = false;
+        return;
+      }
+      empty.hidden = true;
+
+      list.innerHTML = entries.map(r => {
+        const name = r.studentName ? escapeHtml(r.studentName) : '(no name given)';
+        const summary = escapeHtml(truncate(r.whatHappened, 60)) || '<em>(nothing written)</em>';
+        return (
+          '<div class="history-row" data-id="' + escapeHtml(r.id) + '">' +
+            '<div class="history-row-date">' + formatDate(r.timestamp) + '</div>' +
+            '<div class="history-row-name">' + name + '</div>' +
+            '<div class="history-row-summary">' + summary + '</div>' +
+          '</div>'
+        );
+      }).join('');
+
+      list.querySelectorAll('.history-row').forEach(row => {
+        row.addEventListener('click', () => openReflectionModal(row.getAttribute('data-id')));
+      });
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderHistoryList);
+
+    // ---------------------------------------------------------------
+    // Modal (view full reflection)
+    // ---------------------------------------------------------------
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalContent = document.getElementById('modalContent');
+
+    function openModal(html) {
+      modalContent.innerHTML = html;
+      modalOverlay.hidden = false;
+    }
+    function closeModal() {
+      modalOverlay.hidden = true;
+      modalContent.innerHTML = '';
+    }
+    modalOverlay.addEventListener('click', e => {
+      if (e.target === modalOverlay) closeModal();
+    });
+
+    function openReflectionModal(id) {
+      const entry = loadLog().find(r => r.id === id);
+      if (!entry) return;
+
+      const chipsHtml = (entry.improveNowChips && entry.improveNowChips.length)
+        ? '<div class="chips-static-wrap">' + entry.improveNowChips.map(c => '<span class="chip-static">' + escapeHtml(c) + '</span>').join('') + '</div>'
+        : '<span class="modal-empty">No suggestions selected</span>';
+
+      openModal(
+        '<h3>' + (entry.studentName ? escapeHtml(entry.studentName) : '(no name given)') + '</h3>' +
+        '<p class="modal-date">' + formatDate(entry.timestamp) + '</p>' +
+
+        '<div class="modal-field">' +
+          '<div class="modal-label">What happened?</div>' +
+          '<div class="modal-value">' + (escapeHtml(entry.whatHappened) || '<span class="modal-empty">—</span>') + '</div>' +
+        '</div>' +
+
+        '<div class="modal-field">' +
+          '<div class="modal-label">How they were feeling</div>' +
+          '<div class="modal-value">' + (entry.feeling ? escapeHtml(entry.feeling) : '<span class="modal-empty">—</span>') + '</div>' +
+        '</div>' +
+
+        '<div class="modal-field">' +
+          '<div class="modal-label">Who was affected</div>' +
+          '<div class="modal-value">' + (escapeHtml(entry.whoAffected) || '<span class="modal-empty">—</span>') + '</div>' +
+        '</div>' +
+
+        '<div class="modal-field">' +
+          '<div class="modal-label">What they can do right now</div>' +
+          chipsHtml +
+          (entry.improveNowText ? '<div class="modal-value" style="margin-top:8px;">' + escapeHtml(entry.improveNowText) + '</div>' : '') +
+        '</div>' +
+
+        '<div class="modal-field">' +
+          '<div class="modal-label">What they will do differently next time</div>' +
+          '<div class="modal-value">' + (escapeHtml(entry.differentlyNextTime) || '<span class="modal-empty">—</span>') + '</div>' +
+        '</div>' +
+
+        '<div class="modal-actions">' +
+          '<button class="btn btn-secondary" type="button" data-action="close">Close</button>' +
+        '</div>'
+      );
+      modalContent.querySelector('[data-action="close"]').addEventListener('click', closeModal);
+    }
+
+    // ---------------------------------------------------------------
+    // Export (currently filtered/searched list) to clipboard
+    // ---------------------------------------------------------------
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const btn = document.getElementById('exportBtn');
+      const original = btn.textContent;
+      const entries = getFilteredLog();
+
+      if (entries.length === 0) {
+        btn.textContent = 'Nothing to export';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+        return;
+      }
+
+      const text = entries.map(r => {
+        const chipsLine = (r.improveNowChips || []).join(', ');
+        const improveLine = [chipsLine, r.improveNowText].filter(Boolean).join(' | ');
+        return (
+          'Date: ' + formatDate(r.timestamp) + '\n' +
+          'Student: ' + (r.studentName || '(no name given)') + '\n' +
+          'What happened: ' + (r.whatHappened || '') + '\n' +
+          'Feeling: ' + (r.feeling || '') + '\n' +
+          'Who was affected: ' + (r.whoAffected || '') + '\n' +
+          'What they can do right now: ' + improveLine + '\n' +
+          'What they will do differently: ' + (r.differentlyNextTime || '') + '\n' +
+          '---'
+        );
+      }).join('\n\n');
+
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      }).catch(() => {
+        btn.textContent = 'Could not copy';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    });
+
+    // ---------------------------------------------------------------
+    // Init
+    // ---------------------------------------------------------------
+    renderFeelingGrid();
+    renderChips();
+    showStep();
+    renderHistoryList();
+  </script>
+
+  <script>window.TK_CURRENT = 'behaviour-reflection';</script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+</body>
+</html>

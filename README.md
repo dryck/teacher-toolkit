@@ -36,6 +36,8 @@ apps/
   help-ladder/           static — 5-step help hierarchy + "still stuck" signal (Firebase-backed)
   coin-flip/             static — random side-picker + creative-prompt combinator (local only)
   break-timer/           static — sensory/movement break menu + scheduled micro-breaks (local only)
+  homework-menu/         static — shareable homework choice menu, no login (URL + localStorage only)
+  behaviour-reflection/  static — 5-step guided post-incident reflection + private log (local only)
 packages/
   shell/          shared navbar + theme (theme.css, navbar.css, navbar.js),
                   plus the shared Firebase config + Firestore rules

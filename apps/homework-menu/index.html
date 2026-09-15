@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homework Menu | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .hidden { display: none !important; }
+
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 680px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 1.6rem;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 26px;
+      font-size: 0.95rem;
+    }
+    .section-title {
+      font-weight: 600;
+      color: var(--tk-text);
+      margin: 22px 0 12px;
+      font-size: 1rem;
+    }
+
+    /* ---------- Builder form ---------- */
+    .field-block { margin-bottom: 18px; }
+    .field-block label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    .field-block input[type="text"],
+    .field-block input[type="date"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .field-block input:focus { outline: none; border-color: var(--tk-primary); }
+    .field-block input.invalid { border-color: #c0392b; }
+    .field-error {
+      display: block;
+      color: #c0392b;
+      font-size: 0.85rem;
+      margin-top: 6px;
+      min-height: 1.1em;
+    }
+
+    #optionsContainer { display: flex; flex-direction: column; gap: 14px; }
+    .option-card-edit {
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .option-card-edit-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      color: var(--tk-text);
+      font-size: 0.9rem;
+    }
+    .btn-remove-option {
+      background: none;
+      border: none;
+      color: #c0392b;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 8px;
+    }
+    .option-card-edit input,
+    .option-card-edit textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+    .option-card-edit textarea { min-height: 80px; resize: vertical; }
+    .option-card-edit input:focus,
+    .option-card-edit textarea:focus { outline: none; border-color: var(--tk-primary); }
+    .option-card-edit .minutes-input { max-width: 220px; }
+
+    .btn-add-option {
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      padding: 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: 2px dashed var(--tk-primary);
+      border-radius: 12px;
+      background: none;
+      color: var(--tk-primary);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-add-option:hover { background: rgba(38, 87, 135, 0.08); }
+
+    .btn-generate {
+      display: block;
+      width: 100%;
+      margin-top: 26px;
+      padding: 16px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--tk-primary);
+      color: #fff;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-generate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(38, 87, 135, 0.4);
+    }
+
+    /* ---------- Result panel ---------- */
+    .result-panel {
+      margin-top: 26px;
+      padding-top: 22px;
+      border-top: 2px solid #eeece3;
+    }
+    .result-panel h2 {
+      font-size: 1.15rem;
+      color: var(--tk-text);
+      margin-bottom: 14px;
+      text-align: center;
+    }
+    .result-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .result-row img { width: 140px; height: 140px; border-radius: 8px; }
+    .result-info { flex: 1; min-width: 200px; }
+    .result-url {
+      font-size: 0.9rem;
+      color: var(--tk-text-muted);
+      word-break: break-all;
+      margin-bottom: 10px;
+    }
+    .result-info button {
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 10px 18px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--tk-primary);
+      cursor: pointer;
+    }
+    .result-info button:hover { background: #f2f6fa; }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
+
+    /* ---------- Student view ---------- */
+    .student-container {
+      max-width: 800px;
+      width: 100%;
+    }
+    .student-header {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 26px;
+      box-shadow: var(--tk-shadow);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .due-date {
+      color: var(--tk-accent);
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 16px;
+    }
+    .btn-print {
+      padding: 12px 22px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: 2px solid var(--tk-primary);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--tk-primary);
+      cursor: pointer;
+    }
+    .btn-print:hover { background: var(--tk-primary); color: #fff; }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    @media (min-width: 620px) {
+      .options-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+    }
+    .option-card {
+      position: relative;
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 22px;
+      border: 3px solid transparent;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .option-card.chosen { border-color: var(--tk-accent); }
+    .chosen-badge {
+      display: none;
+      align-self: flex-start;
+      background: var(--tk-accent);
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+    }
+    .option-card.chosen .chosen-badge { display: inline-flex; }
+    .option-card h3 {
+      color: var(--tk-text);
+      font-size: 1.15rem;
+    }
+    .option-meta { min-height: 1.4em; }
+    .option-time {
+      display: inline-block;
+      background: #f0efe8;
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .option-desc {
+      color: var(--tk-text);
+      font-size: 0.98rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .choose-btn {
+      margin-top: auto;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--tk-primary);
+      color: #fff;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .choose-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(38, 87, 135, 0.35); }
+    .option-card.chosen .choose-btn { background: var(--tk-accent); }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .tk-navbar, .no-print { display: none !important; }
+      .student-container { max-width: 100%; }
+      .student-header { box-shadow: none; }
+      .option-card { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+</head>
+<body>
+
+  <!-- ============ BUILDER (no ?menu= param) ============ -->
+  <div class="container" id="builderScreen">
+    <h1>📚 Homework Menu</h1>
+    <p class="subtitle">Build a menu of homework choices, get one link to share — students pick their own task, no accounts or sign-ups</p>
+
+    <div id="builderForm">
+      <div class="field-block">
+        <label for="topicInput">Lesson topic</label>
+        <input type="text" id="topicInput" placeholder="e.g. Photosynthesis">
+        <span class="field-error" id="topicError"></span>
+      </div>
+
+      <div class="field-block">
+        <label for="goalInput">Learning goal</label>
+        <input type="text" id="goalInput" placeholder="Understand how photosynthesis converts light into energy">
+      </div>
+
+      <div class="field-block">
+        <label for="dueDateInput">Due date</label>
+        <input type="date" id="dueDateInput">
+        <span class="field-error" id="dueDateError"></span>
+      </div>
+
+      <div class="section-title">Homework options (3–5)</div>
+      <div id="optionsContainer"></div>
+      <button type="button" class="btn-add-option" id="addOptionBtn">+ Add another option</button>
+      <span class="field-error" id="optionsError"></span>
+
+      <button type="button" class="btn-generate" id="generateBtn">🔗 Generate shareable link</button>
+    </div>
+
+    <div class="result-panel hidden" id="resultPanel">
+      <h2>Your menu is ready</h2>
+      <div class="result-row">
+        <img id="qrImg" alt="QR code linking to this homework menu">
+        <div class="result-info">
+          <div class="result-url" id="resultUrl"></div>
+          <button type="button" id="copyBtn">Copy link</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer" id="builderFooter">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <!-- ============ STUDENT VIEW (?menu=<config> present) ============ -->
+  <div class="hidden student-container" id="studentScreen">
+    <div class="student-header">
+      <h1 id="studentTopic"></h1>
+      <p class="subtitle" id="studentGoal"></p>
+      <p class="due-date" id="studentDue"></p>
+      <button type="button" class="btn-print no-print" id="printBtn">🖨 Print this menu</button>
+    </div>
+    <div class="options-grid" id="optionsGrid"></div>
+  </div>
+
+  <!-- ============ ERROR (broken ?menu= param) ============ -->
+  <div class="hidden container" id="errorScreen">
+    <h1>⚠️ Link problem</h1>
+    <p class="subtitle">This link looks broken — ask your teacher for a new one.</p>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var DRAFT_KEY = 'tk-homework-menu-draft';
+      var MIN_OPTIONS = 3;
+      var MAX_OPTIONS = 5;
+
+      // ---------------- shared helpers ----------------
+
+      // Small deterministic (djb2-style) string hash -- not cryptographic,
+      // just enough to give each distinct menu link its own localStorage
+      // bucket for "which option did this student choose".
+      function simpleHash(str) {
+        var hash = 5381;
+        for (var i = 0; i < str.length; i++) {
+          hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+        }
+        return String(hash >>> 0);
+      }
+
+      // Reads the raw (still percent-encoded) value of a query param without
+      // going through URLSearchParams, which auto-decodes -- we need the raw
+      // string so we can decodeURIComponent it exactly once ourselves,
+      // mirroring the single encodeURIComponent done when the link was built.
+      function getRawQueryParam(name) {
+        var query = location.search.replace(/^\?/, '');
+        if (!query) return null;
+        var pairs = query.split('&');
+        for (var i = 0; i < pairs.length; i++) {
+          var eqIdx = pairs[i].indexOf('=');
+          var key = eqIdx === -1 ? pairs[i] : pairs[i].slice(0, eqIdx);
+          if (key === name) return eqIdx === -1 ? '' : pairs[i].slice(eqIdx + 1);
+        }
+        return null;
+      }
+
+      var rawMenuParam = getRawQueryParam('menu');
+
+      if (rawMenuParam !== null) {
+        initStudentView(rawMenuParam);
+      } else {
+        initBuilder();
+      }
+
+      // ======================================================================
+      // STUDENT VIEW
+      // ======================================================================
+      function initStudentView(rawParam) {
+        document.getElementById('builderScreen').classList.add('hidden');
+        document.getElementById('builderFooter').classList.add('hidden');
+
+        var config = null;
+        try {
+          config = JSON.parse(decodeURIComponent(rawParam));
+        } catch (e) {
+          config = null;
+        }
+
+        if (!config || typeof config !== 'object' || !Array.isArray(config.options) || config.options.length === 0) {
+          document.getElementById('errorScreen').classList.remove('hidden');
+          return;
+        }
+
+        document.getElementById('studentScreen').classList.remove('hidden');
+        renderStudentView(config, rawParam);
+      }
+
+      function formatDueDate(dateStr) {
+        if (!dateStr) return '';
+        var parts = String(dateStr).split('-').map(Number);
+        if (parts.length !== 3 || parts.some(function (n) { return isNaN(n); })) {
+          return 'Due: ' + dateStr;
+        }
+        // Built from y/m/d in local time (not `new Date(dateStr)`, which
+        // parses as UTC midnight and can display as the previous day in
+        // negative-offset timezones).
+        var date = new Date(parts[0], parts[1] - 1, parts[2]);
+        if (isNaN(date.getTime())) return 'Due: ' + dateStr;
+        return 'Due: ' + date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+      }
+
+      function renderStudentView(config, rawParam) {
+        document.getElementById('studentTopic').textContent = config.topic || 'Homework Menu';
+        document.getElementById('studentGoal').textContent = config.goal || '';
+        document.getElementById('studentDue').textContent = formatDueDate(config.dueDate);
+
+        var choiceKey = 'tk-homework-menu-choice-' + simpleHash(rawParam);
+        var chosenIndex = null;
+        var stored = localStorage.getItem(choiceKey);
+        if (stored !== null) {
+          var idx = parseInt(stored, 10);
+          if (!isNaN(idx) && idx >= 0 && idx < config.options.length) chosenIndex = idx;
+        }
+
+        var grid = document.getElementById('optionsGrid');
+        grid.innerHTML = '';
+
+        config.options.forEach(function (opt, index) {
+          var card = document.createElement('div');
+          card.className = 'option-card';
+
+          var badge = document.createElement('span');
+          badge.className = 'chosen-badge';
+          badge.textContent = '✓ Your choice';
+
+          var title = document.createElement('h3');
+          title.textContent = (opt && opt.title) || ('Option ' + (index + 1));
+
+          var meta = document.createElement('div');
+          meta.className = 'option-meta';
+          if (opt && opt.minutes) {
+            var time = document.createElement('span');
+            time.className = 'option-time';
+            time.textContent = '⏱ ' + opt.minutes;
+            meta.appendChild(time);
+          }
+
+          var desc = document.createElement('p');
+          desc.className = 'option-desc';
+          desc.textContent = (opt && opt.description) || '';
+
+          var chooseBtn = document.createElement('button');
+          chooseBtn.type = 'button';
+          chooseBtn.className = 'choose-btn no-print';
+          chooseBtn.textContent = 'I chose this ✓';
+          chooseBtn.addEventListener('click', function () {
+            chosenIndex = index;
+            localStorage.setItem(choiceKey, String(index));
+            updateHighlights();
+          });
+
+          card.appendChild(badge);
+          card.appendChild(title);
+          card.appendChild(meta);
+          card.appendChild(desc);
+          card.appendChild(chooseBtn);
+          grid.appendChild(card);
+        });
+
+        function updateHighlights() {
+          var cards = grid.querySelectorAll('.option-card');
+          cards.forEach(function (card, i) {
+            card.classList.toggle('chosen', i === chosenIndex);
+          });
+        }
+        updateHighlights();
+
+        document.getElementById('printBtn').addEventListener('click', function () {
+          window.print();
+        });
+      }
+
+      // ======================================================================
+      // BUILDER
+      // ======================================================================
+      function initBuilder() {
+        var options = [
+          { title: '', description: '', minutes: '' },
+          { title: '', description: '', minutes: '' },
+          { title: '', description: '', minutes: '' }
+        ];
+
+        var topicInput = document.getElementById('topicInput');
+        var goalInput = document.getElementById('goalInput');
+        var dueDateInput = document.getElementById('dueDateInput');
+        var optionsContainer = document.getElementById('optionsContainer');
+        var addOptionBtn = document.getElementById('addOptionBtn');
+        var optionsError = document.getElementById('optionsError');
+        var topicError = document.getElementById('topicError');
+        var dueDateError = document.getElementById('dueDateError');
+        var generateBtn = document.getElementById('generateBtn');
+        var resultPanel = document.getElementById('resultPanel');
+        var resultUrl = document.getElementById('resultUrl');
+        var qrImg = document.getElementById('qrImg');
+        var copyBtn = document.getElementById('copyBtn');
+
+        function loadDraft() {
+          var raw;
+          try { raw = localStorage.getItem(DRAFT_KEY); } catch (e) { raw = null; }
+          if (!raw) return;
+          var draft;
+          try { draft = JSON.parse(raw); } catch (e) { return; }
+          if (!draft || typeof draft !== 'object') return;
+
+          topicInput.value = draft.topic || '';
+          goalInput.value = draft.goal || '';
+          dueDateInput.value = draft.dueDate || '';
+
+          if (Array.isArray(draft.options) && draft.options.length > 0) {
+            options = draft.options.slice(0, MAX_OPTIONS).map(function (o) {
+              return {
+                title: (o && o.title) || '',
+                description: (o && o.description) || '',
+                minutes: (o && o.minutes) || ''
+              };
+            });
+            while (options.length < MIN_OPTIONS) options.push({ title: '', description: '', minutes: '' });
+          }
+        }
+
+        function persistDraft() {
+          var draft = {
+            topic: topicInput.value,
+            goal: goalInput.value,
+            dueDate: dueDateInput.value,
+            options: options
+          };
+          try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch (e) { /* storage unavailable -- ignore */ }
+        }
+
+        function renderOptions() {
+          optionsContainer.innerHTML = '';
+          options.forEach(function (opt, index) {
+            var card = document.createElement('div');
+            card.className = 'option-card-edit';
+
+            var header = document.createElement('div');
+            header.className = 'option-card-edit-header';
+            var label = document.createElement('span');
+            label.textContent = 'Option ' + (index + 1);
+            header.appendChild(label);
+            if (options.length > MIN_OPTIONS) {
+              var removeBtn = document.createElement('button');
+              removeBtn.type = 'button';
+              removeBtn.className = 'btn-remove-option';
+              removeBtn.textContent = '✕ Remove';
+              removeBtn.addEventListener('click', function () {
+                options.splice(index, 1);
+                persistDraft();
+                renderOptions();
+              });
+              header.appendChild(removeBtn);
+            }
+            card.appendChild(header);
+
+            var titleInput = document.createElement('input');
+            titleInput.type = 'text';
+            titleInput.placeholder = 'Option title (e.g. Comic strip summary)';
+            titleInput.value = opt.title;
+            titleInput.addEventListener('input', function () {
+              options[index].title = titleInput.value;
+              persistDraft();
+            });
+            card.appendChild(titleInput);
+
+            var descTextarea = document.createElement('textarea');
+            descTextarea.placeholder = 'What should students do for this option?';
+            descTextarea.value = opt.description;
+            descTextarea.addEventListener('input', function () {
+              options[index].description = descTextarea.value;
+              persistDraft();
+            });
+            card.appendChild(descTextarea);
+
+            var minutesInput = document.createElement('input');
+            minutesInput.type = 'text';
+            minutesInput.className = 'minutes-input';
+            minutesInput.placeholder = 'Estimated time (e.g. 15 min)';
+            minutesInput.value = opt.minutes;
+            minutesInput.addEventListener('input', function () {
+              options[index].minutes = minutesInput.value;
+              persistDraft();
+            });
+            card.appendChild(minutesInput);
+
+            optionsContainer.appendChild(card);
+          });
+
+          var atMax = options.length >= MAX_OPTIONS;
+          addOptionBtn.disabled = atMax;
+          addOptionBtn.classList.toggle('hidden', atMax);
+        }
+
+        addOptionBtn.addEventListener('click', function () {
+          if (options.length >= MAX_OPTIONS) return;
+          options.push({ title: '', description: '', minutes: '' });
+          persistDraft();
+          renderOptions();
+        });
+
+        [topicInput, goalInput, dueDateInput].forEach(function (el) {
+          el.addEventListener('input', persistDraft);
+        });
+
+        function clearErrors() {
+          topicError.textContent = '';
+          dueDateError.textContent = '';
+          optionsError.textContent = '';
+          topicInput.classList.remove('invalid');
+          dueDateInput.classList.remove('invalid');
+        }
+
+        // Only options with both a title and a description are considered
+        // "complete" and make it into the published menu -- a teacher who
+        // adds a 4th/5th card but leaves it blank just gets a 3-option menu
+        // instead of a blank card being shown to students.
+        function validateAndBuildConfig() {
+          clearErrors();
+          var valid = true;
+
+          var topic = topicInput.value.trim();
+          if (!topic) {
+            topicError.textContent = 'Please enter a lesson topic.';
+            topicInput.classList.add('invalid');
+            valid = false;
+          }
+
+          var dueDate = dueDateInput.value;
+          if (!dueDate) {
+            dueDateError.textContent = 'Please choose a due date.';
+            dueDateInput.classList.add('invalid');
+            valid = false;
+          }
+
+          var completeOptions = options
+            .map(function (o) {
+              return {
+                title: o.title.trim(),
+                description: o.description.trim(),
+                minutes: o.minutes.trim()
+              };
+            })
+            .filter(function (o) { return o.title && o.description; });
+
+          if (completeOptions.length < MIN_OPTIONS) {
+            optionsError.textContent = 'Please fill in a title and description for at least ' + MIN_OPTIONS + ' options.';
+            valid = false;
+          }
+
+          if (!valid) return null;
+
+          return {
+            topic: topic,
+            goal: goalInput.value.trim(),
+            dueDate: dueDate,
+            options: completeOptions
+          };
+        }
+
+        generateBtn.addEventListener('click', function () {
+          var config = validateAndBuildConfig();
+          if (!config) return;
+
+          var encodedConfig = encodeURIComponent(JSON.stringify(config));
+          var generatedUrl = location.href.split('?')[0] + '?menu=' + encodedConfig;
+
+          resultUrl.textContent = generatedUrl;
+          qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(generatedUrl);
+          resultPanel.classList.remove('hidden');
+          resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+
+        copyBtn.addEventListener('click', function () {
+          navigator.clipboard.writeText(resultUrl.textContent).then(function () {
+            var original = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            setTimeout(function () { copyBtn.textContent = original; }, 1500);
+          });
+        });
+
+        loadDraft();
+        renderOptions();
+      }
+    })();
+  </script>
+
+  <script>window.TK_CURRENT = 'homework-menu';</script>
+  <script src="../shell/navbar.js"></script>
+</body>
+</html>

@@ -34,6 +34,8 @@
     { key: 'help-ladder', label: 'Help Ladder', href: 'help-ladder/teacher.html' },
     { key: 'coin-flip', label: 'Coin Flip', href: 'coin-flip/' },
     { key: 'break-timer', label: 'Break Timer', href: 'break-timer/' },
+    { key: 'homework-menu', label: 'Homework Menu', href: 'homework-menu/' },
+    { key: 'behaviour-reflection', label: 'Behaviour Reflection', href: 'behaviour-reflection/' },
     { key: 'research', label: 'Research', href: 'research/' }
   ];
 
