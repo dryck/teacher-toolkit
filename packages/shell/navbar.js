@@ -36,6 +36,8 @@
     { key: 'break-timer', label: 'Break Timer', href: 'break-timer/' },
     { key: 'homework-menu', label: 'Homework Menu', href: 'homework-menu/' },
     { key: 'behaviour-reflection', label: 'Behaviour Reflection', href: 'behaviour-reflection/' },
+    { key: 'brainstorm-timer', label: 'Brainstorm Timer', href: 'brainstorm-timer/teacher.html' },
+    { key: 'behaviour-log', label: 'Behaviour Log', href: 'behaviour-log/' },
     { key: 'research', label: 'Research', href: 'research/' }
   ];
 

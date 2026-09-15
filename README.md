@@ -38,6 +38,8 @@ apps/
   break-timer/           static — sensory/movement break menu + scheduled micro-breaks (local only)
   homework-menu/         static — shareable homework choice menu, no login (URL + localStorage only)
   behaviour-reflection/  static — 5-step guided post-incident reflection + private log (local only)
+  brainstorm-timer/      static — random object + live class idea counter (Firebase-backed)
+  behaviour-log/         static — ABC incident logging + per-student pattern view (local only)
 packages/
   shell/          shared navbar + theme (theme.css, navbar.css, navbar.js),
                   plus the shared Firebase config + Firestore rules
@@ -81,7 +83,7 @@ dist/
 
 ## Firebase setup
 
-Eight tools need a live backend — student phones/devices write to it, a
+Nine tools need a live backend — student phones/devices write to it, a
 teacher screen watches it update in real time — and they all share **one**
 Firebase project via `packages/shell/firebase-config.js`:
 
@@ -93,6 +95,7 @@ Firebase project via `packages/shell/firebase-config.js`:
 - **Challenge Deck** — per-student card progress (`challengeDeckSessions`)
 - **Chili Challenge** — per-student difficulty choice (`chiliChallengeSessions`)
 - **Help Ladder** — its "Ask 3 Before Me" mode only; anonymous "still stuck" signals (`helpLadderSessions`) — the ladder display itself is fully local
+- **Brainstorm Timer** — anonymous live idea count (`brainstormSessions`)
 
 Every other tool is fully local (localStorage only), no backend needed.
 
