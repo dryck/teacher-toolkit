@@ -75,6 +75,7 @@ export function NoiseMonitor({
   const lastFrameTimeRef = useRef<number | null>(null)
   const committedLevelNumberRef = useRef(1)
   
+  const alertType = soundSettings?.alertType || 'sound'
   const { triggerAlerts, stopAlerts } = useAudio(selectedSound, customSounds, isMuted, soundSettings)
 
   const ttsConfig: TTSConfig = {
@@ -175,8 +176,8 @@ export function NoiseMonitor({
               committedLevelNumberRef.current = freshLevelNumber
               setIsTooLoud(freshLevelNumber >= 4)
               if (freshLevelNumber >= 4 && oldLevelNumber < 4) {
-                triggerAlerts()
-                triggerTTS()
+                if (alertType !== 'voice') triggerAlerts()
+                if (alertType !== 'sound') triggerTTS()
               }
             }
             pendingUpRef.current = false
@@ -218,7 +219,7 @@ export function NoiseMonitor({
         cancelAnimationFrame(animationFrameRef.current)
       }
     }
-  }, [isListening, threshold, _upDelay, _downDelay, triggerAlerts, triggerTTS, stopAlerts, stopTTS, onNoiseLevelChange])
+  }, [isListening, threshold, _upDelay, _downDelay, alertType, triggerAlerts, triggerTTS, stopAlerts, stopTTS, onNoiseLevelChange])
 
   useEffect(() => {
     return () => {
@@ -262,7 +263,7 @@ export function NoiseMonitor({
   }
 
   return (
-    <div className={`relative flex flex-col items-center justify-center ${isFullscreen ? 'fullscreen bg-black' : 'h-full w-full'}`}>
+    <div className={`relative flex flex-col items-center justify-center ${isFullscreen ? 'fullscreen bg-gray-800' : 'h-full w-full'}`}>
       {/* Control Bar */}
       <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
         <div className="flex gap-2">

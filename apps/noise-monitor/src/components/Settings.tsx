@@ -363,8 +363,35 @@ export function SettingsPanel({
 
           {activeTab === 'sounds' && (
             <div className="space-y-8 pb-4">
+              {/* Alert Type -- which of the two sections below actually
+                  plays when the level hits "Too Loud". Previously both
+                  always fired together with no way to pick just one. */}
+              <section className="space-y-3">
+                <h3 className="font-semibold text-gray-800">Alert Type</h3>
+                <p className="text-xs text-gray-500 -mt-2">Choose what plays when the noise level reaches "Too Loud".</p>
+                <div className="flex bg-gray-100 rounded-lg border p-1">
+                  {([
+                    { id: 'sound', label: '🔔 Sound' },
+                    { id: 'voice', label: '🗣️ Voice' },
+                    { id: 'both', label: 'Both' },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => updateSound('alertType', opt.id)}
+                      className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                        soundSettings.alertType === opt.id
+                          ? 'bg-tisa-purple text-white'
+                          : 'text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
               {/* Alarm Section */}
-              <section className="space-y-4">
+              <section className={`space-y-4 transition-opacity ${soundSettings.alertType === 'voice' ? 'opacity-50' : ''}`}>
                 <h3 className="font-semibold text-gray-800">Alarm Sound</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {BUILT_IN_SOUNDS.map((sound) => (
@@ -421,7 +448,7 @@ export function SettingsPanel({
               </section>
 
               {/* TTS Section */}
-              <section className="space-y-4 pt-6 border-t">
+              <section className={`space-y-4 pt-6 border-t transition-opacity ${soundSettings.alertType === 'sound' ? 'opacity-50' : ''}`}>
                 <h3 className="font-semibold text-gray-800">Text-to-Speech Message</h3>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>

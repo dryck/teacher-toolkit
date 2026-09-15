@@ -2,8 +2,13 @@ export type Theme = 'egg' | 'eggClassic' | 'glass' | 'custom' | 'thermometer' | 
 
 export type AlarmMode = 'oneShot' | 'repeat'
 export type TTSMode = 'oneShot' | 'repeat'
+// Which alert actually plays when the noise level reaches "Too Loud":
+// the built-in sound, the spoken message, or both together (the old,
+// implicit behavior -- both always fired with no way to pick just one).
+export type AlertType = 'sound' | 'voice' | 'both'
 
 export interface SoundSettings {
+  alertType: AlertType
   selectedAlarmSound: string
   alarmMode: AlarmMode
   ttsText: string
@@ -13,6 +18,7 @@ export interface SoundSettings {
 }
 
 export const DEFAULT_SOUND_SETTINGS: SoundSettings = {
+  alertType: 'sound',
   selectedAlarmSound: 'bell',
   alarmMode: 'oneShot',
   ttsText: 'Please be quiet!',

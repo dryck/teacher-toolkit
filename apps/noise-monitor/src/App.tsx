@@ -30,7 +30,15 @@ function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        return { ...defaultSettings, ...parsed }
+        // Shallow-merging at the top level would drop any new
+        // SoundSettings fields (like alertType) from an older saved
+        // config, since parsed.soundSettings would fully replace the
+        // default rather than filling in what's missing.
+        return {
+          ...defaultSettings,
+          ...parsed,
+          soundSettings: { ...defaultSettings.soundSettings, ...parsed.soundSettings },
+        }
       } catch {
         return defaultSettings
       }
