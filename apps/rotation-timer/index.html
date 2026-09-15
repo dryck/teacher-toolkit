@@ -533,7 +533,7 @@
       const seconds = Math.max(0, parseInt(document.getElementById('secondsInput').value, 10) || 0);
       stationSeconds = minutes * 60 + seconds;
       if (stationSeconds <= 0) {
-        alert('Please set a time per station greater than zero.');
+        TKToast.show('Please set a time per station greater than zero.');
         return;
       }
 
@@ -820,6 +820,7 @@
   </script>
   <script>window.TK_CURRENT = 'rotation-timer';</script>
   <script src="../shell/audio.js"></script>
+  <script src="../shell/toast.js"></script>
   <script src="../shell/navbar.js"></script>
 </body>
 </html>

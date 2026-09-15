@@ -318,7 +318,7 @@
     
     function startTimer() {
       if (remainingSeconds === 0) {
-        alert('Please set a timer first!');
+        TKToast.show('Please set a timer first!');
         return;
       }
       
@@ -505,6 +505,7 @@
   </script>
   <script>window.TK_CURRENT = 'visual-timer';</script>
   <script src="../shell/audio.js"></script>
+  <script src="../shell/toast.js"></script>
   <script src="../shell/navbar.js"></script>
 </body>
 </html>

@@ -458,7 +458,7 @@
     document.getElementById('startBtn').addEventListener('click', () => {
       teams = collectTeams();
       if (teams.length === 0) {
-        alert('Please add at least one team with a name and a duration in minutes.');
+        TKToast.show('Please add at least one team with a name and a duration in minutes.');
         return;
       }
       qnaSeconds = Math.max(0, Math.round((parseFloat(document.getElementById('qnaMinutesInput').value) || 0) * 60));
@@ -702,6 +702,7 @@
   </script>
   <script>window.TK_CURRENT = 'presentation-timer';</script>
   <script src="../shell/audio.js"></script>
+  <script src="../shell/toast.js"></script>
   <script src="../shell/navbar.js"></script>
 </body>
 </html>
