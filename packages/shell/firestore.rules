@@ -118,6 +118,40 @@ service cloud.firestore {
       }
     }
 
+    // Chili Challenge: a config doc (task title + the three chili-level
+    // task texts) plus a per-student choices subcollection -- a student's
+    // choice is an upsert (they can change their mind), same shape as
+    // Choice Board's progress subcollection.
+    match /chiliChallengeSessions/{sessionId} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['title', 'level1Text', 'level2Text', 'level3Text', 'createdAt']);
+
+      match /choices/{studentId} {
+        allow read: if true;
+        allow write: if request.resource.data.keys().hasOnly(['nickname', 'level', 'joinedAt'])
+                     && request.resource.data.nickname is string
+                     && request.resource.data.nickname.size() <= 40
+                     && request.resource.data.level is number;
+      }
+    }
+
+    // Help Ladder: only its "Ask 3 Before Me" mode touches Firestore (the
+    // ladder-display mode is local-only). Config doc holds the 5 step
+    // labels the student's reminder screen mirrors; the signals
+    // subcollection is a fully anonymous per-student "I'm stuck" flag --
+    // no nickname, ever -- that a student can also delete themselves to
+    // cancel, and the teacher can bulk-delete via "Clear all".
+    match /helpLadderSessions/{sessionId} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['step1', 'step2', 'step3', 'step4', 'step5', 'createdAt']);
+
+      match /signals/{studentId} {
+        allow read: if true;
+        allow write: if request.resource.data.keys().hasOnly(['joinedAt']);
+        allow delete: if true;
+      }
+    }
+
     // Everything else is denied by default.
     match /{document=**} {
       allow read, write: if false;

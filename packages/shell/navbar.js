@@ -29,6 +29,8 @@
     { key: 'challenge-deck', label: 'Challenge Deck', href: 'challenge-deck/teacher.html' },
     { key: 'think-time', label: 'Think Time', href: 'think-time/' },
     { key: 'rotation-timer', label: 'Rotation Timer', href: 'rotation-timer/' },
+    { key: 'chili-challenge', label: 'Chili Challenge', href: 'chili-challenge/teacher.html' },
+    { key: 'help-ladder', label: 'Help Ladder', href: 'help-ladder/teacher.html' },
     { key: 'research', label: 'Research', href: 'research/' }
   ];
 

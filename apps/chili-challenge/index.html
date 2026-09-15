@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chili Challenge</title>
+  <!-- No shared navbar/branding here on purpose: students land on this
+       page directly via a link/QR code their teacher gives them, and
+       should never see (or be able to navigate to) the rest of the
+       teacher-facing toolkit. Only theme.css (CSS variables) is kept. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <script src="../shell/escape.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      max-width: 640px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+      color: var(--tk-text);
+      margin: 12px 0 4px;
+    }
+
+    /* Join-by-code screen (shown if no ?session= in the URL) */
+    #joinScreen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #joinScreen p { color: var(--tk-text-muted); }
+    #joinScreen input {
+      font-size: 1.6rem;
+      letter-spacing: 0.15em;
+      text-align: center;
+      text-transform: uppercase;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 220px;
+    }
+    #joinScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+
+    /* Nickname screen */
+    #nicknameScreen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+    }
+    #nicknameScreen p { color: var(--tk-text-muted); }
+    #nicknameScreen input {
+      font-size: 1.2rem;
+      text-align: center;
+      padding: 14px 18px;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      width: 260px;
+    }
+    #nicknameScreen button {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      cursor: pointer;
+    }
+
+    /* Challenge screen */
+    #challengeScreen { display: none; flex: 1; flex-direction: column; gap: 14px; }
+    #taskTitle { text-align: center; font-size: 1.3rem; font-weight: 800; color: var(--tk-text); }
+    #instructionLine { text-align: center; font-size: 0.9rem; color: var(--tk-text-muted); min-height: 1.2em; }
+
+    .level-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 520px) {
+      .level-grid { grid-template-columns: 1fr; }
+    }
+    .level-card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      border: 3px solid transparent;
+      padding: 16px 14px;
+      cursor: pointer;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      color: var(--tk-text);
+    }
+    .level-card .emoji { font-size: 1.8rem; }
+    .level-card .preview {
+      font-size: 0.85rem;
+      color: var(--tk-text-muted);
+      line-height: 1.3;
+    }
+    .level-card.chosen {
+      border-color: #22c55e;
+    }
+    .level-card .chosen-tag {
+      display: none;
+      color: #16a34a;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .level-card.chosen .chosen-tag { display: block; }
+    .level-card.expanded {
+      grid-column: 1 / -1;
+    }
+    .level-card .full-text {
+      display: none;
+      font-size: 0.95rem;
+      color: var(--tk-text);
+      line-height: 1.4;
+      white-space: pre-wrap;
+      text-align: left;
+    }
+    .level-card.expanded .preview { display: none; }
+    .level-card.expanded .full-text { display: block; }
+    .level-card .choose-btn {
+      display: none;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--tk-primary);
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .level-card.expanded .choose-btn { display: block; }
+    .level-card .choose-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .level-card .change-btn {
+      display: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--tk-text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      margin-top: 4px;
+    }
+    .level-card.chosen:not(.expanded) .change-btn { display: block; }
+
+    #errorMsg { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🌶 Chili Challenge</h1>
+
+    <div id="joinScreen">
+      <p>Enter the code your teacher gave you:</p>
+      <input type="text" id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+      <div id="errorMsg"></div>
+      <button id="joinBtn">Join</button>
+    </div>
+
+    <div id="nicknameScreen">
+      <p>What should we call you?</p>
+      <input type="text" id="nicknameInput" maxlength="40" placeholder="Your name" autocomplete="off">
+      <div id="nicknameError" style="color:#dc3545;font-size:0.9rem;min-height:1.2em"></div>
+      <button id="nicknameBtn">Let's go</button>
+    </div>
+
+    <div id="challengeScreen">
+      <div id="taskTitle"></div>
+      <div id="instructionLine">Tap a chili level to see the full task, then choose it.</div>
+      <div class="level-grid" id="levelGrid"></div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="chili-challenge.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    let sessionId = (params.get('session') || '').toUpperCase();
+
+    const joinScreen = document.getElementById('joinScreen');
+    const nicknameScreen = document.getElementById('nicknameScreen');
+    const challengeScreen = document.getElementById('challengeScreen');
+    const errorMsg = document.getElementById('errorMsg');
+
+    function nicknameKey(id) { return 'tk-chili-challenge-nickname-' + id; }
+    function studentIdKey(id) { return 'tk-chili-challenge-studentid-' + id; }
+
+    let studentId = null;
+    let nickname = null;
+    let config = null;
+    let chosenLevel = null;
+    let expandedLevel = null;
+
+    const LEVELS = TKChiliChallenge.LEVELS;
+
+    function startSession() {
+      joinScreen.style.display = 'none';
+      nickname = localStorage.getItem(nicknameKey(sessionId));
+      studentId = localStorage.getItem(studentIdKey(sessionId));
+
+      if (nickname && studentId) {
+        enterChallenge();
+      } else {
+        nicknameScreen.style.display = 'flex';
+      }
+    }
+
+    document.getElementById('nicknameBtn').onclick = () => {
+      const val = document.getElementById('nicknameInput').value.trim().slice(0, 40);
+      const errEl = document.getElementById('nicknameError');
+      if (!val) {
+        errEl.textContent = 'Please enter a name.';
+        return;
+      }
+      nickname = val;
+      studentId = TKChiliChallenge.randomStudentId();
+      localStorage.setItem(nicknameKey(sessionId), nickname);
+      localStorage.setItem(studentIdKey(sessionId), studentId);
+
+      nicknameScreen.style.display = 'none';
+      enterChallenge();
+    };
+
+    function enterChallenge() {
+      nicknameScreen.style.display = 'none';
+      challengeScreen.style.display = 'flex';
+
+      // Own existing choice (if any): load once, then keep local + writes
+      // on each change. Timeout guard: without it, a bad connection/config
+      // leaves this read pending forever and the cards never render.
+      let choiceLoadSettled = false;
+      setTimeout(() => {
+        if (choiceLoadSettled) return;
+        choiceLoadSettled = true;
+        renderLevels();
+      }, 8000);
+      TKChiliChallenge.choiceDocRef(sessionId, studentId).get().then(doc => {
+        if (choiceLoadSettled) return;
+        choiceLoadSettled = true;
+        if (doc.exists && doc.data().level) {
+          chosenLevel = doc.data().level;
+        }
+        renderLevels();
+      }).catch(err => {
+        if (choiceLoadSettled) return;
+        choiceLoadSettled = true;
+        console.error(err);
+        renderLevels();
+      });
+
+      // Session config: live, in case the teacher edits/regenerates it
+      // mid-session.
+      TKChiliChallenge.sessionDocRef(sessionId).onSnapshot(doc => {
+        if (!doc.exists) return;
+        config = doc.data();
+        document.getElementById('taskTitle').textContent = config.title || 'Chili Challenge';
+        renderLevels();
+      }, err => console.error(err));
+    }
+
+    function preview(text) {
+      const t = (text || '').trim();
+      if (!t) return '(no task text yet)';
+      return t.length > 50 ? t.slice(0, 50) + '…' : t;
+    }
+
+    function renderLevels() {
+      if (!config) return;
+      const gridEl = document.getElementById('levelGrid');
+      gridEl.innerHTML = '';
+      LEVELS.forEach(level => {
+        const text = TKChiliChallenge.levelText(config, level);
+        const card = document.createElement('div');
+        card.className = 'level-card';
+        if (level === chosenLevel) card.classList.add('chosen');
+        if (level === expandedLevel) card.classList.add('expanded');
+
+        card.innerHTML = `
+          <div class="emoji">${TKChiliChallenge.LEVEL_EMOJI[level]}</div>
+          <div class="chosen-tag">✓ Your choice</div>
+          <div class="preview">${escapeHtml(preview(text))}</div>
+          <div class="full-text">${escapeHtml(text || '(no task text yet)')}</div>
+          <button class="choose-btn">Choose this level ${TKChiliChallenge.LEVEL_EMOJI[level]}</button>
+          <button class="change-btn">Change my choice</button>
+        `;
+
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.choose-btn') || e.target.closest('.change-btn')) return;
+          expandedLevel = (expandedLevel === level) ? null : level;
+          renderLevels();
+        });
+        card.querySelector('.choose-btn').addEventListener('click', () => chooseLevel(level));
+        card.querySelector('.change-btn').addEventListener('click', () => {
+          expandedLevel = level;
+          renderLevels();
+        });
+
+        gridEl.appendChild(card);
+      });
+    }
+
+    function chooseLevel(level) {
+      const gridEl = document.getElementById('levelGrid');
+      const btn = gridEl.querySelector('.level-card.expanded .choose-btn');
+      if (btn) btn.disabled = true;
+
+      let chooseSettled = false;
+      const chooseTimeoutId = setTimeout(() => {
+        if (chooseSettled) return;
+        chooseSettled = true;
+        if (btn) btn.disabled = false;
+        TKToast.show('Could not save your choice — check your connection and try again.');
+      }, 8000);
+
+      TKChiliChallenge.choiceDocRef(sessionId, studentId).set({
+        nickname,
+        level,
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).then(() => {
+        if (chooseSettled) return;
+        chooseSettled = true;
+        clearTimeout(chooseTimeoutId);
+        if (btn) btn.disabled = false;
+        chosenLevel = level;
+        expandedLevel = null;
+        renderLevels();
+      }).catch(err => {
+        if (chooseSettled) return;
+        chooseSettled = true;
+        clearTimeout(chooseTimeoutId);
+        if (btn) btn.disabled = false;
+        console.error(err);
+        TKToast.show('Could not save your choice — check your connection and try again.');
+      });
+    }
+
+    document.getElementById('joinBtn').onclick = () => {
+      const code = document.getElementById('codeInput').value.trim().toUpperCase();
+      if (code.length !== 5) {
+        errorMsg.textContent = 'Enter the 5-letter code your teacher gave you.';
+        return;
+      }
+      sessionId = code;
+      const url = new URL(location.href);
+      url.searchParams.set('session', sessionId);
+      history.replaceState(null, '', url);
+      startSession();
+    };
+
+    if (sessionId) {
+      startSession();
+    }
+  </script>
+</body>
+</html>

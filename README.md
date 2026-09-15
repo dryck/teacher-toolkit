@@ -32,6 +32,8 @@ apps/
   challenge-deck/        static — draw-a-card task deck by category (Firebase-backed)
   think-time/            static — silent wait-time countdown + quick pick (local only)
   rotation-timer/        static — gallery-walk/carousel station timer (local only)
+  chili-challenge/       static — self-chosen task-difficulty picker (Firebase-backed)
+  help-ladder/           static — 5-step help hierarchy + "still stuck" signal (Firebase-backed)
 packages/
   shell/          shared navbar + theme (theme.css, navbar.css, navbar.js),
                   plus the shared Firebase config + Firestore rules
@@ -75,7 +77,7 @@ dist/
 
 ## Firebase setup
 
-Six tools need a live backend — student phones/devices write to it, a
+Eight tools need a live backend — student phones/devices write to it, a
 teacher screen watches it update in real time — and they all share **one**
 Firebase project via `packages/shell/firebase-config.js`:
 
@@ -85,6 +87,8 @@ Firebase project via `packages/shell/firebase-config.js`:
 - **Growth Mindset** — the moderated "Wall of Yet" (`growthWallSessions`)
 - **Snowball Wall** — phase-tracked sticky notes (`snowballSessions`)
 - **Challenge Deck** — per-student card progress (`challengeDeckSessions`)
+- **Chili Challenge** — per-student difficulty choice (`chiliChallengeSessions`)
+- **Help Ladder** — its "Ask 3 Before Me" mode only; anonymous "still stuck" signals (`helpLadderSessions`) — the ladder display itself is fully local
 
 Every other tool is fully local (localStorage only), no backend needed.
 

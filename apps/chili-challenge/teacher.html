@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chili Challenge — Teacher Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <script src="../shell/escape.js"></script>
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 1.2rem;
+      color: var(--tk-text);
+      margin-bottom: 16px;
+    }
+
+    /* Setup form */
+    label { font-weight: 600; color: var(--tk-text); display: block; margin-bottom: 6px; font-size: 0.9rem; }
+    #titleInput {
+      width: 100%;
+      font-size: 1.1rem;
+      padding: 10px 14px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      margin-bottom: 18px;
+    }
+    .level-field { margin-bottom: 16px; }
+    .level-field label {
+      font-size: 1.1rem;
+      letter-spacing: 0.05em;
+    }
+    .level-field textarea {
+      width: 100%;
+      min-height: 70px;
+      font-size: 0.95rem;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .btn-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+    .btn {
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: #fff;
+      background: var(--tk-primary);
+    }
+    .btn.secondary { background: #e0e7ff; color: #3730a3; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Join card */
+    .join-card {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .join-card img { width: 140px; height: 140px; border-radius: 8px; }
+    .join-info { text-align: center; }
+    .join-info .code {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--tk-primary-dark);
+    }
+    .join-info .url {
+      font-size: 0.95rem;
+      color: var(--tk-text-muted);
+      word-break: break-all;
+      margin-top: 4px;
+    }
+    .join-info button {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* Live dashboard */
+    .level-stat { margin-bottom: 18px; }
+    .level-stat:last-child { margin-bottom: 0; }
+    .level-stat-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 1.2rem;
+      margin-bottom: 6px;
+    }
+    .level-stat-label .count { font-size: 0.9rem; font-weight: 700; color: var(--tk-text-muted); }
+    .level-stat-bar-track {
+      background: #f0efe8;
+      border-radius: 999px;
+      height: 16px;
+      overflow: hidden;
+    }
+    .level-stat-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--tk-accent);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    #totalLine { text-align: center; color: var(--tk-text-muted); font-size: 0.9rem; margin-top: 16px; }
+
+    #editorSaved { text-align: center; font-size: 0.85rem; color: #16a34a; min-height: 1.2em; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🌶 Chili Challenge — Teacher Dashboard</h1>
+
+    <div class="card" id="setupCard">
+      <h2>Set up the challenge</h2>
+      <label for="titleInput">Task title</label>
+      <input type="text" id="titleInput" placeholder="e.g. Fractions Word Problems">
+
+      <div class="level-field">
+        <label for="level1Input">🌶</label>
+        <textarea id="level1Input" placeholder="What will students who pick 🌶 read and do?"></textarea>
+      </div>
+      <div class="level-field">
+        <label for="level2Input">🌶🌶</label>
+        <textarea id="level2Input" placeholder="What will students who pick 🌶🌶 read and do?"></textarea>
+      </div>
+      <div class="level-field">
+        <label for="level3Input">🌶🌶🌶</label>
+        <textarea id="level3Input" placeholder="What will students who pick 🌶🌶🌶 read and do?"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="generateBtn">🔗 Generate session</button>
+        <button class="btn secondary" id="startOverBtn" style="display:none">🆕 New session / Start over</button>
+      </div>
+      <div id="editorSaved"></div>
+    </div>
+
+    <div class="card" id="joinCard" style="display:none">
+      <h2>Students join at</h2>
+      <div class="join-card">
+        <img id="qrImg" alt="QR code to join">
+        <div class="join-info">
+          <div class="code" id="sessionCode"></div>
+          <div class="url" id="joinUrl"></div>
+          <button id="copyBtn">Copy link</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="dashboardCard" style="display:none">
+      <h2>Live self-selected level distribution</h2>
+      <div id="levelStats"></div>
+      <div id="totalLine"></div>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+  <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/toast.js"></script>
+  <script src="chili-challenge.js"></script>
+  <script>
+    let sessionId = (new URLSearchParams(location.search).get('session') || '').toUpperCase();
+
+    // Without a timeout, a bad connection/config leaves a write pending
+    // forever with no feedback at all — same failure mode fixed on the
+    // student page. `onFailure` and the promise's own then/catch are
+    // mutually exclusive via the `settled` flag.
+    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        onFailure(new Error('timeout'));
+      }, ms);
+      promise.then(result => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onSuccess(result);
+      }).catch(err => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        onFailure(err);
+      });
+    }
+
+    const titleInput = document.getElementById('titleInput');
+    const level1Input = document.getElementById('level1Input');
+    const level2Input = document.getElementById('level2Input');
+    const level3Input = document.getElementById('level3Input');
+    const generateBtn = document.getElementById('generateBtn');
+    const startOverBtn = document.getElementById('startOverBtn');
+    const editorSaved = document.getElementById('editorSaved');
+    const joinCard = document.getElementById('joinCard');
+    const dashboardCard = document.getElementById('dashboardCard');
+    const levelStatsEl = document.getElementById('levelStats');
+    const totalLineEl = document.getElementById('totalLine');
+
+    // Build the 3 level stat rows once; onSnapshot just updates counts/widths.
+    const LEVELS = TKChiliChallenge.LEVELS;
+    const levelBarEls = {};
+    LEVELS.forEach(level => {
+      const row = document.createElement('div');
+      row.className = 'level-stat';
+      row.innerHTML = `
+        <div class="level-stat-label">
+          <span>${TKChiliChallenge.LEVEL_EMOJI[level]}</span>
+          <span class="count" id="levelCount-${level}">0 students</span>
+        </div>
+        <div class="level-stat-bar-track">
+          <div class="level-stat-bar-fill" id="levelBar-${level}"></div>
+        </div>
+      `;
+      levelStatsEl.appendChild(row);
+      levelBarEls[level] = {
+        count: row.querySelector('#levelCount-' + level),
+        bar: row.querySelector('#levelBar-' + level)
+      };
+    });
+
+    function collectConfig() {
+      return {
+        title: titleInput.value.trim() || 'Chili Challenge',
+        level1Text: level1Input.value.trim(),
+        level2Text: level2Input.value.trim(),
+        level3Text: level3Input.value.trim()
+      };
+    }
+
+    function applyConfig(config) {
+      titleInput.value = (config && config.title) || '';
+      level1Input.value = (config && config.level1Text) || '';
+      level2Input.value = (config && config.level2Text) || '';
+      level3Input.value = (config && config.level3Text) || '';
+    }
+
+    function lockSetupForm(locked) {
+      titleInput.disabled = locked;
+      level1Input.disabled = locked;
+      level2Input.disabled = locked;
+      level3Input.disabled = locked;
+    }
+
+    function showFlash(msg) {
+      editorSaved.textContent = msg;
+      setTimeout(() => { editorSaved.textContent = ''; }, 2000);
+    }
+
+    function showJoinAndDashboard(id) {
+      const joinUrl = location.origin + location.pathname.replace('teacher.html', 'index.html') + '?session=' + id;
+      document.getElementById('sessionCode').textContent = id;
+      document.getElementById('joinUrl').textContent = joinUrl;
+      // QR image rendered via a public QR-generation service (api.qrserver.com) --
+      // the join URL contains only a random session code, no student data.
+      document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(joinUrl);
+      joinCard.style.display = 'block';
+      dashboardCard.style.display = 'block';
+      generateBtn.style.display = 'none';
+      startOverBtn.style.display = 'inline-block';
+      lockSetupForm(true);
+      startDashboardListener(id);
+    }
+
+    document.getElementById('copyBtn').onclick = () => {
+      const joinUrl = document.getElementById('joinUrl').textContent;
+      navigator.clipboard.writeText(joinUrl).then(() => {
+        const btn = document.getElementById('copyBtn');
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    };
+
+    generateBtn.onclick = () => {
+      const config = collectConfig();
+      const newId = TKChiliChallenge.randomSessionCode();
+      generateBtn.disabled = true;
+      withTimeout(
+        TKChiliChallenge.sessionDocRef(newId).set(Object.assign({}, config, {
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        })),
+        () => {
+          generateBtn.disabled = false;
+          sessionId = newId;
+          const url = new URL(location.href);
+          url.searchParams.set('session', sessionId);
+          history.replaceState(null, '', url);
+          showJoinAndDashboard(sessionId);
+          showFlash('Session created!');
+        },
+        err => {
+          generateBtn.disabled = false;
+          console.error(err);
+          TKToast.show('Could not create the session — check your connection and try again.');
+        }
+      );
+    };
+
+    // Goes all the way back to a blank setup form — a fresh page load with
+    // no ?session= in the URL — rather than trying to reset in place, so
+    // the old session's join link/QR and dashboard can never be confused
+    // with the new one. Mirrors apps/exit-ticket/teacher.html's newSessionBtn.
+    startOverBtn.onclick = () => {
+      if (!confirm('Start a brand-new session? Students on the old link will keep working on the old one, but this dashboard will move on to a fresh session.')) return;
+      location.href = location.pathname;
+    };
+
+    let unsubscribeDashboard = null;
+    function startDashboardListener(id) {
+      if (unsubscribeDashboard) unsubscribeDashboard();
+      unsubscribeDashboard = TKChiliChallenge.choicesCollRef(id).onSnapshot(snap => {
+        const counts = TKChiliChallenge.emptyCounts();
+        snap.forEach(doc => {
+          const level = doc.data().level;
+          if (counts[level] !== undefined) counts[level]++;
+        });
+        renderDashboard(counts);
+      }, err => console.error(err));
+    }
+
+    function renderDashboard(counts) {
+      const total = LEVELS.reduce((sum, level) => sum + counts[level], 0);
+      LEVELS.forEach(level => {
+        const n = counts[level];
+        const pct = total ? Math.round((n / total) * 100) : 0;
+        levelBarEls[level].count.textContent = n + (n === 1 ? ' student' : ' students');
+        levelBarEls[level].bar.style.width = pct + '%';
+      });
+      totalLineEl.textContent = total
+        ? total + ' student' + (total === 1 ? '' : 's') + ' have chosen so far.'
+        : 'No students have chosen yet.';
+    }
+
+    // If a session code is already in the URL, load its existing config
+    // and jump straight to the join + dashboard view.
+    if (sessionId) {
+      TKChiliChallenge.sessionDocRef(sessionId).get().then(doc => {
+        if (doc.exists) {
+          applyConfig(doc.data());
+          showJoinAndDashboard(sessionId);
+        } else {
+          // Stale/unknown code in the URL — fall back to a blank editor.
+          sessionId = '';
+          const url = new URL(location.href);
+          url.searchParams.delete('session');
+          history.replaceState(null, '', url);
+        }
+      }).catch(err => console.error(err));
+    }
+  </script>
+  <script>window.TK_CURRENT = 'chili-challenge';</script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+</body>
+</html>
