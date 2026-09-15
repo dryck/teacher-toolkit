@@ -27,13 +27,22 @@ service cloud.firestore {
     // -- only the teacher's live dashboard reads the whole collection,
     // which these rules can't distinguish from a student, so reads are
     // open the same way they are for every other tool here).
+    //
+    // Three modes share this collection, distinguished by the config
+    // doc's `mode` field ('ticket' | 'clearCloudy' | 'trafficLight';
+    // absent/undefined means 'ticket', for sessions created before this
+    // field existed). Config allowlist and response allowlist below are
+    // each the union of every mode's fields -- individual field
+    // correctness within a mode (e.g. `light` only ever being
+    // red/yellow/green) is enforced client-side, same level of trust
+    // this file already extends to every other collection here.
     match /exitTicketSessions/{sessionId} {
       allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['q1Enabled', 'q1Text', 'q2Enabled', 'q3Enabled', 'q3Text', 'createdAt']);
+      allow write: if request.resource.data.keys().hasOnly(['mode', 'q1Enabled', 'q1Text', 'q2Enabled', 'q3Enabled', 'q3Text', 'createdAt']);
 
       match /responses/{responseId} {
         allow read: if true;
-        allow create: if request.resource.data.keys().hasOnly(['q1Answer', 'confidence', 'q3Answer', 'submittedAt']);
+        allow create: if request.resource.data.keys().hasOnly(['q1Answer', 'confidence', 'q3Answer', 'clearText', 'cloudyText', 'light', 'submittedAt']);
         allow update, delete: if false;
       }
     }

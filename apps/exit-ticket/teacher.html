@@ -42,6 +42,34 @@
       font-size: 1.1rem;
     }
 
+    /* Mode picker */
+    .mode-picker {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .mode-card {
+      flex: 1;
+      min-width: 140px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 18px 12px;
+      border: 2px solid #e8e8e8;
+      border-radius: var(--tk-radius);
+      background: var(--tk-surface);
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .mode-card .mode-emoji { font-size: 2rem; }
+    .mode-card .mode-name { font-weight: 700; color: var(--tk-text); text-align: center; }
+    .mode-card.selected {
+      border-color: var(--tk-primary);
+      background: rgba(38, 87, 135, 0.08);
+    }
+
     /* Setup card */
     .q-setup-row {
       display: flex;
@@ -172,6 +200,14 @@
     .answer-list .answer-item:last-child { border-bottom: none; }
     .answer-list .empty { padding: 14px; color: var(--tk-text-muted); font-size: 0.9rem; text-align: center; }
 
+    /* Clear / Cloudy results: two lists side by side, stacked on mobile. */
+    .cc-cols { display: flex; gap: 16px; }
+    .cc-cols .cc-col { flex: 1; min-width: 0; }
+    .cc-cols .cc-col .section-title { margin-bottom: 10px; }
+    @media (max-width: 600px) {
+      .cc-cols { flex-direction: column; }
+    }
+
     .controls {
       display: flex;
       justify-content: center;
@@ -200,6 +236,24 @@
     <!-- SETUP SCREEN (shown until a session code exists) -->
     <div id="setupScreen">
       <div class="card">
+        <div class="section-title">Choose a mode</div>
+        <div class="mode-picker">
+          <button type="button" class="mode-card selected" data-mode="ticket">
+            <div class="mode-emoji">🎫</div>
+            <div class="mode-name">Exit Ticket</div>
+          </button>
+          <button type="button" class="mode-card" data-mode="clearCloudy">
+            <div class="mode-emoji">☀️</div>
+            <div class="mode-name">Clear / Cloudy</div>
+          </button>
+          <button type="button" class="mode-card" data-mode="trafficLight">
+            <div class="mode-emoji">🚦</div>
+            <div class="mode-name">Traffic Light</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="card" id="ticketQuestionsCard">
         <div class="section-title">Choose your questions</div>
 
         <div class="q-setup-row">
@@ -215,7 +269,9 @@
           <label class="toggle-label"><input type="checkbox" id="q3Toggle" checked> Next step</label>
           <input type="text" id="q3TextInput" placeholder="What question do you still have?">
         </div>
+      </div>
 
+      <div class="card">
         <button id="generateBtn">Generate code</button>
         <div id="setupError"></div>
       </div>
@@ -255,6 +311,25 @@
         <div class="answer-list" id="q3List"></div>
       </div>
 
+      <div class="card" id="clearCloudySection">
+        <div class="cc-cols">
+          <div class="cc-col">
+            <div class="section-title">☀️ Understood</div>
+            <div class="answer-list" id="clearList"></div>
+          </div>
+          <div class="cc-col">
+            <div class="section-title">☁️ Still wondering</div>
+            <div class="answer-list" id="cloudyList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="trafficLightSection">
+        <div class="section-title">Traffic Light</div>
+        <div class="avg-line" id="trafficSummaryLine">Red: 0 (0%) · Yellow: 0 (0%) · Green: 0 (0%)</div>
+        <div id="trafficHistogram"></div>
+      </div>
+
       <div class="controls">
         <button id="copyResultsBtn">📋 Copy results</button>
         <button id="newSessionBtn">🆕 New session</button>
@@ -286,27 +361,70 @@
       histEl.appendChild(row);
     }
 
+    // Same histogram bars, reused for the Traffic Light mode's three
+    // counters (red/yellow/green) instead of a 1–5 confidence scale.
+    const TRAFFIC_LIGHTS = [
+      { key: 'red', emoji: '🔴', color: '#dc3545' },
+      { key: 'yellow', emoji: '🟡', color: '#f0ad4e' },
+      { key: 'green', emoji: '🟢', color: '#28a745' }
+    ];
+    const trafficHistEl = document.getElementById('trafficHistogram');
+    TRAFFIC_LIGHTS.forEach(({ key, emoji, color }) => {
+      const row = document.createElement('div');
+      row.className = 'hist-row';
+      row.innerHTML = `
+        <div class="hist-label">${emoji}</div>
+        <div class="bar-bg"><div class="bar-fill" id="hist-bar-${key}" style="width:0%;background:${color}"></div></div>
+        <div class="count" id="hist-count-${key}">0</div>
+      `;
+      trafficHistEl.appendChild(row);
+    });
+
+    // Mode picker (setup screen only).
+    let selectedMode = 'ticket';
+    const modeCards = document.querySelectorAll('.mode-card');
+    const ticketQuestionsCard = document.getElementById('ticketQuestionsCard');
+    modeCards.forEach(card => {
+      card.onclick = () => {
+        selectedMode = card.dataset.mode;
+        modeCards.forEach(c => c.classList.toggle('selected', c === card));
+        ticketQuestionsCard.style.display = selectedMode === 'ticket' ? 'block' : 'none';
+        document.getElementById('setupError').textContent = '';
+      };
+    });
+
     document.getElementById('generateBtn').onclick = () => {
       const setupError = document.getElementById('setupError');
       setupError.textContent = '';
 
-      const q1Enabled = document.getElementById('q1Toggle').checked;
-      const q2Enabled = document.getElementById('q2Toggle').checked;
-      const q3Enabled = document.getElementById('q3Toggle').checked;
+      let config;
+      if (selectedMode === 'ticket') {
+        const q1Enabled = document.getElementById('q1Toggle').checked;
+        const q2Enabled = document.getElementById('q2Toggle').checked;
+        const q3Enabled = document.getElementById('q3Toggle').checked;
 
-      if (!q1Enabled && !q2Enabled && !q3Enabled) {
-        setupError.textContent = 'Enable at least one question.';
-        return;
+        if (!q1Enabled && !q2Enabled && !q3Enabled) {
+          setupError.textContent = 'Enable at least one question.';
+          return;
+        }
+
+        config = {
+          mode: 'ticket',
+          q1Enabled,
+          q1Text: document.getElementById('q1TextInput').value.trim() || TKExitTicket.DEFAULT_Q1_TEXT,
+          q2Enabled,
+          q3Enabled,
+          q3Text: document.getElementById('q3TextInput').value.trim() || TKExitTicket.DEFAULT_Q3_TEXT,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+      } else {
+        // clearCloudy / trafficLight: no question toggles or text, the
+        // prompts/buttons are fixed for those modes.
+        config = {
+          mode: selectedMode,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
       }
-
-      const config = {
-        q1Enabled,
-        q1Text: document.getElementById('q1TextInput').value.trim() || TKExitTicket.DEFAULT_Q1_TEXT,
-        q2Enabled,
-        q3Enabled,
-        q3Text: document.getElementById('q3TextInput').value.trim() || TKExitTicket.DEFAULT_Q3_TEXT,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
 
       const code = TKExitTicket.randomSessionCode();
       const generateBtn = document.getElementById('generateBtn');
@@ -370,9 +488,11 @@
         const total = responses.length;
         document.getElementById('totalCount').textContent = total;
 
+        const mode = config.mode || 'ticket';
+
         // Confidence histogram (only meaningful if q2 is enabled).
         const confidenceSection = document.getElementById('confidenceSection');
-        if (config.q2Enabled) {
+        if (mode === 'ticket' && config.q2Enabled) {
           confidenceSection.style.display = 'block';
           const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
           let sum = 0, answered = 0;
@@ -397,7 +517,7 @@
 
         // What they learned (q1).
         const q1Section = document.getElementById('q1Section');
-        if (config.q1Enabled) {
+        if (mode === 'ticket' && config.q1Enabled) {
           q1Section.style.display = 'block';
           const list = document.getElementById('q1List');
           const answers = responses.map(r => r.q1Answer).filter(a => a && a.trim());
@@ -410,7 +530,7 @@
 
         // Still confused about (q3).
         const q3Section = document.getElementById('q3Section');
-        if (config.q3Enabled) {
+        if (mode === 'ticket' && config.q3Enabled) {
           q3Section.style.display = 'block';
           const list = document.getElementById('q3List');
           const answers = responses.map(r => r.q3Answer).filter(a => a && a.trim());
@@ -419,6 +539,42 @@
             : '<div class="empty">No answers yet.</div>';
         } else {
           q3Section.style.display = 'none';
+        }
+
+        // Clear / Cloudy mode: two open-text lists side by side.
+        const clearCloudySection = document.getElementById('clearCloudySection');
+        if (mode === 'clearCloudy') {
+          clearCloudySection.style.display = 'block';
+          const clearAnswers = responses.map(r => r.clearText).filter(a => a && a.trim());
+          const cloudyAnswers = responses.map(r => r.cloudyText).filter(a => a && a.trim());
+          document.getElementById('clearList').innerHTML = clearAnswers.length
+            ? clearAnswers.map(a => `<div class="answer-item">${escapeHtml(a)}</div>`).join('')
+            : '<div class="empty">No answers yet.</div>';
+          document.getElementById('cloudyList').innerHTML = cloudyAnswers.length
+            ? cloudyAnswers.map(a => `<div class="answer-item">${escapeHtml(a)}</div>`).join('')
+            : '<div class="empty">No answers yet.</div>';
+        } else {
+          clearCloudySection.style.display = 'none';
+        }
+
+        // Traffic Light mode: three counters, reusing the histogram bars.
+        const trafficLightSection = document.getElementById('trafficLightSection');
+        if (mode === 'trafficLight') {
+          trafficLightSection.style.display = 'block';
+          const counts = { red: 0, yellow: 0, green: 0 };
+          responses.forEach(r => { if (counts[r.light] !== undefined) counts[r.light]++; });
+          const max = Math.max(1, counts.red, counts.yellow, counts.green);
+          const pct = n => total ? Math.round(n / total * 100) : 0;
+          ['red', 'yellow', 'green'].forEach(key => {
+            document.getElementById('hist-bar-' + key).style.width = (counts[key] / max * 100) + '%';
+            document.getElementById('hist-count-' + key).textContent = counts[key];
+          });
+          document.getElementById('trafficSummaryLine').textContent =
+            'Red: ' + counts.red + ' (' + pct(counts.red) + '%) · ' +
+            'Yellow: ' + counts.yellow + ' (' + pct(counts.yellow) + '%) · ' +
+            'Green: ' + counts.green + ' (' + pct(counts.green) + '%)';
+        } else {
+          trafficLightSection.style.display = 'none';
         }
       }
 
@@ -429,7 +585,8 @@
       }
 
       TKExitTicket.sessionDocRef(sessionId).get().then(doc => {
-        config = doc.exists ? doc.data() : { q1Enabled: true, q2Enabled: true, q3Enabled: true };
+        config = doc.exists ? doc.data() : { mode: 'ticket', q1Enabled: true, q2Enabled: true, q3Enabled: true };
+        if (!config.mode) config.mode = 'ticket'; // sessions created before this field existed
         render([]);
 
         TKExitTicket.responsesRef(sessionId).onSnapshot(snap => {
@@ -445,41 +602,63 @@
 
       document.getElementById('copyResultsBtn').onclick = () => {
         const total = latestResponses.length;
+        const mode = config.mode || 'ticket';
         const lines = [];
         lines.push('Exit Ticket Results — Session ' + sessionId);
         lines.push(total + ' responded');
         lines.push('');
 
-        if (config.q2Enabled) {
-          const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-          let sum = 0, answered = 0;
-          latestResponses.forEach(r => {
-            if (typeof r.confidence === 'number' && counts[r.confidence] !== undefined) {
-              counts[r.confidence]++;
-              sum += r.confidence;
-              answered++;
+        if (mode === 'ticket') {
+          if (config.q2Enabled) {
+            const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            let sum = 0, answered = 0;
+            latestResponses.forEach(r => {
+              if (typeof r.confidence === 'number' && counts[r.confidence] !== undefined) {
+                counts[r.confidence]++;
+                sum += r.confidence;
+                answered++;
+              }
+            });
+            lines.push('Confidence: average ' + (answered ? (sum / answered).toFixed(1) : '—') + ' / 5');
+            for (let i = 1; i <= 5; i++) {
+              lines.push('  ' + i + ': ' + '#'.repeat(counts[i]) + ' (' + counts[i] + ')');
             }
-          });
-          lines.push('Confidence: average ' + (answered ? (sum / answered).toFixed(1) : '—') + ' / 5');
-          for (let i = 1; i <= 5; i++) {
-            lines.push('  ' + i + ': ' + '#'.repeat(counts[i]) + ' (' + counts[i] + ')');
+            lines.push('');
           }
-          lines.push('');
-        }
 
-        if (config.q1Enabled) {
-          lines.push('What they learned:');
-          const answers = latestResponses.map(r => r.q1Answer).filter(a => a && a.trim());
-          if (answers.length) answers.forEach(a => lines.push('- ' + a));
+          if (config.q1Enabled) {
+            lines.push('What they learned:');
+            const answers = latestResponses.map(r => r.q1Answer).filter(a => a && a.trim());
+            if (answers.length) answers.forEach(a => lines.push('- ' + a));
+            else lines.push('(no answers yet)');
+            lines.push('');
+          }
+
+          if (config.q3Enabled) {
+            lines.push('Still confused about:');
+            const answers = latestResponses.map(r => r.q3Answer).filter(a => a && a.trim());
+            if (answers.length) answers.forEach(a => lines.push('- ' + a));
+            else lines.push('(no answers yet)');
+          }
+        } else if (mode === 'clearCloudy') {
+          lines.push('☀️ Understood:');
+          const clearAnswers = latestResponses.map(r => r.clearText).filter(a => a && a.trim());
+          if (clearAnswers.length) clearAnswers.forEach(a => lines.push('- ' + a));
           else lines.push('(no answers yet)');
           lines.push('');
-        }
 
-        if (config.q3Enabled) {
-          lines.push('Still confused about:');
-          const answers = latestResponses.map(r => r.q3Answer).filter(a => a && a.trim());
-          if (answers.length) answers.forEach(a => lines.push('- ' + a));
+          lines.push('☁️ Still wondering:');
+          const cloudyAnswers = latestResponses.map(r => r.cloudyText).filter(a => a && a.trim());
+          if (cloudyAnswers.length) cloudyAnswers.forEach(a => lines.push('- ' + a));
           else lines.push('(no answers yet)');
+        } else if (mode === 'trafficLight') {
+          const counts = { red: 0, yellow: 0, green: 0 };
+          latestResponses.forEach(r => { if (counts[r.light] !== undefined) counts[r.light]++; });
+          const pct = n => total ? Math.round(n / total * 100) : 0;
+          lines.push('Traffic Light:');
+          lines.push('  🔴 Red: ' + counts.red + ' (' + pct(counts.red) + '%)');
+          lines.push('  🟡 Yellow: ' + counts.yellow + ' (' + pct(counts.yellow) + '%)');
+          lines.push('  🟢 Green: ' + counts.green + ' (' + pct(counts.green) + '%)');
         }
 
         navigator.clipboard.writeText(lines.join('\n')).then(() => {

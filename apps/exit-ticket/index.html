@@ -128,6 +128,46 @@
       color: var(--tk-text-muted);
     }
 
+    /* Clear / Cloudy mode: two open-text prompts, side by side on wider
+       screens and stacked on narrow ones. */
+    .cc-row {
+      display: flex;
+      gap: 16px;
+    }
+    .cc-row .q-block { flex: 1; margin-bottom: 0; }
+    @media (max-width: 480px) {
+      .cc-row { flex-direction: column; gap: 22px; }
+    }
+
+    /* Traffic Light mode: one tap, done. */
+    .traffic-row {
+      display: flex;
+      gap: 14px;
+    }
+    .traffic-btn {
+      flex: 1;
+      aspect-ratio: 1 / 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--tk-surface);
+      border: 2px solid #ddd;
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      font-size: 2.4rem;
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+    .traffic-btn:active { transform: scale(0.94); }
+    .traffic-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .traffic-btn span {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--tk-text-muted);
+    }
+
     #errorMsg { color: #dc3545; font-size: 0.9rem; min-height: 1.2em; }
 
     /* Thanks / not-found screens */
@@ -171,6 +211,25 @@
         <div class="q-block" id="q3Block">
           <label id="q3Label"></label>
           <textarea id="q3Input" maxlength="500" rows="3" placeholder="Type your question..."></textarea>
+        </div>
+
+        <div class="cc-row" id="clearCloudyBlock">
+          <div class="q-block">
+            <label>☀️ I understood...</label>
+            <textarea id="clearInput" maxlength="500" rows="3" placeholder="Type your answer..."></textarea>
+          </div>
+          <div class="q-block">
+            <label>☁️ I still wonder...</label>
+            <textarea id="cloudyInput" maxlength="500" rows="3" placeholder="Type your answer..."></textarea>
+          </div>
+        </div>
+
+        <div class="q-block" id="trafficLightBlock">
+          <div class="traffic-row">
+            <button type="button" class="traffic-btn" id="trafficRedBtn" data-light="red">🔴<span>Not yet</span></button>
+            <button type="button" class="traffic-btn" id="trafficYellowBtn" data-light="yellow">🟡<span>Almost</span></button>
+            <button type="button" class="traffic-btn" id="trafficGreenBtn" data-light="green">🟢<span>Got it</span></button>
+          </div>
         </div>
 
         <div id="submitError" style="color:#dc3545;font-size:0.9rem;min-height:1.2em;"></div>
@@ -237,15 +296,36 @@
     function renderForm() {
       heading.style.display = 'none';
 
-      document.getElementById('q1Block').style.display = config.q1Enabled ? 'block' : 'none';
-      document.getElementById('q1Label').textContent = config.q1Text || TKExitTicket.DEFAULT_Q1_TEXT;
+      const mode = config.mode || 'ticket';
 
-      document.getElementById('q2Block').style.display = config.q2Enabled ? 'block' : 'none';
-      document.getElementById('q2Label').textContent = TKExitTicket.DEFAULT_Q2_TEXT;
-      buildConfidenceButtons();
+      // Hide every mode's blocks first, then show only what this session's
+      // mode needs — keeps each mode's rendering independent of the others.
+      document.getElementById('q1Block').style.display = 'none';
+      document.getElementById('q2Block').style.display = 'none';
+      document.getElementById('q3Block').style.display = 'none';
+      document.getElementById('clearCloudyBlock').style.display = 'none';
+      document.getElementById('trafficLightBlock').style.display = 'none';
+      document.getElementById('submitBtn').style.display = 'none';
 
-      document.getElementById('q3Block').style.display = config.q3Enabled ? 'block' : 'none';
-      document.getElementById('q3Label').textContent = config.q3Text || TKExitTicket.DEFAULT_Q3_TEXT;
+      if (mode === 'ticket') {
+        document.getElementById('q1Block').style.display = config.q1Enabled ? 'block' : 'none';
+        document.getElementById('q1Label').textContent = config.q1Text || TKExitTicket.DEFAULT_Q1_TEXT;
+
+        document.getElementById('q2Block').style.display = config.q2Enabled ? 'block' : 'none';
+        document.getElementById('q2Label').textContent = TKExitTicket.DEFAULT_Q2_TEXT;
+        buildConfidenceButtons();
+
+        document.getElementById('q3Block').style.display = config.q3Enabled ? 'block' : 'none';
+        document.getElementById('q3Label').textContent = config.q3Text || TKExitTicket.DEFAULT_Q3_TEXT;
+
+        document.getElementById('submitBtn').style.display = 'block';
+      } else if (mode === 'clearCloudy') {
+        document.getElementById('clearCloudyBlock').style.display = 'flex';
+        document.getElementById('submitBtn').style.display = 'block';
+      } else if (mode === 'trafficLight') {
+        document.getElementById('trafficLightBlock').style.display = 'block';
+        // No submit button here — each light button submits on its own tap.
+      }
 
       showScreen('form');
     }
@@ -269,23 +349,11 @@
       });
     }
 
-    document.getElementById('submitBtn').onclick = () => {
-      const submitBtn = document.getElementById('submitBtn');
-      const submitError = document.getElementById('submitError');
-      submitError.textContent = '';
-
-      const payload = { submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
-      if (config.q1Enabled) payload.q1Answer = document.getElementById('q1Input').value.trim();
-      if (config.q2Enabled) {
-        if (selectedConfidence === null) {
-          submitError.textContent = 'Please pick a confidence level.';
-          return;
-        }
-        payload.confidence = selectedConfidence;
-      }
-      if (config.q3Enabled) payload.q3Answer = document.getElementById('q3Input').value.trim();
-
-      submitBtn.disabled = true;
+    // Shared write-guard pattern (settled flag + 8s timeout + toast on
+    // failure/timeout) used by every response submission below, regardless
+    // of mode — same behavior the original ticket-mode submit had.
+    function submitResponse(payload, elsToReenable) {
+      elsToReenable.forEach(el => { el.disabled = true; });
 
       // Without this, a bad connection or misconfigured Firebase project
       // leaves the write pending forever — Firestore doesn't fail fast,
@@ -297,7 +365,7 @@
         if (settled) return;
         settled = true;
         console.error('Exit ticket submit timed out after ' + WRITE_TIMEOUT_MS + 'ms');
-        submitBtn.disabled = false;
+        elsToReenable.forEach(el => { el.disabled = false; });
         TKToast.show('Could not submit — check your connection and try again.');
       }, WRITE_TIMEOUT_MS);
 
@@ -314,10 +382,54 @@
           settled = true;
           clearTimeout(timeoutId);
           console.error(err);
-          submitBtn.disabled = false;
+          elsToReenable.forEach(el => { el.disabled = false; });
           TKToast.show('Could not submit — check your connection and try again.');
         });
+    }
+
+    document.getElementById('submitBtn').onclick = () => {
+      const submitBtn = document.getElementById('submitBtn');
+      const submitError = document.getElementById('submitError');
+      submitError.textContent = '';
+
+      const mode = config.mode || 'ticket';
+
+      if (mode === 'ticket') {
+        const payload = { submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
+        if (config.q1Enabled) payload.q1Answer = document.getElementById('q1Input').value.trim();
+        if (config.q2Enabled) {
+          if (selectedConfidence === null) {
+            submitError.textContent = 'Please pick a confidence level.';
+            return;
+          }
+          payload.confidence = selectedConfidence;
+        }
+        if (config.q3Enabled) payload.q3Answer = document.getElementById('q3Input').value.trim();
+        submitResponse(payload, [submitBtn]);
+      } else if (mode === 'clearCloudy') {
+        const payload = {
+          clearText: document.getElementById('clearInput').value.trim(),
+          cloudyText: document.getElementById('cloudyInput').value.trim(),
+          submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        submitResponse(payload, [submitBtn]);
+      }
     };
+
+    // Traffic Light mode: tapping a light submits immediately, no separate
+    // submit button.
+    ['red', 'yellow', 'green'].forEach(light => {
+      const btn = document.getElementById('traffic' + light.charAt(0).toUpperCase() + light.slice(1) + 'Btn');
+      btn.onclick = () => {
+        const allLightBtns = [
+          document.getElementById('trafficRedBtn'),
+          document.getElementById('trafficYellowBtn'),
+          document.getElementById('trafficGreenBtn')
+        ];
+        const payload = { light, submittedAt: firebase.firestore.FieldValue.serverTimestamp() };
+        submitResponse(payload, allLightBtns);
+      };
+    });
 
     document.getElementById('joinBtn').onclick = () => {
       const code = document.getElementById('codeInput').value.trim().toUpperCase();

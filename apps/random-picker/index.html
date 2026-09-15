@@ -242,6 +242,56 @@
       width: 20px;
       height: 20px;
     }
+    .lifeline-btn {
+      display: inline-block;
+      background: var(--tk-surface);
+      color: var(--tk-primary);
+      border: 2px solid var(--tk-primary);
+      border-radius: var(--tk-radius);
+      padding: 8px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .lifeline-btn:hover {
+      background: var(--tk-primary);
+      color: #fff;
+    }
+    .lifeline-result {
+      font-size: 1.05rem;
+      color: var(--tk-text);
+      font-weight: 600;
+    }
+    .equity-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+      background: transparent;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+    }
+    .tag.picked .equity-dot {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+    }
+    .think-time-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .think-time-message {
+      font-size: 1.1rem;
+      color: var(--tk-text-muted);
+    }
+    .think-time-number {
+      font-size: 3.5rem;
+      font-weight: bold;
+      color: var(--tk-primary);
+    }
     .footer {
       text-align: center;
       margin-top: 30px;
@@ -279,7 +329,12 @@ Hannah</textarea>
       <input type="checkbox" id="equityMode" checked>
       <label for="equityMode"><strong>Equity Mode:</strong> Everyone gets picked once before anyone gets picked twice</label>
     </div>
-    
+
+    <div class="equity-mode">
+      <input type="checkbox" id="thinkTimeMode">
+      <label for="thinkTimeMode"><strong>🧠 Think Time before reveal:</strong> wait 30s before showing who was picked</label>
+    </div>
+
     <div class="controls">
       <button class="btn-primary" onclick="spinWheel()">🎲 Spin</button>
       <button class="btn-secondary" onclick="resetPicker()">🔄 Reset</button>
@@ -316,6 +371,10 @@ Hannah</textarea>
     let remainingIndices = [];
     let currentRotation = 0;
     let isSpinning = false;
+    // Deadline (not a tick countdown) for the "Think Time" reveal delay —
+    // recomputed from Date.now() each tick so a throttled/backgrounded
+    // tab can't make the countdown drift or run long.
+    let thinkTimeIntervalId = null;
 
     function parseNames() {
       const input = document.getElementById('nameInput').value;
@@ -389,7 +448,7 @@ Hannah</textarea>
       }
       
       if (names.length === 1) {
-        showResult(names[0]);
+        showResult(names[0], 0);
         return;
       }
       
@@ -450,17 +509,24 @@ Hannah</textarea>
       
       const SPIN_DURATION = 4000;
       const REVEAL_PAUSE = 2000;
+      const thinkTimeMode = document.getElementById('thinkTimeMode').checked;
       setTimeout(() => {
-        // Wheel has visually stopped — pause before revealing the name.
-        setTimeout(() => {
-          showResult(winner);
+        // Wheel has visually stopped — reveal the name once the pause
+        // (or, with Think Time enabled, the 30s countdown) elapses.
+        const reveal = () => {
+          showResult(winner, winnerIndex);
           if (equityMode) {
             remainingIndices.splice(randomPos, 1);
             pickedIndices.push(winnerIndex);
           }
           updateHistory();
           isSpinning = false;
-        }, REVEAL_PAUSE);
+        };
+        if (thinkTimeMode) {
+          startThinkTimeCountdown(30000, reveal);
+        } else {
+          setTimeout(reveal, REVEAL_PAUSE);
+        }
       }, SPIN_DURATION);
     }
 
@@ -487,7 +553,65 @@ Hannah</textarea>
       } catch (e) { /* ignore */ }
     }
 
-    function showResult(name) {
+    // Shows a full-screen 30s countdown in place of the result while
+    // "Think Time" is enabled, then calls onComplete() to reveal as usual.
+    // Uses a fixed Date.now() deadline, not a per-tick decrement, so a
+    // throttled/backgrounded tab can't make it drift or overrun.
+    function startThinkTimeCountdown(durationMs, onComplete) {
+      document.getElementById('wheelContainer').style.display = 'none';
+      const container = document.getElementById('resultContainer');
+      container.style.display = 'flex';
+      container.innerHTML = '';
+
+      const box = document.createElement('div');
+      box.className = 'think-time-box';
+
+      const msg = document.createElement('div');
+      msg.className = 'think-time-message';
+      msg.textContent = '🤫 Everyone think first...';
+      box.appendChild(msg);
+
+      const num = document.createElement('div');
+      num.className = 'think-time-number';
+      box.appendChild(num);
+
+      container.appendChild(box);
+
+      const deadline = Date.now() + durationMs;
+
+      const tick = () => {
+        const remainingMs = deadline - Date.now();
+        num.textContent = Math.max(0, Math.ceil(remainingMs / 1000));
+        if (remainingMs <= 0) {
+          clearInterval(thinkTimeIntervalId);
+          thinkTimeIntervalId = null;
+          onComplete();
+        }
+      };
+
+      tick();
+      thinkTimeIntervalId = setInterval(tick, 200);
+    }
+
+    // Lifeline / "Phone a Friend": an instant, non-animated pick of one
+    // extra name, excluding the just-picked winner. This is a helper
+    // hint, not a real turn — it deliberately does NOT touch
+    // remainingIndices/pickedIndices so it can't skew equity mode.
+    function phoneAFriend(winnerIndex, displayEl) {
+      const equityMode = document.getElementById('equityMode').checked;
+      let pool = (equityMode ? remainingIndices : names.map((_, i) => i))
+        .filter(i => i !== winnerIndex);
+
+      if (pool.length === 0) {
+        pool = names.map((_, i) => i).filter(i => i !== winnerIndex);
+      }
+      if (pool.length === 0) return;
+
+      const friendIndex = pool[Math.floor(Math.random() * pool.length)];
+      displayEl.textContent = '🤝 Ask: ' + names[friendIndex];
+    }
+
+    function showResult(name, winnerIndex) {
       document.getElementById('wheelContainer').style.display = 'none';
       const container = document.getElementById('resultContainer');
       container.style.display = 'flex';
@@ -524,6 +648,22 @@ Hannah</textarea>
         container.appendChild(box);
       }
 
+      // Lifeline: an optional instant extra pick, excluded from equity
+      // mode bookkeeping. Only offered when there's someone else to pick.
+      if (names.length > 1) {
+        const lifelineBtn = document.createElement('button');
+        lifelineBtn.className = 'lifeline-btn';
+        lifelineBtn.textContent = '📞 Phone a Friend';
+
+        const lifelineResult = document.createElement('div');
+        lifelineResult.className = 'lifeline-result';
+
+        lifelineBtn.onclick = () => phoneAFriend(winnerIndex, lifelineResult);
+
+        container.appendChild(lifelineBtn);
+        container.appendChild(lifelineResult);
+      }
+
       // Celebration effect
       confetti();
     }
@@ -540,7 +680,7 @@ Hannah</textarea>
       section.style.display = 'block';
       tags.innerHTML = names.map((name, i) => {
         const isPicked = pickedIndices.includes(i);
-        return `<span class="tag ${isPicked ? 'picked' : ''}">${name}</span>`;
+        return `<span class="tag ${isPicked ? 'picked' : ''}"><span class="equity-dot"></span>${name}</span>`;
       }).join('');
     }
 
@@ -549,6 +689,13 @@ Hannah</textarea>
       remainingIndices = [];
       currentRotation = 0;
       isSpinning = false;
+      // A Think Time countdown could still be running (e.g. Reset clicked
+      // mid-countdown) — stop it so it can't fire showResult() afterwards
+      // and clobber the freshly-reset UI.
+      if (thinkTimeIntervalId !== null) {
+        clearInterval(thinkTimeIntervalId);
+        thinkTimeIntervalId = null;
+      }
       document.getElementById('wheel').style.transform = 'rotate(0deg)';
       document.getElementById('resultContainer').innerHTML = '<p style="color: #999;">Enter names and click Spin!</p>';
       document.getElementById('historySection').style.display = 'none';

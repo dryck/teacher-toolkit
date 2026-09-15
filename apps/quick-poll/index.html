@@ -344,6 +344,141 @@
     
     .hidden { display: none !important; }
 
+    /* Bloom's Taxonomy badge */
+    .bloom-badge {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(38, 87, 135, 0.12);
+      color: var(--primary-dark);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    select#bloomLevel {
+      padding: 15px 16px;
+      border: 2px solid #e8e8e8;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-family: inherit;
+      background: white;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    select#bloomLevel:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(38, 87, 135, 0.1);
+    }
+
+    /* Secondary buttons (Question Bank) */
+    .btn-secondary {
+      background: white;
+      color: var(--primary-dark);
+      border: 2px solid var(--primary);
+      box-shadow: 0 4px 15px rgba(38, 87, 135, 0.15);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(38, 87, 135, 0.25);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Question Bank panel */
+    .bank-panel {
+      margin-top: 15px;
+      padding: 18px;
+      background: #f8f9fa;
+      border-radius: 16px;
+      border: 2px solid #e9ecef;
+    }
+
+    .bank-list {
+      max-height: 240px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .bank-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .bank-item-text {
+      flex: 1;
+      font-size: 0.95rem;
+      color: #333;
+      cursor: pointer;
+    }
+
+    .bank-item-text:hover { color: var(--primary-dark); }
+
+    .bank-item-remove {
+      border: none;
+      background: transparent;
+      color: #c0392b;
+      font-size: 1.2rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+
+    .bank-empty {
+      color: #888;
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 10px;
+    }
+
+    /* Word Cloud mode */
+    .word-cloud-input {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin: 30px 0;
+      flex-wrap: wrap;
+    }
+
+    .word-cloud-input input[type="text"] {
+      flex: 1;
+      min-width: 250px;
+    }
+
+    .word-cloud-display {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      padding: 30px 20px;
+      min-height: 120px;
+    }
+
+    .word-cloud-word {
+      font-weight: 700;
+      color: var(--primary-dark);
+      white-space: nowrap;
+    }
+
     @media (max-width: 600px) {
       .vote-btn { font-size: 2rem; padding: 30px 15px; }
       h1 { font-size: 1.8rem; }
@@ -366,18 +501,38 @@
     <div class="setup-section active" id="setupSection">
       <div class="section-title">1. Choose a question type:</div>
       <div class="presets">
-        <button class="preset-btn" onclick="selectPreset('understanding')">🟢🟡🔴</button>
-        <button class="preset-btn" onclick="selectPreset('mood')">😊😐😢</button>
-        <button class="preset-btn" onclick="selectPreset('rating')">⭐⭐⭐⭐⭐</button>
-        <button class="preset-btn" onclick="selectPreset('speed')">🐢🐕🐇</button>
-        <button class="preset-btn" onclick="selectPreset('confidence')">💪🤷🙈</button>
+        <button class="preset-btn" data-preset="understanding" onclick="selectPreset('understanding')">🟢🟡🔴</button>
+        <button class="preset-btn" data-preset="mood" onclick="selectPreset('mood')">😊😐😢</button>
+        <button class="preset-btn" data-preset="rating" onclick="selectPreset('rating')">⭐⭐⭐⭐⭐</button>
+        <button class="preset-btn" data-preset="speed" onclick="selectPreset('speed')">🐢🐕🐇</button>
+        <button class="preset-btn" data-preset="confidence" onclick="selectPreset('confidence')">💪🤷🙈</button>
+        <button class="preset-btn" data-preset="wordcloud" onclick="selectPreset('wordcloud')">☁️ Word Cloud</button>
       </div>
 
       <div class="section-title">2. Enter your question:</div>
       <div class="input-group">
         <div class="input-row">
-          <input type="text" id="questionInput" placeholder="e.g. Was today's topic clear?">
+          <input type="text" id="questionInput" placeholder="e.g. Was today's topic clear?" oninput="updateBankSaveButtonState()">
+          <select id="bloomLevel">
+            <option value="">Bloom's level (optional)</option>
+            <option value="Remember">Remember</option>
+            <option value="Understand">Understand</option>
+            <option value="Apply">Apply</option>
+            <option value="Analyze">Analyze</option>
+            <option value="Evaluate">Evaluate</option>
+            <option value="Create">Create</option>
+          </select>
         </div>
+      </div>
+
+      <div class="controls" style="margin-top: 0; margin-bottom: 10px;">
+        <button class="btn btn-secondary" id="saveToBankBtn" onclick="saveToBank()" disabled>💾 Save to Question Bank</button>
+        <button class="btn btn-secondary" onclick="toggleBankPanel()">📂 Load from Question Bank</button>
+      </div>
+
+      <div class="bank-panel hidden" id="bankPanel">
+        <div class="section-title" style="margin-bottom: 10px;">Saved Questions</div>
+        <div id="bankList" class="bank-list"></div>
       </div>
 
       <div class="section-title">3. How many students in class?</div>
@@ -393,8 +548,14 @@
     <!-- VOTING SECTION -->
     <div class="voting-section" id="votingSection">
       <div class="question-display" id="questionDisplay"></div>
+      <div style="text-align: center;"><span class="bloom-badge hidden" id="bloomBadge"></span></div>
 
       <div class="vote-buttons" id="voteButtons"></div>
+
+      <div class="word-cloud-input hidden" id="wordCloudInput">
+        <input type="text" id="wordInput" placeholder="Type one word or short phrase…" maxlength="20" onkeydown="if(event.key==='Enter') submitWord();">
+        <button class="btn btn-primary" onclick="submitWord()">✅ Submit</button>
+      </div>
 
       <div class="counter-box">
         <div class="counter-text">Votes:</div>
@@ -458,37 +619,53 @@
           { emoji: '🤷', label: 'Not sure', color: '#ffc107' },
           { emoji: '🙈', label: 'Confused', color: '#dc3545' }
         ]
+      },
+      wordcloud: {
+        question: 'What one word comes to mind?',
+        wordCloud: true
       }
     };
-    
+
     let currentPreset = null;
+    let currentPresetType = null;
+    let currentBloomLevel = '';
     let votes = {};
+    let wordTally = {};
     let totalVotes = 0;
     let expectedCount = 25;
     let resultsRevealed = false;
-    
+
+    const QUESTION_BANK_KEY = 'tk-quickpoll-question-bank';
+
     function selectPreset(type) {
       currentPreset = presets[type];
+      currentPresetType = type;
       document.getElementById('questionInput').value = currentPreset.question;
-      
+
       document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
       event.target.classList.add('active');
+      updateBankSaveButtonState();
     }
     
     function startVoting() {
       const question = document.getElementById('questionInput').value.trim() || 'Your question?';
       expectedCount = parseInt(document.getElementById('studentCount').value) || 25;
-      
+      currentBloomLevel = document.getElementById('bloomLevel').value;
+
       if (!currentPreset) {
         currentPreset = presets.understanding;
+        currentPresetType = 'understanding';
       }
-      
+
       // Reset
       votes = {};
+      wordTally = {};
       totalVotes = 0;
       resultsRevealed = false;
-      currentPreset.options.forEach(opt => votes[opt.label] = 0);
-      
+      if (!currentPreset.wordCloud) {
+        currentPreset.options.forEach(opt => votes[opt.label] = 0);
+      }
+
       // Update UI
       document.getElementById('questionDisplay').textContent = question;
       document.getElementById('totalCount').textContent = expectedCount;
@@ -497,18 +674,38 @@
       document.getElementById('resultsSection').classList.add('hidden');
       document.getElementById('revealBtn').classList.remove('hidden');
       document.getElementById('resetBtn').classList.add('hidden');
-      
-      // Create vote buttons
-      const container = document.getElementById('voteButtons');
-      container.innerHTML = '';
-      currentPreset.options.forEach(option => {
-        const btn = document.createElement('button');
-        btn.className = 'vote-btn';
-        btn.innerHTML = `<span style="font-size:2.5rem">${option.emoji}</span><span class="label">${option.label}</span>`;
-        btn.onclick = () => castVote(option, btn);
-        container.appendChild(btn);
-      });
-      
+
+      // Bloom's badge
+      const badge = document.getElementById('bloomBadge');
+      if (currentBloomLevel) {
+        badge.textContent = `🎯 ${currentBloomLevel}`;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      if (currentPreset.wordCloud) {
+        // Word Cloud mode: single text input instead of vote buttons
+        document.getElementById('voteButtons').classList.add('hidden');
+        document.getElementById('voteButtons').innerHTML = '';
+        document.getElementById('wordCloudInput').classList.remove('hidden');
+        document.getElementById('wordInput').value = '';
+      } else {
+        document.getElementById('wordCloudInput').classList.add('hidden');
+        document.getElementById('voteButtons').classList.remove('hidden');
+
+        // Create vote buttons
+        const container = document.getElementById('voteButtons');
+        container.innerHTML = '';
+        currentPreset.options.forEach(option => {
+          const btn = document.createElement('button');
+          btn.className = 'vote-btn';
+          btn.innerHTML = `<span style="font-size:2.5rem">${option.emoji}</span><span class="label">${option.label}</span>`;
+          btn.onclick = () => castVote(option, btn);
+          container.appendChild(btn);
+        });
+      }
+
       // Switch sections
       document.getElementById('setupSection').classList.remove('active');
       document.getElementById('votingSection').classList.add('active');
@@ -537,18 +734,49 @@
         setTimeout(() => revealResults(), 500);
       }
     }
-    
+
+    function submitWord() {
+      if (resultsRevealed) return;
+
+      const input = document.getElementById('wordInput');
+      const raw = input.value.trim();
+      if (!raw) return;
+
+      const word = raw.slice(0, 20).toLowerCase();
+      wordTally[word] = (wordTally[word] || 0) + 1;
+      totalVotes++;
+      input.value = '';
+      input.focus();
+
+      playSound('ding');
+
+      // Update counter
+      document.getElementById('currentCount').textContent = totalVotes;
+      const progress = (totalVotes / expectedCount) * 100;
+      document.getElementById('progressFill').style.width = progress + '%';
+
+      // Auto-reveal if everyone voted
+      if (totalVotes >= expectedCount) {
+        setTimeout(() => revealResults(), 500);
+      }
+    }
+
     function revealResults() {
       resultsRevealed = true;
       document.getElementById('revealBtn').classList.add('hidden');
       document.getElementById('resetBtn').classList.remove('hidden');
-      
+
       const container = document.getElementById('resultsSection');
       container.classList.remove('hidden');
       container.innerHTML = '';
-      
+
       playSound('success');
-      
+
+      if (currentPreset.wordCloud) {
+        renderWordCloud(container);
+        return;
+      }
+
       currentPreset.options.forEach((option, index) => {
         const count = votes[option.label] || 0;
         const percentage = totalVotes > 0 ? (count / totalVotes * 100).toFixed(0) : 0;
@@ -575,13 +803,160 @@
         }, 100 + index * 100);
       });
     }
-    
+
+    function renderWordCloud(container) {
+      const entries = Object.entries(wordTally);
+      const wrap = document.createElement('div');
+      wrap.className = 'word-cloud-display';
+
+      if (entries.length === 0) {
+        wrap.innerHTML = '<div class="bank-empty">No words submitted.</div>';
+      } else {
+        const counts = entries.map(e => e[1]);
+        const min = Math.min(...counts);
+        const max = Math.max(...counts);
+        const minSize = 1.1, maxSize = 3.4; // rem
+
+        entries
+          .sort((a, b) => b[1] - a[1])
+          .forEach(([word, count], index) => {
+            const span = document.createElement('span');
+            span.className = 'word-cloud-word';
+            const t = max === min ? 1 : Math.sqrt(count - min) / Math.sqrt(max - min);
+            const size = minSize + t * (maxSize - minSize);
+            span.style.fontSize = size.toFixed(2) + 'rem';
+            span.style.animation = `fadeIn 0.5s ease ${index * 0.05}s both`;
+            span.textContent = `${word} (${count})`;
+            wrap.appendChild(span);
+          });
+      }
+
+      container.appendChild(wrap);
+    }
+
     function resetAll() {
       document.getElementById('votingSection').classList.remove('active');
       document.getElementById('setupSection').classList.add('active');
       document.getElementById('questionInput').value = '';
+      document.getElementById('bloomLevel').value = '';
+      document.getElementById('bloomBadge').classList.add('hidden');
+      document.getElementById('wordCloudInput').classList.add('hidden');
+      document.getElementById('voteButtons').classList.remove('hidden');
       document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
       currentPreset = null;
+      currentPresetType = null;
+      currentBloomLevel = '';
+      updateBankSaveButtonState();
+    }
+
+    // ---- Question Bank ----
+
+    function loadBank() {
+      try {
+        const raw = localStorage.getItem(QUESTION_BANK_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveBank(bank) {
+      localStorage.setItem(QUESTION_BANK_KEY, JSON.stringify(bank));
+    }
+
+    function updateBankSaveButtonState() {
+      const saveBtn = document.getElementById('saveToBankBtn');
+      const text = document.getElementById('questionInput').value.trim();
+      saveBtn.disabled = !(currentPresetType && text);
+    }
+
+    function saveToBank() {
+      const text = document.getElementById('questionInput').value.trim();
+      if (!currentPresetType || !text) return;
+
+      const bank = loadBank();
+      bank.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+        presetType: currentPresetType,
+        questionText: text,
+        bloomLevel: document.getElementById('bloomLevel').value || null
+      });
+      saveBank(bank);
+      renderBankList();
+    }
+
+    function removeFromBank(id) {
+      const bank = loadBank().filter(item => item.id !== id);
+      saveBank(bank);
+      renderBankList();
+    }
+
+    function loadFromBank(item) {
+      currentPreset = presets[item.presetType];
+      currentPresetType = item.presetType;
+
+      if (!currentPreset) return;
+
+      document.getElementById('questionInput').value = item.questionText;
+      document.getElementById('bloomLevel').value = item.bloomLevel || '';
+
+      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      const btn = document.querySelector(`.preset-btn[data-preset="${item.presetType}"]`);
+      if (btn) btn.classList.add('active');
+
+      updateBankSaveButtonState();
+      document.getElementById('bankPanel').classList.add('hidden');
+    }
+
+    function toggleBankPanel() {
+      const panel = document.getElementById('bankPanel');
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) renderBankList();
+    }
+
+    function presetIcon(type) {
+      const icons = {
+        understanding: '🟢🟡🔴',
+        mood: '😊😐😢',
+        rating: '⭐',
+        speed: '🐢🐕🐇',
+        confidence: '💪🤷🙈',
+        wordcloud: '☁️'
+      };
+      return icons[type] || '❓';
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function renderBankList() {
+      const bank = loadBank();
+      const list = document.getElementById('bankList');
+      list.innerHTML = '';
+
+      if (bank.length === 0) {
+        list.innerHTML = '<div class="bank-empty">No saved questions yet.</div>';
+        return;
+      }
+
+      bank.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'bank-item';
+        const bloomTag = item.bloomLevel ? ` · ${item.bloomLevel}` : '';
+        row.innerHTML = `
+          <span class="bank-item-text">${presetIcon(item.presetType)} ${escapeHtml(item.questionText)}${bloomTag}</span>
+          <button class="bank-item-remove" title="Remove">×</button>
+        `;
+        row.querySelector('.bank-item-text').onclick = () => loadFromBank(item);
+        row.querySelector('.bank-item-remove').onclick = (e) => {
+          e.stopPropagation();
+          removeFromBank(item.id);
+        };
+        list.appendChild(row);
+      });
     }
     
     function playSound(type) {

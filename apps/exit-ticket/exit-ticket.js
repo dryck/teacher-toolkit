@@ -21,14 +21,34 @@
 
   // Top-level collection, distinct from Zones' `zonesSessions` in the same
   // Firebase project. One doc per session holds the setup config:
-  // { q1Enabled, q1Text, q2Enabled, q3Enabled, q3Text, createdAt }
+  // { mode, createdAt, ...mode-specific fields }
+  //
+  // mode: 'ticket' | 'clearCloudy' | 'trafficLight' — defaults to 'ticket'
+  // when absent (sessions created before this field existed).
+  //
+  // mode === 'ticket' (the original/default mode):
+  //   { mode: 'ticket', q1Enabled, q1Text, q2Enabled, q3Enabled, q3Text, createdAt }
+  // mode === 'clearCloudy': no question toggles/text — the two prompts are
+  // fixed UI labels, not teacher-editable:
+  //   { mode: 'clearCloudy', createdAt }
+  // mode === 'trafficLight': single-tap, no extra config:
+  //   { mode: 'trafficLight', createdAt }
   function sessionDocRef(sessionId) {
     return db.collection('exitTicketSessions').doc(sessionId);
   }
 
-  // Subcollection of one doc per student submission:
-  // { q1Answer?, confidence?, q3Answer?, submittedAt } — fields for disabled
-  // questions are omitted entirely.
+  // Subcollection of one doc per student submission. Shape depends on the
+  // session's mode:
+  //
+  // mode === 'ticket':
+  //   { q1Answer?, confidence?, q3Answer?, submittedAt } — fields for
+  //   disabled questions are omitted entirely.
+  // mode === 'clearCloudy':
+  //   { clearText?, cloudyText?, submittedAt } — both optional/leniently
+  //   trimmed, same as q1Answer/q3Answer above (a student may leave either
+  //   blank).
+  // mode === 'trafficLight':
+  //   { light: 'red' | 'yellow' | 'green', submittedAt }
   function responsesRef(sessionId) {
     return sessionDocRef(sessionId).collection('responses');
   }
