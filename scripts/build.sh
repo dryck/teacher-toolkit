@@ -21,7 +21,8 @@ cp -r apps/hub/. dist/
 for tool in quick-poll random-picker visual-timer research zones \
             exit-ticket group-generator behaviour-tracker restorative-circle \
             growth-mindset kagan-timer choice-board presentation-timer \
-            assessment-checklist snowball-wall question-builder challenge-deck; do
+            assessment-checklist snowball-wall question-builder challenge-deck \
+            think-time rotation-timer; do
   mkdir -p "dist/$tool"
   cp -r "apps/$tool/." "dist/$tool/"
 done

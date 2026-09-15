@@ -27,6 +27,8 @@
     { key: 'snowball-wall', label: 'Snowball Wall', href: 'snowball-wall/teacher.html' },
     { key: 'question-builder', label: "Bloom's Questions", href: 'question-builder/' },
     { key: 'challenge-deck', label: 'Challenge Deck', href: 'challenge-deck/teacher.html' },
+    { key: 'think-time', label: 'Think Time', href: 'think-time/' },
+    { key: 'rotation-timer', label: 'Rotation Timer', href: 'rotation-timer/' },
     { key: 'research', label: 'Research', href: 'research/' }
   ];
 

@@ -30,6 +30,8 @@ apps/
   snowball-wall/         static — 1-2-4-all idea-building wall (Firebase-backed)
   question-builder/      static — topic → Bloom's-leveled question bank (local only)
   challenge-deck/        static — draw-a-card task deck by category (Firebase-backed)
+  think-time/            static — silent wait-time countdown + quick pick (local only)
+  rotation-timer/        static — gallery-walk/carousel station timer (local only)
 packages/
   shell/          shared navbar + theme (theme.css, navbar.css, navbar.js),
                   plus the shared Firebase config + Firestore rules

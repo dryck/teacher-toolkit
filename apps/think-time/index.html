@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Think Time | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    body.think-mode { overflow: hidden; }
+
+    /* ---------- Setup screen (normal toolkit chrome) ---------- */
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 640px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 26px;
+      font-size: 0.95rem;
+    }
+    .section-title {
+      font-weight: 600;
+      color: var(--tk-text);
+      margin: 0 0 10px;
+      font-size: 0.95rem;
+    }
+    .duration-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .duration-btn {
+      padding: 16px 10px;
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      background: #fff;
+      color: var(--tk-text);
+      font-size: 1.15rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+    .duration-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--tk-primary);
+    }
+    .duration-btn.selected {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(38, 87, 135, 0.35);
+    }
+    .custom-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 26px;
+      flex-wrap: wrap;
+    }
+    .custom-row label {
+      font-weight: 600;
+      color: var(--tk-text);
+      font-size: 0.95rem;
+    }
+    .custom-row input[type="number"] {
+      width: 110px;
+      padding: 10px 12px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .custom-row input[type="number"]:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .custom-row input[type="number"].selected {
+      border-color: var(--tk-primary);
+      background: #f2f6fa;
+    }
+    .custom-row .unit {
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .field-block { margin-bottom: 22px; }
+    .field-block label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    .field-block .hint {
+      display: block;
+      font-weight: 400;
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+    .field-block textarea {
+      width: 100%;
+      min-height: 110px;
+      padding: 12px 14px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+    .field-block textarea:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .btn-start {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--tk-primary);
+      color: #fff;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-start:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(38, 87, 135, 0.4);
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
+
+    /* ---------- Think Time screen: deliberately NOT the toolkit chrome ----------
+       The pedagogical point of this screen is a calm, low-stimulation pause,
+       so it intentionally breaks from the cream/navy look used everywhere
+       else in the toolkit (including covering the shared navbar/fullscreen
+       button while it's up front — they're one tap away again via
+       "Back to setup"). */
+    .hidden { display: none !important; }
+
+    #thinkScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: #14202b;
+      color: #eef2f6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    .think-brain {
+      font-size: clamp(3rem, 10vw, 5.5rem);
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+    .think-title {
+      font-family: var(--tk-font-heading);
+      font-weight: 700;
+      letter-spacing: 4px;
+      font-size: clamp(1.6rem, 5vw, 2.6rem);
+      color: #eef2f6;
+      margin-bottom: 10px;
+    }
+    .think-subtext {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      color: #9fb0c0;
+      margin-bottom: 34px;
+    }
+    .think-countdown {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: clamp(5rem, 22vw, 12rem);
+      color: #7fa8cc;
+      line-height: 1;
+      margin-bottom: 30px;
+      transition: color 0.6s ease;
+    }
+    .think-done-message {
+      font-size: clamp(1.4rem, 4vw, 2.1rem);
+      font-weight: 700;
+      color: #8fd9a8;
+      margin-bottom: 30px;
+    }
+    .pick-someone-wrap {
+      margin-bottom: 26px;
+      min-height: 90px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .btn-pick {
+      padding: 14px 26px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.12);
+      color: #eef2f6;
+      transition: background 0.2s ease, transform 0.15s ease;
+    }
+    .btn-pick:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+    .picked-name {
+      font-size: clamp(1.8rem, 6vw, 3.2rem);
+      font-weight: 800;
+      color: #ffd9a8;
+      min-height: 1.3em;
+    }
+    .picked-name.revealing {
+      animation: reveal-pulse 0.08s linear infinite;
+    }
+    @keyframes reveal-pulse {
+      0% { transform: scale(1); opacity: 0.75; }
+      100% { transform: scale(1.03); opacity: 1; }
+    }
+    .think-back-link {
+      background: none;
+      border: none;
+      color: #9fb0c0;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    .think-back-link:hover { color: #eef2f6; }
+
+    @media (max-width: 480px) {
+      .think-title { letter-spacing: 2px; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+</head>
+<body>
+
+  <!-- ============ SETUP SCREEN ============ -->
+  <div class="container" id="setupScreen">
+    <h1>🧠 Think Time</h1>
+    <p class="subtitle">A silent pause before anyone answers — so every student actually has time to think</p>
+
+    <div class="section-title">Duration</div>
+    <div class="duration-grid" id="durationGrid"></div>
+    <div class="custom-row">
+      <label for="customSecondsInput">Custom:</label>
+      <input type="number" id="customSecondsInput" min="1" max="600" placeholder="e.g. 40">
+      <span class="unit">seconds</span>
+    </div>
+
+    <div class="field-block">
+      <label for="namesInput">
+        Class list (optional, one name per line)
+        <span class="hint">Used for the "Pick someone to answer" step after the countdown.</span>
+      </label>
+      <textarea id="namesInput" placeholder="Aisha&#10;Ben&#10;Carlos&#10;..."></textarea>
+    </div>
+
+    <button class="btn-start" id="startBtn">▶ Start Think Time</button>
+  </div>
+
+  <div class="footer" id="setupFooter">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <!-- ============ THINK TIME SCREEN ============ -->
+  <div class="hidden" id="thinkScreen">
+    <div class="think-brain" id="thinkBrain">🧠</div>
+    <div class="think-title">THINK TIME</div>
+    <div class="think-subtext" id="thinkSubtext">🤫 No talking — just think</div>
+
+    <div class="think-countdown" id="thinkCountdown">00</div>
+    <div class="think-done-message hidden" id="thinkDoneMessage">✅ Now you can share your thinking</div>
+
+    <div class="pick-someone-wrap">
+      <button class="btn-pick hidden" id="pickBtn">🎲 Pick someone to answer</button>
+      <div class="picked-name" id="pickedName"></div>
+    </div>
+
+    <button class="think-back-link" id="backBtn">← Back to setup</button>
+  </div>
+
+  <script>
+    const NAMES_KEY = 'tk-think-time-names';
+    const PRESETS = [20, 30, 45, 60];
+
+    let selectedSeconds = 30;
+    let names = [];
+    let deadline = 0;
+    let thinkInterval = null;
+    let lastShownSeconds = null;
+    let revealInterval = null;
+
+    // ---------------- Setup screen: duration presets ----------------
+    const durationGrid = document.getElementById('durationGrid');
+    const customInput = document.getElementById('customSecondsInput');
+
+    function renderPresets() {
+      durationGrid.innerHTML = '';
+      PRESETS.forEach(seconds => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'duration-btn';
+        btn.textContent = `${seconds}s`;
+        btn.dataset.seconds = seconds;
+        if (seconds === selectedSeconds) btn.classList.add('selected');
+        btn.addEventListener('click', () => selectPreset(seconds));
+        durationGrid.appendChild(btn);
+      });
+    }
+
+    function selectPreset(seconds) {
+      selectedSeconds = seconds;
+      customInput.value = '';
+      customInput.classList.remove('selected');
+      document.querySelectorAll('.duration-btn').forEach(btn => {
+        btn.classList.toggle('selected', parseInt(btn.dataset.seconds, 10) === seconds);
+      });
+    }
+
+    customInput.addEventListener('input', () => {
+      const val = parseInt(customInput.value, 10);
+      if (val > 0) {
+        selectedSeconds = val;
+        customInput.classList.add('selected');
+        document.querySelectorAll('.duration-btn').forEach(btn => btn.classList.remove('selected'));
+      } else {
+        customInput.classList.remove('selected');
+      }
+    });
+
+    // ---------------- Setup screen: class list persistence ----------------
+    const namesInput = document.getElementById('namesInput');
+
+    function loadSavedNames() {
+      const saved = localStorage.getItem(NAMES_KEY);
+      if (saved !== null) namesInput.value = saved;
+    }
+
+    function persistNames() {
+      localStorage.setItem(NAMES_KEY, namesInput.value);
+    }
+
+    namesInput.addEventListener('input', persistNames);
+
+    // ---------------- Start ----------------
+    document.getElementById('startBtn').addEventListener('click', startThinkTime);
+
+    function startThinkTime() {
+      const seconds = selectedSeconds > 0 ? selectedSeconds : 30;
+      names = namesInput.value
+        .split('\n')
+        .map(n => n.trim())
+        .filter(Boolean);
+
+      document.getElementById('setupScreen').classList.add('hidden');
+      document.getElementById('setupFooter').classList.add('hidden');
+      document.getElementById('thinkScreen').classList.remove('hidden');
+      document.body.classList.add('think-mode');
+
+      resetThinkScreen();
+
+      const pickBtn = document.getElementById('pickBtn');
+      pickBtn.classList.add('hidden'); // only shown once countdown finishes
+      pickBtn.disabled = names.length === 0;
+
+      deadline = Date.now() + seconds * 1000;
+      lastShownSeconds = null;
+      renderCountdown(seconds);
+      thinkInterval = setInterval(tickThink, 200);
+    }
+
+    function resetThinkScreen() {
+      document.getElementById('thinkCountdown').classList.remove('hidden');
+      document.getElementById('thinkDoneMessage').classList.add('hidden');
+      document.getElementById('thinkSubtext').textContent = '🤫 No talking — just think';
+      document.getElementById('pickBtn').classList.add('hidden');
+      document.getElementById('pickedName').textContent = '';
+      document.getElementById('pickedName').classList.remove('revealing');
+    }
+
+    // ---------------- Countdown: deadline-based, not a naive decrement ----------------
+    // A setInterval that just subtracts 1 each tick drifts once the tab is
+    // backgrounded (browsers throttle timers there), so remaining time is
+    // always recomputed from a fixed Date.now() deadline instead — a
+    // throttled/delayed tick still lands on the correct value.
+    function tickThink() {
+      const remaining = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+      if (remaining !== lastShownSeconds) {
+        renderCountdown(remaining);
+      }
+      if (remaining <= 0) {
+        clearInterval(thinkInterval);
+        thinkInterval = null;
+        onThinkComplete();
+      }
+    }
+
+    function renderCountdown(seconds) {
+      lastShownSeconds = seconds;
+      document.getElementById('thinkCountdown').textContent = String(seconds).padStart(2, '0');
+    }
+
+    function onThinkComplete() {
+      document.getElementById('thinkCountdown').classList.add('hidden');
+      document.getElementById('thinkDoneMessage').classList.remove('hidden');
+      document.getElementById('thinkSubtext').textContent = '🙋 Ready to hear your thinking';
+      if (names.length > 0) {
+        document.getElementById('pickBtn').classList.remove('hidden');
+      }
+      playChime();
+    }
+
+    // ---------------- Pick someone (brief reveal, not equity-tracked) ----------------
+    document.getElementById('pickBtn').addEventListener('click', pickSomeone);
+
+    function pickSomeone() {
+      if (names.length === 0 || revealInterval) return;
+
+      const pickedEl = document.getElementById('pickedName');
+      pickedEl.classList.add('revealing');
+
+      const revealDurationMs = 650;
+      const revealStep = 60;
+      const startedAt = Date.now();
+
+      revealInterval = setInterval(() => {
+        pickedEl.textContent = names[Math.floor(Math.random() * names.length)];
+        if (Date.now() - startedAt >= revealDurationMs) {
+          clearInterval(revealInterval);
+          revealInterval = null;
+          pickedEl.classList.remove('revealing');
+          pickedEl.textContent = names[Math.floor(Math.random() * names.length)];
+        }
+      }, revealStep);
+    }
+
+    // ---------------- Back to setup ----------------
+    document.getElementById('backBtn').addEventListener('click', backToSetup);
+
+    function backToSetup() {
+      if (thinkInterval) { clearInterval(thinkInterval); thinkInterval = null; }
+      if (revealInterval) { clearInterval(revealInterval); revealInterval = null; }
+      document.getElementById('thinkScreen').classList.add('hidden');
+      document.getElementById('setupScreen').classList.remove('hidden');
+      document.getElementById('setupFooter').classList.remove('hidden');
+      document.body.classList.remove('think-mode');
+    }
+
+    // ---------------- Audio cue: one gentle "you may speak" chime ----------------
+    // Deliberately a single soft tone, not an alarm pattern — the countdown
+    // itself is silent by design, this just signals time's up.
+    function playChime() {
+      try {
+        const ctx = TKAudio.ctx();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 528;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 1.4);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+
+    // ---------------- Init ----------------
+    renderPresets();
+    loadSavedNames();
+  </script>
+
+  <script>window.TK_CURRENT = 'think-time';</script>
+  <script src="../shell/audio.js"></script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+</body>
+</html>
