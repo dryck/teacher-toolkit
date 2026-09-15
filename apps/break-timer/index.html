@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Break Timer | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    body.break-mode { overflow: hidden; }
+
+    /* ---------- Setup screen (normal toolkit chrome) ---------- */
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 640px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 26px;
+      font-size: 0.95rem;
+    }
+
+    /* Mode tabs */
+    .mode-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .mode-tab-btn {
+      flex: 1;
+      padding: 14px 10px;
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      background: #fff;
+      color: var(--tk-text);
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .mode-tab-btn.active {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+      color: #fff;
+    }
+    .mode-panel { display: none; }
+    .mode-panel.active { display: block; }
+
+    /* Break Menu grid */
+    .break-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+    }
+    .break-card {
+      padding: 18px 10px;
+      border: 2px solid #e4e4ef;
+      border-radius: 14px;
+      background: #fff;
+      color: var(--tk-text);
+      font-family: inherit;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .break-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--tk-primary);
+      box-shadow: 0 8px 20px rgba(38, 87, 135, 0.18);
+    }
+    .break-card-icon {
+      font-size: 2rem;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .break-card-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+    .break-card-duration {
+      font-size: 0.85rem;
+      color: var(--tk-text-muted);
+    }
+
+    /* Scheduled Breaks panel */
+    .field-block { margin-bottom: 22px; }
+    .field-block label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    .field-block .hint {
+      display: block;
+      font-weight: 400;
+      color: var(--tk-text-muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+    .custom-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .custom-row input[type="number"] {
+      width: 110px;
+      padding: 10px 12px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .custom-row input[type="number"]:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .custom-row .unit {
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .btn-start {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--tk-primary);
+      color: #fff;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-start:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(38, 87, 135, 0.4);
+    }
+    .btn-stop-scheduled {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border: 2px solid var(--tk-primary);
+      border-radius: 12px;
+      cursor: pointer;
+      background: #fff;
+      color: var(--tk-primary);
+      transition: background 0.15s ease;
+    }
+    .btn-stop-scheduled:hover {
+      background: #f2f6fa;
+    }
+    .scheduled-wait-card {
+      text-align: center;
+      padding: 24px;
+      background: #f2f6fa;
+      border-radius: 16px;
+      margin-bottom: 18px;
+    }
+    .scheduled-wait-label {
+      color: var(--tk-text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+    }
+    .scheduled-wait-countdown {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: clamp(2.2rem, 8vw, 3.4rem);
+      color: var(--tk-primary);
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
+
+    /* ---------- Break screen: deliberately NOT the toolkit chrome ----------
+       The pedagogical point of this screen is a calm, low-stimulation
+       sensory/movement break, so it intentionally breaks from the
+       cream/navy look used everywhere else in the toolkit (including
+       covering the shared navbar/fullscreen button while it's up front —
+       they're one tap away again via "Back to menu"). Deliberately no
+       red/urgent styling anywhere: this is regulation, not an alarm. */
+    .hidden { display: none !important; }
+
+    #breakScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: #14202b;
+      color: #eef2f6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    .break-icon-wrap {
+      margin-bottom: 18px;
+    }
+    .break-icon {
+      font-size: clamp(3rem, 10vw, 5.5rem);
+      line-height: 1;
+    }
+    /* Breathing circle: only used for the "Deep Breaths" activity, to give
+       students a visual pace for inhale/exhale — 4s expand, 4s contract,
+       looping continuously. */
+    .break-icon-wrap.breathing .break-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: clamp(140px, 32vw, 220px);
+      height: clamp(140px, 32vw, 220px);
+      border-radius: 50%;
+      margin: 0 auto;
+      background: rgba(127, 168, 204, 0.18);
+      border: 3px solid rgba(127, 168, 204, 0.55);
+      animation: breathe 8s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(0.72); }
+      50% { transform: scale(1.15); }
+    }
+    .break-title {
+      font-family: var(--tk-font-heading);
+      font-weight: 700;
+      letter-spacing: 2px;
+      font-size: clamp(1.5rem, 5vw, 2.4rem);
+      color: #eef2f6;
+      margin-bottom: 30px;
+    }
+    .break-countdown {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: clamp(4rem, 18vw, 9rem);
+      color: #7fa8cc;
+      line-height: 1;
+      margin-bottom: 26px;
+    }
+    .break-done-message {
+      font-size: clamp(1.4rem, 4vw, 2.1rem);
+      font-weight: 700;
+      color: #8fd9a8;
+      margin-bottom: 30px;
+    }
+    .break-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .break-link-btn {
+      background: none;
+      border: none;
+      color: #9fb0c0;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 10px;
+    }
+    .break-link-btn:hover { color: #eef2f6; }
+
+    @media (max-width: 480px) {
+      .break-title { letter-spacing: 1px; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+</head>
+<body>
+
+  <!-- ============ SETUP SCREEN ============ -->
+  <div class="container" id="setupScreen">
+    <h1>😌 Break Timer</h1>
+    <p class="subtitle">Sensory and movement breaks for the whole class — on your screen or projector</p>
+
+    <div class="mode-tabs">
+      <button type="button" class="mode-tab-btn active" id="tabMenuBtn">🧘 Break Menu</button>
+      <button type="button" class="mode-tab-btn" id="tabScheduledBtn">⏰ Scheduled Breaks</button>
+    </div>
+
+    <!-- ---- Mode A: Break Menu ---- -->
+    <section class="mode-panel active" id="menuPanel">
+      <div class="break-grid" id="breakGrid"></div>
+    </section>
+
+    <!-- ---- Mode B: Scheduled Breaks ---- -->
+    <section class="mode-panel" id="scheduledPanel">
+      <div id="scheduledSetupDiv">
+        <div class="field-block">
+          <label for="intervalInput">
+            Break every
+            <span class="hint">A 2-minute micro-break will automatically appear at this interval, until you stop it.</span>
+          </label>
+          <div class="custom-row">
+            <input type="number" id="intervalInput" min="5" max="60" value="20">
+            <span class="unit">minutes</span>
+          </div>
+        </div>
+        <button class="btn-start" id="startScheduledBtn">▶ Start Scheduled Breaks</button>
+      </div>
+
+      <div class="hidden" id="scheduledRunningDiv">
+        <div class="scheduled-wait-card">
+          <div class="scheduled-wait-label">⏰ Next micro-break in</div>
+          <div class="scheduled-wait-countdown" id="scheduledWaitCountdown">20:00</div>
+        </div>
+        <button class="btn-stop-scheduled" id="stopScheduledBtn">⏸ Stop Scheduled Breaks</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer" id="setupFooter">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <!-- ============ IMMERSIVE BREAK SCREEN (shared by Mode A and Mode B) ============ -->
+  <div class="hidden" id="breakScreen">
+    <div class="break-icon-wrap" id="breakIconWrap">
+      <div class="break-icon" id="breakIcon">🌬️</div>
+    </div>
+    <div class="break-title" id="breakActivityName">Deep Breaths</div>
+
+    <div class="break-countdown" id="breakCountdown">00:00</div>
+    <div class="break-done-message hidden" id="breakDoneMessage">💪 Back to work</div>
+
+    <div class="break-controls">
+      <button class="break-link-btn" id="endEarlyBtn">✕ End break early</button>
+      <button class="break-link-btn hidden" id="stopScheduledLink">⏸ Stop Scheduled Breaks</button>
+      <button class="break-link-btn hidden" id="backToMenuBtn">← Back to menu</button>
+    </div>
+  </div>
+
+  <script>
+    const INTERVAL_KEY = 'tk-break-timer-interval';
+    const MIN_INTERVAL = 5;
+    const MAX_INTERVAL = 60;
+    const DEFAULT_INTERVAL = 20;
+
+    const BREAK_PRESETS = [
+      { emoji: '🌬️', name: 'Deep Breaths', seconds: 120, breathing: true },
+      { emoji: '🤸', name: 'Stretch and Move', seconds: 180 },
+      { emoji: '💧', name: 'Water Break', seconds: 60 },
+      { emoji: '🤫', name: 'Quiet Time', seconds: 300 },
+      { emoji: '✏️', name: 'Doodle Freely', seconds: 300 },
+      { emoji: '🚶', name: 'Short Walk', seconds: 300 },
+      { emoji: '🤗', name: 'Squeeze Something', seconds: 120 },
+      { emoji: '🔢', name: 'Count Backwards from 20', seconds: 60 }
+    ];
+
+    // ---------------- Mode tabs ----------------
+    const tabMenuBtn = document.getElementById('tabMenuBtn');
+    const tabScheduledBtn = document.getElementById('tabScheduledBtn');
+    const menuPanel = document.getElementById('menuPanel');
+    const scheduledPanel = document.getElementById('scheduledPanel');
+
+    function switchToPanel(mode) {
+      const isMenu = mode === 'menu';
+      tabMenuBtn.classList.toggle('active', isMenu);
+      tabScheduledBtn.classList.toggle('active', !isMenu);
+      menuPanel.classList.toggle('active', isMenu);
+      scheduledPanel.classList.toggle('active', !isMenu);
+    }
+    tabMenuBtn.addEventListener('click', () => switchToPanel('menu'));
+    tabScheduledBtn.addEventListener('click', () => switchToPanel('scheduled'));
+
+    // ---------------- Mode A: Break Menu grid ----------------
+    function formatMinutesLabel(seconds) {
+      return `${seconds / 60} min`;
+    }
+
+    function renderBreakGrid() {
+      const grid = document.getElementById('breakGrid');
+      grid.innerHTML = '';
+      BREAK_PRESETS.forEach(preset => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'break-card';
+        card.innerHTML = `
+          <div class="break-card-icon">${preset.emoji}</div>
+          <div class="break-card-name">${preset.name}</div>
+          <div class="break-card-duration">${formatMinutesLabel(preset.seconds)}</div>
+        `;
+        card.addEventListener('click', () => {
+          startImmersiveBreak({
+            emoji: preset.emoji,
+            name: preset.name,
+            seconds: preset.seconds,
+            breathing: !!preset.breathing,
+            source: 'menu',
+            onReturn: () => switchToPanel('menu'),
+            autoReturnMs: null
+          });
+        });
+        grid.appendChild(card);
+      });
+    }
+
+    // ---------------- Mode B: Scheduled Breaks ----------------
+    const intervalInput = document.getElementById('intervalInput');
+    const scheduledSetupDiv = document.getElementById('scheduledSetupDiv');
+    const scheduledRunningDiv = document.getElementById('scheduledRunningDiv');
+    const scheduledWaitCountdownEl = document.getElementById('scheduledWaitCountdown');
+
+    let intervalMinutes = DEFAULT_INTERVAL;
+    let scheduledRunning = false; // true whenever the whole schedule cycle is active (waiting OR mid micro-break)
+    let scheduledWaitInterval = null;
+    let scheduledDeadline = 0;
+
+    function loadSavedInterval() {
+      const saved = parseInt(localStorage.getItem(INTERVAL_KEY), 10);
+      if (saved >= MIN_INTERVAL && saved <= MAX_INTERVAL) intervalMinutes = saved;
+      intervalInput.value = intervalMinutes;
+    }
+
+    intervalInput.addEventListener('change', () => {
+      const val = parseInt(intervalInput.value, 10);
+      if (val >= MIN_INTERVAL && val <= MAX_INTERVAL) {
+        localStorage.setItem(INTERVAL_KEY, String(val));
+      }
+    });
+
+    function showScheduledSetupUI() {
+      scheduledSetupDiv.classList.remove('hidden');
+      scheduledRunningDiv.classList.add('hidden');
+    }
+
+    function showScheduledRunningUI() {
+      scheduledSetupDiv.classList.add('hidden');
+      scheduledRunningDiv.classList.remove('hidden');
+    }
+
+    function formatMmSs(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    // ---- Scheduled wait countdown: deadline-based, same pattern as the break countdown ----
+    function beginWaitCountdown() {
+      scheduledDeadline = Date.now() + intervalMinutes * 60 * 1000;
+      renderWaitCountdown(intervalMinutes * 60);
+      scheduledWaitInterval = setInterval(tickScheduledWait, 200);
+    }
+
+    function tickScheduledWait() {
+      const remaining = Math.max(0, Math.round((scheduledDeadline - Date.now()) / 1000));
+      renderWaitCountdown(remaining);
+      if (remaining <= 0) {
+        clearInterval(scheduledWaitInterval);
+        scheduledWaitInterval = null;
+        launchMicroBreak();
+      }
+    }
+
+    function renderWaitCountdown(totalSeconds) {
+      scheduledWaitCountdownEl.textContent = formatMmSs(totalSeconds);
+    }
+
+    function launchMicroBreak() {
+      startImmersiveBreak({
+        emoji: '🔔',
+        name: 'Micro-break — Stretch & Breathe',
+        seconds: 120,
+        breathing: false,
+        source: 'scheduled',
+        onReturn: onScheduledBreakReturn,
+        autoReturnMs: 3000
+      });
+    }
+
+    // Called after the micro-break ends (naturally, via auto-return, or via
+    // "End break early"). If the teacher stopped the whole schedule while
+    // the micro-break was up, scheduledRunning is already false and this
+    // is a no-op — the hard-stop handler takes care of the UI itself.
+    function onScheduledBreakReturn() {
+      if (!scheduledRunning) return;
+      beginWaitCountdown();
+    }
+
+    function startScheduledCycle() {
+      const val = parseInt(intervalInput.value, 10);
+      intervalMinutes = (val >= MIN_INTERVAL && val <= MAX_INTERVAL) ? val : DEFAULT_INTERVAL;
+      intervalInput.value = intervalMinutes;
+      localStorage.setItem(INTERVAL_KEY, String(intervalMinutes));
+      scheduledRunning = true;
+      showScheduledRunningUI();
+      beginWaitCountdown();
+    }
+
+    function stopScheduledCycle() {
+      scheduledRunning = false;
+      if (scheduledWaitInterval) { clearInterval(scheduledWaitInterval); scheduledWaitInterval = null; }
+      showScheduledSetupUI();
+    }
+
+    document.getElementById('startScheduledBtn').addEventListener('click', startScheduledCycle);
+    document.getElementById('stopScheduledBtn').addEventListener('click', stopScheduledCycle);
+
+    // "Stop Scheduled Breaks" reachable from inside an active scheduled
+    // micro-break too, since the immersive screen covers the setup chrome.
+    document.getElementById('stopScheduledLink').addEventListener('click', () => {
+      scheduledRunning = false;
+      returnFromBreak();
+      showScheduledSetupUI();
+      switchToPanel('scheduled');
+    });
+
+    // ---------------- Shared immersive break screen (Mode A cards + Mode B micro-break) ----------------
+    const breakScreenEl = document.getElementById('breakScreen');
+    const breakIconWrap = document.getElementById('breakIconWrap');
+    const breakIconEl = document.getElementById('breakIcon');
+    const breakActivityNameEl = document.getElementById('breakActivityName');
+    const breakCountdownEl = document.getElementById('breakCountdown');
+    const breakDoneMessageEl = document.getElementById('breakDoneMessage');
+    const endEarlyBtn = document.getElementById('endEarlyBtn');
+    const stopScheduledLink = document.getElementById('stopScheduledLink');
+    const backToMenuBtn = document.getElementById('backToMenuBtn');
+
+    let breakDeadline = 0;
+    let breakCountdownInterval = null;
+    let autoReturnTimeout = null;
+    let currentOnReturn = null;
+    let currentAutoReturnMs = null;
+    let activeBreakIsScheduled = false;
+
+    // activity: { emoji, name, seconds, breathing, source, onReturn, autoReturnMs }
+    // A single shared entry point used by both Mode A (preset cards) and
+    // Mode B (the scheduled micro-break) so the countdown/chime/completion
+    // logic below is never duplicated.
+    function startImmersiveBreak(activity) {
+      currentOnReturn = activity.onReturn || null;
+      currentAutoReturnMs = activity.autoReturnMs || null;
+      activeBreakIsScheduled = activity.source === 'scheduled';
+
+      document.getElementById('setupScreen').classList.add('hidden');
+      document.getElementById('setupFooter').classList.add('hidden');
+      breakScreenEl.classList.remove('hidden');
+      document.body.classList.add('break-mode');
+
+      breakIconEl.textContent = activity.emoji;
+      breakActivityNameEl.textContent = activity.name;
+      breakIconWrap.classList.toggle('breathing', !!activity.breathing);
+
+      breakCountdownEl.classList.remove('hidden');
+      breakDoneMessageEl.classList.add('hidden');
+      endEarlyBtn.classList.remove('hidden');
+      backToMenuBtn.classList.add('hidden');
+      stopScheduledLink.classList.toggle('hidden', !activeBreakIsScheduled);
+
+      breakDeadline = Date.now() + activity.seconds * 1000;
+      renderBreakCountdown(activity.seconds);
+      breakCountdownInterval = setInterval(tickBreak, 200);
+    }
+
+    // ---- Break countdown: deadline-based, same pattern as think-time ----
+    // Recomputed from a fixed Date.now() deadline every tick so a throttled
+    // (backgrounded-tab) tick still lands on the mathematically correct
+    // remaining time, rather than drifting from a naive decrement.
+    function tickBreak() {
+      const remaining = Math.max(0, Math.round((breakDeadline - Date.now()) / 1000));
+      renderBreakCountdown(remaining);
+      if (remaining <= 0) {
+        clearInterval(breakCountdownInterval);
+        breakCountdownInterval = null;
+        onBreakCountdownComplete();
+      }
+    }
+
+    function renderBreakCountdown(seconds) {
+      breakCountdownEl.textContent = formatMmSs(seconds);
+    }
+
+    function onBreakCountdownComplete() {
+      breakCountdownEl.classList.add('hidden');
+      endEarlyBtn.classList.add('hidden');
+      breakDoneMessageEl.classList.remove('hidden');
+      backToMenuBtn.classList.remove('hidden');
+      playChime();
+
+      if (currentAutoReturnMs) {
+        autoReturnTimeout = setTimeout(() => {
+          autoReturnTimeout = null;
+          returnFromBreak();
+        }, currentAutoReturnMs);
+      }
+    }
+
+    function returnFromBreak() {
+      if (breakCountdownInterval) { clearInterval(breakCountdownInterval); breakCountdownInterval = null; }
+      if (autoReturnTimeout) { clearTimeout(autoReturnTimeout); autoReturnTimeout = null; }
+
+      breakScreenEl.classList.add('hidden');
+      document.getElementById('setupScreen').classList.remove('hidden');
+      document.getElementById('setupFooter').classList.remove('hidden');
+      document.body.classList.remove('break-mode');
+
+      const cb = currentOnReturn;
+      currentOnReturn = null;
+      activeBreakIsScheduled = false;
+      if (typeof cb === 'function') cb();
+    }
+
+    endEarlyBtn.addEventListener('click', returnFromBreak);
+    backToMenuBtn.addEventListener('click', returnFromBreak);
+
+    // ---------------- Audio cue: one gentle "break's over" chime ----------------
+    // Deliberately a single soft tone, not an alarm pattern — calm
+    // regulation, not urgency.
+    function playChime() {
+      try {
+        const ctx = TKAudio.ctx();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 528;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 1.4);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+
+    // ---------------- Init ----------------
+    renderBreakGrid();
+    loadSavedInterval();
+  </script>
+
+  <script>window.TK_CURRENT = 'break-timer';</script>
+  <script src="../shell/audio.js"></script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+</body>
+</html>

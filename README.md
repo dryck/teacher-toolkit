@@ -34,6 +34,8 @@ apps/
   rotation-timer/        static — gallery-walk/carousel station timer (local only)
   chili-challenge/       static — self-chosen task-difficulty picker (Firebase-backed)
   help-ladder/           static — 5-step help hierarchy + "still stuck" signal (Firebase-backed)
+  coin-flip/             static — random side-picker + creative-prompt combinator (local only)
+  break-timer/           static — sensory/movement break menu + scheduled micro-breaks (local only)
 packages/
   shell/          shared navbar + theme (theme.css, navbar.css, navbar.js),
                   plus the shared Firebase config + Firestore rules

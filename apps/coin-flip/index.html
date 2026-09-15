@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coin Flip | Teacher Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--tk-bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      padding: 30px;
+      max-width: 720px;
+      width: 100%;
+      box-shadow: var(--tk-shadow);
+    }
+    h1 {
+      text-align: center;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center;
+      color: var(--tk-text-muted);
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+
+    /* ---------- Mode toggle ---------- */
+    .mode-toggle {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 26px;
+    }
+    .mode-tab {
+      padding: 12px 20px;
+      border: 2px solid #e4e4ef;
+      border-radius: 12px;
+      background: #fff;
+      color: var(--tk-text);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+    .mode-tab:hover {
+      transform: translateY(-2px);
+      border-color: var(--tk-primary);
+    }
+    .mode-tab.active {
+      background: var(--tk-primary);
+      border-color: var(--tk-primary);
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(38, 87, 135, 0.35);
+    }
+
+    .mode-panel { display: none; }
+    .mode-panel.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ---------- Shared field styling ---------- */
+    .field-block { margin-bottom: 18px; }
+    .field-block label {
+      display: block;
+      font-weight: 600;
+      color: var(--tk-text);
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+    .field-block .hint {
+      display: block;
+      font-weight: 400;
+      color: var(--tk-text-muted);
+      font-size: 0.82rem;
+      margin-top: 4px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e4e4ef;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+
+    .btn {
+      padding: 14px 26px;
+      font-size: 1.05rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+      color: #fff;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      transform: none;
+    }
+    .btn-primary {
+      background: var(--tk-primary);
+      box-shadow: 0 8px 20px rgba(38, 87, 135, 0.4);
+    }
+    .btn-secondary {
+      background: var(--tk-accent);
+      box-shadow: 0 8px 20px rgba(184, 111, 85, 0.35);
+    }
+
+    /* ---------- Mode A: Simple Flip ---------- */
+    .side-inputs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .coin-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      perspective: 1000px;
+      margin-bottom: 20px;
+    }
+    .coin {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, var(--tk-accent), var(--tk-primary) 75%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      color: #fff;
+      box-shadow: var(--tk-shadow);
+      cursor: pointer;
+      transform-style: preserve-3d;
+      transition: transform 1.1s cubic-bezier(0.22, 0.61, 0.36, 1);
+      user-select: none;
+      border: 6px solid rgba(255, 255, 255, 0.35);
+    }
+    .coin.disabled { cursor: not-allowed; }
+    .flip-btn-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 22px;
+    }
+    .flip-result {
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--tk-text);
+      min-height: 2.4em;
+      line-height: 1.35;
+    }
+
+    /* ---------- Mode B: Creative Prompt Flip ---------- */
+    .pairs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    .pair-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      background: #f8f7f3;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .pair-field { flex: 1 1 200px; }
+    .pair-field label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--tk-text-muted);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .pair-field input[type="text"] {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    .remove-pair-btn {
+      background: none;
+      border: none;
+      color: #b03a2e;
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 8px 10px;
+      border-radius: 8px;
+      line-height: 1;
+    }
+    .remove-pair-btn:hover { background: rgba(176, 58, 46, 0.1); }
+
+    .pairs-controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 18px 0 26px;
+    }
+
+    .combo-message {
+      text-align: center;
+      color: #b03a2e;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .combo-message.hidden { display: none; }
+
+    .combo-card {
+      background: #f2f2fb;
+      border-radius: 16px;
+      padding: 26px 20px;
+      text-align: center;
+    }
+    .combo-card.hidden { display: none; }
+    .combo-card-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--tk-text-muted);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .combo-line {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--tk-text);
+      line-height: 1.9;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--tk-text-muted);
+      font-size: 0.9rem;
+    }
+    .footer a { color: var(--tk-primary); text-decoration: none; }
+
+    @media (max-width: 480px) {
+      .coin { width: 140px; height: 140px; font-size: 3rem; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <link rel="stylesheet" href="../shell/fullscreen.css">
+</head>
+<body>
+
+  <div class="container">
+    <h1>🪙 Coin Flip</h1>
+    <p class="subtitle">Let chance decide — a quick way to pick a creative-writing direction</p>
+
+    <div class="mode-toggle">
+      <button type="button" class="mode-tab" id="tabSimple">🪙 Simple Flip</button>
+      <button type="button" class="mode-tab" id="tabCreative">🎲 Creative Prompt Flip</button>
+    </div>
+
+    <!-- ============ MODE A: SIMPLE FLIP ============ -->
+    <div class="mode-panel" id="panelSimple">
+      <div class="side-inputs">
+        <div class="field-block">
+          <label for="side1Input">
+            Side 1
+            <span class="hint">Any two contrasting options or approaches for a task.</span>
+          </label>
+          <input type="text" id="side1Input" placeholder="e.g. Write it from the villain's perspective">
+        </div>
+        <div class="field-block">
+          <label for="side2Input">Side 2</label>
+          <input type="text" id="side2Input" placeholder="e.g. Write it from the hero's perspective">
+        </div>
+      </div>
+
+      <div class="coin-stage">
+        <div class="coin" id="coin" role="button" tabindex="0" aria-label="Flip the coin">🪙</div>
+      </div>
+      <div class="flip-btn-row">
+        <button type="button" class="btn btn-primary" id="flipBtn">Flip the coin</button>
+      </div>
+      <div class="flip-result" id="flipResult"></div>
+    </div>
+
+    <!-- ============ MODE B: CREATIVE PROMPT FLIP ============ -->
+    <div class="mode-panel" id="panelCreative">
+      <div class="field-block">
+        <label>
+          Contrasting pairs
+          <span class="hint">Define 2–6 pairs (theme, perspective, style...). Both sides of a pair must be filled in for it to be used in a combo.</span>
+        </label>
+      </div>
+
+      <div class="pairs-list" id="pairsList"></div>
+
+      <div class="pairs-controls">
+        <button type="button" class="btn btn-secondary" id="addPairBtn">+ Add pair</button>
+        <button type="button" class="btn btn-primary" id="newComboBtn">🔄 New combo</button>
+      </div>
+
+      <div class="combo-message hidden" id="comboMessage"></div>
+
+      <div class="combo-card hidden" id="comboCard">
+        <div class="combo-card-title">Today's combo</div>
+        <div id="comboLines"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Made for teachers | <a href="../">More Tools</a>
+  </div>
+
+  <script>
+    const SIDES_KEY = 'tk-coin-flip-sides';
+    const PAIRS_KEY = 'tk-coin-flip-pairs';
+    const MAX_PAIRS = 6;
+
+    const DEFAULT_SIDES = {
+      side1: "🦹 Write it from the villain's perspective",
+      side2: "🦸 Write it from the hero's perspective"
+    };
+
+    const DEFAULT_PAIRS = [
+      { a: 'a moment of loss', b: 'a moment of discovery' },
+      { a: 'a child', b: 'an elder' },
+      { a: 'a news report', b: 'a fairy tale' }
+    ];
+
+    // ---------------- Mode toggle ----------------
+    const tabSimple = document.getElementById('tabSimple');
+    const tabCreative = document.getElementById('tabCreative');
+    const panelSimple = document.getElementById('panelSimple');
+    const panelCreative = document.getElementById('panelCreative');
+
+    function setMode(mode) {
+      const isSimple = mode === 'simple';
+      tabSimple.classList.toggle('active', isSimple);
+      tabCreative.classList.toggle('active', !isSimple);
+      panelSimple.classList.toggle('active', isSimple);
+      panelCreative.classList.toggle('active', !isSimple);
+    }
+
+    tabSimple.addEventListener('click', () => setMode('simple'));
+    tabCreative.addEventListener('click', () => setMode('creative'));
+
+    // ---------------- Mode A: Simple Flip ----------------
+    const side1Input = document.getElementById('side1Input');
+    const side2Input = document.getElementById('side2Input');
+    const coinEl = document.getElementById('coin');
+    const flipBtn = document.getElementById('flipBtn');
+    const flipResultEl = document.getElementById('flipResult');
+
+    let sides = loadSides();
+    let flipping = false;
+    let coinRotation = 0;
+
+    function loadSides() {
+      try {
+        const raw = localStorage.getItem(SIDES_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed.side1 === 'string' && typeof parsed.side2 === 'string') {
+            return parsed;
+          }
+        }
+      } catch (e) { /* ignore malformed storage */ }
+      return { ...DEFAULT_SIDES };
+    }
+
+    function persistSides() {
+      localStorage.setItem(SIDES_KEY, JSON.stringify(sides));
+    }
+
+    side1Input.value = sides.side1;
+    side2Input.value = sides.side2;
+
+    side1Input.addEventListener('input', () => {
+      sides.side1 = side1Input.value;
+      persistSides();
+    });
+    side2Input.addEventListener('input', () => {
+      sides.side2 = side2Input.value;
+      persistSides();
+    });
+
+    // A coin flip is decided (heads/tails) before the animation starts; the
+    // spin itself is just a satisfying visual — total rotation lands on an
+    // even number of half-turns for side 1 and an odd number for side 2.
+    function doFlip() {
+      if (flipping) return;
+      flipping = true;
+      flipBtn.disabled = true;
+      coinEl.classList.add('disabled');
+      flipResultEl.textContent = '';
+
+      const landsOnSide1 = Math.random() < 0.5;
+      const fullSpins = Math.random() < 0.5 ? 1800 : 2160; // 5 or 6 full rotations
+      coinRotation += fullSpins + (landsOnSide1 ? 0 : 180);
+      coinEl.style.transform = `rotateY(${coinRotation}deg)`;
+
+      setTimeout(() => {
+        flipping = false;
+        flipBtn.disabled = false;
+        coinEl.classList.remove('disabled');
+        const winningLabel = landsOnSide1 ? sides.side1 : sides.side2;
+        flipResultEl.textContent = (winningLabel || '').trim() || (landsOnSide1 ? 'Side 1' : 'Side 2');
+        playChime();
+      }, 1150);
+    }
+
+    flipBtn.addEventListener('click', doFlip);
+    coinEl.addEventListener('click', doFlip);
+    coinEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        doFlip();
+      }
+    });
+
+    // ---------------- Mode B: Creative Prompt Flip ----------------
+    const pairsListEl = document.getElementById('pairsList');
+    const addPairBtn = document.getElementById('addPairBtn');
+    const newComboBtn = document.getElementById('newComboBtn');
+    const comboMessageEl = document.getElementById('comboMessage');
+    const comboCardEl = document.getElementById('comboCard');
+    const comboLinesEl = document.getElementById('comboLines');
+
+    let pairs = loadPairs();
+
+    function loadPairs() {
+      try {
+        const raw = localStorage.getItem(PAIRS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            return parsed
+              .slice(0, MAX_PAIRS)
+              .map(p => ({
+                a: typeof p.a === 'string' ? p.a : '',
+                b: typeof p.b === 'string' ? p.b : ''
+              }));
+          }
+        }
+      } catch (e) { /* ignore malformed storage */ }
+      return DEFAULT_PAIRS.map(p => ({ ...p }));
+    }
+
+    function persistPairs() {
+      localStorage.setItem(PAIRS_KEY, JSON.stringify(pairs));
+    }
+
+    function renderPairs() {
+      pairsListEl.innerHTML = '';
+
+      pairs.forEach((pair, idx) => {
+        const row = document.createElement('div');
+        row.className = 'pair-row';
+
+        const fieldA = document.createElement('div');
+        fieldA.className = 'pair-field';
+        const labelA = document.createElement('label');
+        labelA.textContent = `Pair ${idx + 1} — Option A`;
+        const inputA = document.createElement('input');
+        inputA.type = 'text';
+        inputA.value = pair.a;
+        inputA.placeholder = 'e.g. a moment of loss';
+        inputA.addEventListener('input', () => {
+          pairs[idx].a = inputA.value;
+          persistPairs();
+        });
+        fieldA.appendChild(labelA);
+        fieldA.appendChild(inputA);
+
+        const fieldB = document.createElement('div');
+        fieldB.className = 'pair-field';
+        const labelB = document.createElement('label');
+        labelB.textContent = `Pair ${idx + 1} — Option B`;
+        const inputB = document.createElement('input');
+        inputB.type = 'text';
+        inputB.value = pair.b;
+        inputB.placeholder = 'e.g. a moment of discovery';
+        inputB.addEventListener('input', () => {
+          pairs[idx].b = inputB.value;
+          persistPairs();
+        });
+        fieldB.appendChild(labelB);
+        fieldB.appendChild(inputB);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-pair-btn';
+        removeBtn.setAttribute('aria-label', `Remove pair ${idx + 1}`);
+        removeBtn.textContent = '✕';
+        removeBtn.addEventListener('click', () => {
+          pairs.splice(idx, 1);
+          persistPairs();
+          renderPairs();
+        });
+
+        row.appendChild(fieldA);
+        row.appendChild(fieldB);
+        row.appendChild(removeBtn);
+        pairsListEl.appendChild(row);
+      });
+
+      addPairBtn.disabled = pairs.length >= MAX_PAIRS;
+    }
+
+    addPairBtn.addEventListener('click', () => {
+      if (pairs.length >= MAX_PAIRS) return;
+      pairs.push({ a: '', b: '' });
+      persistPairs();
+      renderPairs();
+    });
+
+    newComboBtn.addEventListener('click', () => {
+      const completePairs = pairs.filter(p => p.a.trim() && p.b.trim());
+
+      if (completePairs.length === 0) {
+        comboMessageEl.textContent = 'Add at least one pair with both sides filled in';
+        comboMessageEl.classList.remove('hidden');
+        comboCardEl.classList.add('hidden');
+        return;
+      }
+
+      comboMessageEl.classList.add('hidden');
+      comboLinesEl.innerHTML = '';
+      completePairs.forEach(pair => {
+        const chosen = Math.random() < 0.5 ? pair.a : pair.b;
+        const line = document.createElement('div');
+        line.className = 'combo-line';
+        line.textContent = chosen.trim();
+        comboLinesEl.appendChild(line);
+      });
+      comboCardEl.classList.remove('hidden');
+    });
+
+    // ---------------- Audio cue: one gentle chime on landing ----------------
+    // Deliberately a single soft tone, not an alarm pattern — just signals
+    // the flip has finished.
+    function playChime() {
+      try {
+        const ctx = TKAudio.ctx();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 528;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 1.4);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+
+    // ---------------- Init ----------------
+    renderPairs();
+    setMode('simple');
+  </script>
+
+  <script>window.TK_CURRENT = 'coin-flip';</script>
+  <script src="../shell/audio.js"></script>
+  <script src="../shell/navbar.js"></script>
+  <script src="../shell/fullscreen.js"></script>
+</body>
+</html>

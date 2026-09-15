@@ -31,6 +31,8 @@
     { key: 'rotation-timer', label: 'Rotation Timer', href: 'rotation-timer/' },
     { key: 'chili-challenge', label: 'Chili Challenge', href: 'chili-challenge/teacher.html' },
     { key: 'help-ladder', label: 'Help Ladder', href: 'help-ladder/teacher.html' },
+    { key: 'coin-flip', label: 'Coin Flip', href: 'coin-flip/' },
+    { key: 'break-timer', label: 'Break Timer', href: 'break-timer/' },
     { key: 'research', label: 'Research', href: 'research/' }
   ];
 
