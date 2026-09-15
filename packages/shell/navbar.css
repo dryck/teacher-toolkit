@@ -111,3 +111,15 @@
 body.tk-has-navbar {
   padding-top: 0;
 }
+
+/* Embed mode: the page is inside a Lesson Board pane. The board supplies
+   its own header per pane, so the tool's own footer and top padding are
+   wasted vertical space on a projector. */
+body.tk-embed .footer,
+body.tk-embed .tk-fullscreen-btn {
+  display: none;
+}
+
+body.tk-embed {
+  padding-top: 8px;
+}

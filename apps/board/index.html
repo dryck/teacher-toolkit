@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson Board | Teacher Toolkit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
+    body {
+      background: var(--tk-bg-gradient);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ---- board toolbar ---- */
+    .board-bar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      flex-wrap: wrap;
+    }
+    .board-bar .spacer { flex: 1; }
+    .board-bar button {
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 30px;
+      border: 1.5px solid var(--tk-primary);
+      background: transparent;
+      color: var(--tk-primary);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .board-bar button:hover { background: var(--tk-primary); color: #fff; }
+    .board-bar button.primary { background: var(--tk-primary); color: #fff; }
+    .board-bar button.primary:hover { background: var(--tk-primary-dark); }
+
+    /* ---- the grid of panes ---- */
+    #board {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      gap: 10px;
+      padding: 0 10px 10px;
+    }
+    /* Layouts are chosen by pane count so there is nothing to drag or
+       arrange mid-lesson. 3 panes gives the first one the tall column,
+       since that is usually the one being watched. */
+    #board[data-count="0"], #board[data-count="1"] { grid-template-columns: 1fr; }
+    #board[data-count="2"] { grid-template-columns: 1fr 1fr; }
+    #board[data-count="3"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    #board[data-count="3"] .pane:first-child { grid-row: span 2; }
+    #board[data-count="4"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+    /* Focus mode: one pane fills the board, the rest stay loaded but hidden
+       so their timers keep running. */
+    #board.focused { grid-template-columns: 1fr !important; grid-template-rows: 1fr !important; }
+    #board.focused .pane { display: none; }
+    #board.focused .pane.focus { display: flex; grid-row: auto !important; }
+
+    .pane {
+      display: flex;
+      flex-direction: column;
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      overflow: hidden;
+      box-shadow: var(--tk-shadow);
+      min-height: 0;
+    }
+    .pane-head {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: rgba(38, 87, 135, 0.06);
+      border-bottom: 1px solid rgba(38, 87, 135, 0.12);
+    }
+    .pane-title {
+      font-family: var(--tk-font-heading);
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--tk-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+    .pane-head button {
+      font: inherit;
+      font-size: 0.95rem;
+      line-height: 1;
+      border: none;
+      background: transparent;
+      color: var(--tk-primary);
+      cursor: pointer;
+      padding: 4px 7px;
+      border-radius: 6px;
+    }
+    .pane-head button:hover { background: rgba(38, 87, 135, 0.12); }
+    .pane iframe { flex: 1; width: 100%; border: 0; min-height: 0; }
+
+    /* ---- empty state ---- */
+    .empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--tk-text-muted);
+      text-align: center;
+      padding: 30px;
+    }
+    .empty h2 { font-size: 1.4rem; color: var(--tk-text); }
+    .empty p { max-width: 420px; line-height: 1.5; }
+
+    /* ---- tool picker ---- */
+    .picker-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 30, 45, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 500;
+    }
+    .picker-backdrop.open { display: flex; }
+    .picker {
+      background: var(--tk-surface);
+      border-radius: var(--tk-radius);
+      box-shadow: var(--tk-shadow);
+      padding: 18px;
+      width: min(680px, 100%);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .picker h2 {
+      font-size: 1.1rem;
+      color: var(--tk-text);
+      margin-bottom: 12px;
+    }
+    .picker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 8px;
+    }
+    .picker-grid button {
+      font: inherit;
+      text-align: left;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(38, 87, 135, 0.18);
+      background: transparent;
+      color: var(--tk-text);
+      cursor: pointer;
+    }
+    .picker-grid button:hover { background: rgba(38, 87, 135, 0.08); }
+    .picker-grid button[disabled] { opacity: 0.4; cursor: default; }
+    .picker-grid button[disabled]:hover { background: transparent; }
+  </style>
+</head>
+<body>
+  <div class="board-bar">
+    <button id="addBtn" class="primary">+ Add tool</button>
+    <button id="clearBtn">Clear board</button>
+    <span class="spacer"></span>
+    <button id="fsBtn">⛶ Fullscreen</button>
+  </div>
+
+  <div id="board" data-count="0"></div>
+
+  <div class="picker-backdrop" id="pickerBackdrop">
+    <div class="picker">
+      <h2>Add a tool to the board</h2>
+      <div class="picker-grid" id="pickerGrid"></div>
+    </div>
+  </div>
+
+  <script>window.TK_CURRENT = 'board';</script>
+  <script src="../shell/navbar.js"></script>
+  <script>
+  (function () {
+    // Up to four panes: beyond that nothing is readable from the back of a
+    // classroom, which is the only place this is ever viewed from.
+    var MAX_PANES = 4;
+    var STORAGE_KEY = 'tk-lesson-board';
+
+    var board = document.getElementById('board');
+    var backdrop = document.getElementById('pickerBackdrop');
+    var grid = document.getElementById('pickerGrid');
+
+    // TK_TOOLS comes from the shared navbar script, so a tool added to the
+    // toolkit appears in this picker with no change here. The brand entry
+    // and this board itself are not things you can put *on* the board.
+    var TOOLS = (window.TK_TOOLS || []).filter(function (t) {
+      return !t.isBrand && t.key !== 'board' && t.key !== 'research';
+    });
+
+    var pinned = load();
+
+    function load() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        var keys = raw ? JSON.parse(raw) : [];
+        // Drop anything that no longer exists so a renamed tool can't
+        // leave a permanently broken pane behind.
+        return keys.filter(function (k) { return TOOLS.some(function (t) { return t.key === k; }); })
+                   .slice(0, MAX_PANES);
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function save() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(pinned));
+      } catch (e) { /* private mode — board just won't persist */ }
+    }
+
+    function toolFor(key) {
+      return TOOLS.filter(function (t) { return t.key === key; })[0];
+    }
+
+    function srcFor(tool) {
+      // embed=1 tells the shared shell to drop the navbar and footer.
+      return '../' + tool.href + (tool.href.indexOf('?') === -1 ? '?' : '&') + 'embed=1';
+    }
+
+    /* Rebuilding every pane on each render would reload the iframes and
+       kill anything running in them, so panes are created once and only
+       added/removed as needed. */
+    function render() {
+      board.dataset.count = String(pinned.length);
+
+      if (!pinned.length) {
+        board.classList.remove('focused');
+        board.innerHTML =
+          '<div class="empty">' +
+            '<h2>Your lesson board is empty</h2>' +
+            '<p>Add the tools you want on screen together — a noise monitor and a timer, say — ' +
+            'and they stay pinned here. Timers keep running even while another tool is in focus.</p>' +
+          '</div>';
+        return;
+      }
+
+      var empty = board.querySelector('.empty');
+      if (empty) empty.remove();
+
+      // Remove panes that are no longer pinned.
+      Array.prototype.slice.call(board.children).forEach(function (pane) {
+        if (pinned.indexOf(pane.dataset.key) === -1) pane.remove();
+      });
+
+      // Add any newly pinned tools, then put panes in the pinned order.
+      pinned.forEach(function (key) {
+        if (!board.querySelector('[data-key="' + key + '"]')) board.appendChild(makePane(key));
+      });
+      pinned.forEach(function (key) {
+        board.appendChild(board.querySelector('[data-key="' + key + '"]'));
+      });
+    }
+
+    function makePane(key) {
+      var tool = toolFor(key);
+      var pane = document.createElement('div');
+      pane.className = 'pane';
+      pane.dataset.key = key;
+
+      var head = document.createElement('div');
+      head.className = 'pane-head';
+
+      var title = document.createElement('span');
+      title.className = 'pane-title';
+      title.textContent = tool.label;
+
+      var focusBtn = document.createElement('button');
+      focusBtn.type = 'button';
+      focusBtn.title = 'Focus this tool';
+      focusBtn.setAttribute('aria-label', 'Focus ' + tool.label);
+      focusBtn.textContent = '⛶';
+      focusBtn.addEventListener('click', function () { toggleFocus(pane); });
+
+      var closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.title = 'Remove from board';
+      closeBtn.setAttribute('aria-label', 'Remove ' + tool.label);
+      closeBtn.textContent = '✕';
+      closeBtn.addEventListener('click', function () {
+        pinned = pinned.filter(function (k) { return k !== key; });
+        board.classList.remove('focused');
+        save();
+        render();
+      });
+
+      head.appendChild(title);
+      head.appendChild(focusBtn);
+      head.appendChild(closeBtn);
+
+      var frame = document.createElement('iframe');
+      frame.src = srcFor(tool);
+      // Noise Monitor needs the mic; the timers request fullscreen.
+      frame.setAttribute('allow', 'microphone; fullscreen; autoplay');
+      frame.title = tool.label;
+
+      pane.appendChild(head);
+      pane.appendChild(frame);
+      return pane;
+    }
+
+    function toggleFocus(pane) {
+      var already = pane.classList.contains('focus');
+      Array.prototype.forEach.call(board.children, function (p) { p.classList.remove('focus'); });
+      if (already) {
+        board.classList.remove('focused');
+      } else {
+        pane.classList.add('focus');
+        board.classList.add('focused');
+      }
+    }
+
+    /* ---- picker ---- */
+    function openPicker() {
+      grid.innerHTML = '';
+      TOOLS.forEach(function (tool) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = tool.label;
+        var on = pinned.indexOf(tool.key) !== -1;
+        if (on) {
+          b.disabled = true;
+          b.textContent = tool.label + ' ✓';
+        } else if (pinned.length >= MAX_PANES) {
+          b.disabled = true;
+        }
+        b.addEventListener('click', function () {
+          if (pinned.length >= MAX_PANES || pinned.indexOf(tool.key) !== -1) return;
+          pinned.push(tool.key);
+          board.classList.remove('focused');
+          save();
+          render();
+          closePicker();
+        });
+        grid.appendChild(b);
+      });
+      backdrop.classList.add('open');
+    }
+
+    function closePicker() { backdrop.classList.remove('open'); }
+
+    document.getElementById('addBtn').addEventListener('click', openPicker);
+    backdrop.addEventListener('click', function (e) {
+      if (e.target === backdrop) closePicker();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      if (backdrop.classList.contains('open')) closePicker();
+      else if (board.classList.contains('focused')) board.classList.remove('focused');
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', function () {
+      if (pinned.length && !confirm('Remove all tools from the board?')) return;
+      pinned = [];
+      board.classList.remove('focused');
+      save();
+      render();
+    });
+
+    document.getElementById('fsBtn').addEventListener('click', function () {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    });
+
+    render();
+  })();
+  </script>
+</body>
+</html>

@@ -10,6 +10,7 @@
 (function () {
   var TOOLS = [
     { key: 'hub', label: 'Teacher Toolkit', href: '', isBrand: true },
+    { key: 'board', label: 'Lesson Board', href: 'board/' },
     { key: 'noise-monitor', label: 'Noise Monitor', href: 'noise-monitor/' },
     { key: 'quick-poll', label: 'Quick Poll', href: 'quick-poll/' },
     { key: 'random-picker', label: 'Random Picker', href: 'random-picker/' },
@@ -37,6 +38,22 @@
   ];
 
   var current = window.TK_CURRENT || 'hub';
+
+  // Published so other pages don't have to keep their own copy of this
+  // list. The Lesson Board builds its tool picker from it, which means a
+  // tool added here shows up there automatically.
+  window.TK_TOOLS = TOOLS;
+
+  // Embed mode (?embed=1): the page is running inside a Lesson Board pane,
+  // where the toolkit chrome is redundant -- the board already provides
+  // navigation, and on a projector every pixel of vertical space counts.
+  // The body class lets each tool hide its own footer too.
+  if (/[?&]embed=1\b/.test(location.search)) {
+    document.addEventListener('DOMContentLoaded', function () {
+      document.body.classList.add('tk-embed');
+    });
+    return;
+  }
 
   var nav = document.createElement('nav');
   nav.className = 'tk-navbar';
