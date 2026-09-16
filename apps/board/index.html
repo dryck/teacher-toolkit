@@ -229,6 +229,8 @@
     // scale the tool down rather than cropping the bottom off it.
     var LOGICAL_H = 760;
     var MIN_W = 0.14, MIN_H = 0.16;   // fractions of the canvas
+    // Never scale a tool below this -- past it the pane scrolls instead.
+    var MIN_SCALE = 0.32;
 
     var canvas = document.getElementById('canvas');
     var shield = document.getElementById('shield');
@@ -337,6 +339,31 @@
        than its pane and it clips, which is the exact problem this is meant
        to solve. Taking the smaller of the two ratios fits the whole tool
        and letterboxes whatever space is left over. */
+    /* How tall the tool actually is, in its own layout pixels.
+
+       A fixed guess doesn't work: Group Generator is short until you press
+       Generate and then grows a whole results grid, so a one-size height
+       either wastes space or cuts the results off -- which is exactly what
+       it did. The panes are same-origin, so the real height is readable.
+
+       The height is zeroed first because nearly every tool sets
+       `min-height: 100vh` on its body, and 100vh inside an iframe means the
+       iframe's own height. Measuring without that would just read back
+       whatever height we last set, not the content. */
+    function measureContent(frame) {
+      try {
+        var doc = frame.contentDocument;
+        if (!doc || !doc.documentElement) return null;
+        var prev = frame.style.height;
+        frame.style.height = '0px';
+        var natural = doc.documentElement.scrollHeight;
+        frame.style.height = prev;
+        return natural > 0 ? natural : null;
+      } catch (e) {
+        return null;   // cross-origin or not loaded yet
+      }
+    }
+
     function rescale(el) {
       var body = el.querySelector('.pane-body');
       var frame = el.querySelector('iframe');
@@ -344,13 +371,39 @@
       var w = body.clientWidth, h = body.clientHeight;
       if (!w || !h) return;
 
-      var scale = Math.min(w / LOGICAL_W, h / LOGICAL_H);
+      var logicalH = measureContent(frame) || LOGICAL_H;
+      frame.dataset.lastH = String(logicalH);
+
+      // Fit the whole tool, but never shrink it past legibility -- below the
+      // floor the pane scrolls instead, which beats text nobody can read
+      // from the back of a room.
+      var scale = Math.min(w / LOGICAL_W, h / logicalH);
+      scale = Math.max(scale, MIN_SCALE);
+
       frame.style.width = LOGICAL_W + 'px';
-      frame.style.height = LOGICAL_H + 'px';
-      // Centre the letterboxed result inside the pane.
+      frame.style.height = (h / scale) + 'px';
       var left = (w - LOGICAL_W * scale) / 2;
-      var top = (h - LOGICAL_H * scale) / 2;
-      frame.style.transform = 'translate(' + left + 'px,' + top + 'px) scale(' + scale + ')';
+      frame.style.transform = 'translate(' + Math.max(0, left) + 'px,0) scale(' + scale + ')';
+    }
+
+    /* Re-fit when a tool's own content changes size -- generating groups,
+       revealing a result, starting a circle. Guarded on the measured
+       natural height so our own resize of the iframe can't feed back into
+       an endless loop. */
+    function watchContent(el, frame) {
+      function check() {
+        var natural = measureContent(frame);
+        if (natural && natural !== Number(frame.dataset.lastH)) rescale(el);
+      }
+      frame.addEventListener('load', function () {
+        rescale(el);
+        try {
+          var doc = frame.contentDocument;
+          if (doc && doc.body && window.ResizeObserver) {
+            new ResizeObserver(check).observe(doc.body);
+          }
+        } catch (e) { /* nothing to observe */ }
+      });
     }
 
     function makePane(p) {
@@ -398,6 +451,7 @@
       frame.setAttribute('allow', 'microphone; fullscreen; autoplay');
       frame.title = tool.label;
       body.appendChild(frame);
+      watchContent(el, frame);
 
       var handle = document.createElement('div');
       handle.className = 'pane-resize';

@@ -780,6 +780,11 @@ Julia</textarea>
         shuffleBox.style.display = 'none';
         renderGroups(groups);
         resultsWrap.style.display = 'block';
+        // The name list and options push the results below the fold, so on
+        // a laptop -- and especially inside a Lesson Board pane -- the
+        // groups appeared off-screen and had to be scrolled to. Same
+        // reveal the other result-producing tools already do.
+        resultsWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, SHUFFLE_ANIMATION_MS);
     }
 
