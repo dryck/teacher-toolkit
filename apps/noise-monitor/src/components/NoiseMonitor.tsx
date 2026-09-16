@@ -55,7 +55,6 @@ export function NoiseMonitor({
   isFullscreen,
   onNoiseLevelChange,
 }: NoiseMonitorProps) {
-  const [displayLevel, setDisplayLevel] = useState(0)
   const [isTooLoud, setIsTooLoud] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -74,7 +73,13 @@ export function NoiseMonitor({
   const smoothedLevelRef = useRef(0)
   const lastFrameTimeRef = useRef<number | null>(null)
   const committedLevelNumberRef = useRef(1)
-  
+  // Themes render off this, NOT the live smoothedLevel -- it only moves when
+  // the up/down delay below actually commits a new level, so every theme's
+  // own color/mood/fill logic (which all independently threshold noiseLevel)
+  // automatically respects the user's configured Transition Delay instead of
+  // flickering with every small fluctuation in the smoothed mic signal.
+  const [committedDisplayLevel, setCommittedDisplayLevel] = useState(0)
+
   const alertType = soundSettings?.alertType || 'sound'
   const { triggerAlerts, stopAlerts } = useAudio(selectedSound, customSounds, isMuted, soundSettings)
 
@@ -116,7 +121,6 @@ export function NoiseMonitor({
       audioContextRef.current.close()
     }
     setIsListening(false)
-    setDisplayLevel(0)
     setIsTooLoud(false)
     if (upDelayTimerRef.current) clearTimeout(upDelayTimerRef.current)
     if (downDelayTimerRef.current) clearTimeout(downDelayTimerRef.current)
@@ -125,6 +129,7 @@ export function NoiseMonitor({
     smoothedLevelRef.current = 0
     lastFrameTimeRef.current = null
     committedLevelNumberRef.current = 1
+    setCommittedDisplayLevel(0)
     stopAlerts()
     stopTTS()
   }, [stopAlerts, stopTTS])
@@ -157,7 +162,6 @@ export function NoiseMonitor({
       // Continuous, every-frame update -- this is what themes animate
       // against, so the visual tracks the room smoothly instead of sitting
       // frozen and then jumping to a single sample once a delay elapses.
-      setDisplayLevel(smoothedLevel)
       onNoiseLevelChange?.(smoothedLevel)
 
       // Alerts/status still only change after sustained time at a new
@@ -174,6 +178,7 @@ export function NoiseMonitor({
             const oldLevelNumber = committedLevelNumberRef.current
             if (freshLevelNumber > oldLevelNumber) {
               committedLevelNumberRef.current = freshLevelNumber
+              setCommittedDisplayLevel(smoothedLevelRef.current)
               setIsTooLoud(freshLevelNumber >= 4)
               if (freshLevelNumber >= 4 && oldLevelNumber < 4) {
                 if (alertType !== 'voice') triggerAlerts()
@@ -193,6 +198,7 @@ export function NoiseMonitor({
             const oldLevelNumber = committedLevelNumberRef.current
             if (freshLevelNumber < oldLevelNumber) {
               committedLevelNumberRef.current = freshLevelNumber
+              setCommittedDisplayLevel(smoothedLevelRef.current)
               setIsTooLoud(freshLevelNumber >= 4)
               if (freshLevelNumber < 4) {
                 stopAlerts()
@@ -228,12 +234,18 @@ export function NoiseMonitor({
   }, [stopListening])
 
   const renderTheme = () => {
-    const props = { noiseLevel: displayLevel, threshold, isTooLoud, customImages, backgroundColor }
-    
+    // Every theme below thresholds this number itself (for color, mood,
+    // fill height, active dot count, etc.) -- feeding them the delay-gated
+    // committedDisplayLevel, not the live per-frame smoothed level, is what
+    // makes the Transition Delay setting actually govern when a theme's
+    // visual state is allowed to change, instead of only gating the
+    // isTooLoud alert boundary.
+    const props = { noiseLevel: committedDisplayLevel, threshold, isTooLoud, customImages, backgroundColor }
+
     // Convert to level format for new themes
     const getLevel = (): 'quiet' | 'moderate' | 'loud' | 'tooLoud' => {
       if (isTooLoud) return 'tooLoud'
-      const ratio = displayLevel / threshold
+      const ratio = committedDisplayLevel / threshold
       if (ratio < 0.5) return 'quiet'
       if (ratio < 0.8) return 'moderate'
       return 'loud'
