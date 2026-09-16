@@ -152,6 +152,36 @@
     .empty h2 { font-size: 1.4rem; color: var(--tk-text); }
     .empty p { max-width: 440px; line-height: 1.5; }
 
+    .detached {
+      display: none;
+      position: absolute;
+      inset: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      text-align: center;
+      padding: 30px;
+      color: var(--tk-text-muted);
+    }
+    .detached.on { display: flex; }
+    .detached h2 { font-size: 1.4rem; color: var(--tk-text); }
+    .detached p { max-width: 460px; line-height: 1.5; }
+    .detached button {
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: 30px;
+      border: 1.5px solid var(--tk-primary);
+      background: var(--tk-primary);
+      color: #fff;
+      cursor: pointer;
+    }
+    /* Popped-out window: the board is the whole point of it, so lose the
+       controls that only make sense in a tab. */
+    body.tk-popped #popBtn { display: none; }
+
     /* ---- picker ---- */
     .picker-backdrop {
       position: fixed;
@@ -201,10 +231,21 @@
     <button id="clearBtn">Clear board</button>
     <span class="spacer"></span>
     <span class="hint">Drag the title bar to move · drag the corner to resize</span>
+    <button id="popBtn">⧉ Open in own window</button>
     <button id="fsBtn">⛶ Fullscreen</button>
   </div>
 
   <div id="canvas"></div>
+
+  <!-- Shown in the original tab once the board has been popped out, so the
+       tab is free for other things without two live copies of the tools
+       fighting over the microphone and speakers. -->
+  <div id="detached" class="detached">
+    <h2>Board is open in its own window</h2>
+    <p>This tab is free now — open anything you like in it. The board keeps
+       running in the other window, so your timers and noise monitor carry on.</p>
+    <button id="reclaimBtn" class="primary">Bring the board back here</button>
+  </div>
   <div id="shield"></div>
 
   <div class="picker-backdrop" id="pickerBackdrop">
@@ -216,6 +257,7 @@
 
   <script>window.TK_CURRENT = 'board';</script>
   <script src="../shell/navbar.js"></script>
+  <script src="../shell/toast.js"></script>
   <script>
   (function () {
     var MAX_PANES = 6;
@@ -576,6 +618,66 @@
     document.getElementById('fsBtn').addEventListener('click', function () {
       if (!document.fullscreenElement) document.documentElement.requestFullscreen();
       else document.exitFullscreen();
+    });
+
+    /* ---------------- pop out into its own window ----------------
+       A board stuck in a tab is invisible the moment you switch tabs to
+       show the class something else. In its own window it stays up while
+       the original tab goes off and does whatever it likes.
+
+       The opener tears its own panes down while popped out: two live
+       copies would mean two microphone streams and two sets of alarms. */
+    var popped = /[?&]window=1\b/.test(location.search);
+    var popWin = null;
+    var detached = document.getElementById('detached');
+
+    if (popped) document.body.classList.add('tk-popped');
+
+    function setDetached(on) {
+      detached.classList.toggle('on', on);
+      canvas.style.display = on ? 'none' : '';
+      if (on) {
+        // Removing the panes stops their tools; `panes` itself is kept so
+        // the same board comes straight back.
+        Array.prototype.slice.call(canvas.querySelectorAll('.pane')).forEach(function (el) { el.remove(); });
+      } else {
+        panes = load();     // pick up anything rearranged in the other window
+        render();
+      }
+    }
+
+    document.getElementById('popBtn').addEventListener('click', function () {
+      var url = location.pathname + '?window=1';
+      var w = Math.min(screen.availWidth, 1440);
+      var h = Math.min(screen.availHeight, 900);
+      popWin = window.open(url, 'tk-lesson-board',
+        'width=' + w + ',height=' + h + ',left=0,top=0');
+
+      if (!popWin) {
+        // Never alert(): a blocking dialog freezes the page mid-lesson and
+        // reads as a crash. Same reason toast.js exists.
+        if (window.TKToast) {
+          TKToast.show('Your browser blocked the new window — allow pop-ups for this site, then try again.');
+        }
+        return;
+      }
+      setDetached(true);
+
+      // If they just close that window, take the board back rather than
+      // leaving this tab showing a dead notice.
+      var poll = setInterval(function () {
+        if (popWin && popWin.closed) {
+          clearInterval(poll);
+          popWin = null;
+          setDetached(false);
+        }
+      }, 800);
+    });
+
+    document.getElementById('reclaimBtn').addEventListener('click', function () {
+      if (popWin && !popWin.closed) popWin.close();
+      popWin = null;
+      setDetached(false);
     });
 
     // Panes are sized in percentages, so every tool needs rescaling when the
