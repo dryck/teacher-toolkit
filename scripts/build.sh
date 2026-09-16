@@ -27,7 +27,7 @@ for tool in quick-poll random-picker visual-timer research zones \
             homework-menu behaviour-reflection \
             brainstorm-timer behaviour-log \
             step-by-step hint-envelopes jigsaw-coordinator peer-feedback \
-            live-quiz class-points kwl-chart; do
+            live-quiz class-points kwl-chart web-view; do
   mkdir -p "dist/$tool"
   cp -r "apps/$tool/." "dist/$tool/"
 done

@@ -45,6 +45,7 @@
     { key: 'live-quiz', label: 'Live Quiz', href: 'live-quiz/teacher.html' },
     { key: 'class-points', label: 'Class Points', href: 'class-points/' },
     { key: 'kwl-chart', label: 'KWL Chart', href: 'kwl-chart/' },
+    { key: 'web-view', label: 'Web Page', href: 'web-view/' },
     { key: 'research', label: 'Research', href: 'research/' }
   ];
 

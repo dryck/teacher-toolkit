@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Page | Teacher Tools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="../shell/theme.css">
+  <link rel="stylesheet" href="../shell/navbar.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: var(--tk-bg-gradient);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .wv-bar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--tk-surface);
+      border-bottom: 1px solid rgba(38, 87, 135, 0.15);
+    }
+    .wv-bar input {
+      flex: 1;
+      min-width: 0;
+      font: inherit;
+      font-size: 0.92rem;
+      padding: 8px 12px;
+      border: 1.5px solid rgba(38, 87, 135, 0.25);
+      border-radius: 20px;
+      color: var(--tk-text);
+      background: #fff;
+    }
+    .wv-bar input:focus {
+      outline: none;
+      border-color: var(--tk-primary);
+    }
+    .wv-bar button {
+      font: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--tk-primary);
+      background: var(--tk-primary);
+      color: #fff;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .wv-bar button.ghost { background: transparent; color: var(--tk-primary); }
+    .wv-bar button.ghost:hover { background: rgba(38, 87, 135, 0.1); }
+
+    .wv-stage { position: relative; flex: 1; min-height: 0; background: #fff; }
+    .wv-stage iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+    .wv-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+      padding: 24px;
+      color: var(--tk-text-muted);
+      background: var(--tk-bg);
+    }
+    .wv-empty h2 { font-size: 1.15rem; color: var(--tk-text); }
+    .wv-empty p { max-width: 460px; line-height: 1.5; font-size: 0.92rem; }
+    .wv-empty code {
+      background: rgba(38, 87, 135, 0.1);
+      padding: 1px 6px;
+      border-radius: 5px;
+      font-size: 0.86rem;
+    }
+
+    /* Some sites send X-Frame-Options / frame-ancestors and simply refuse to
+       be embedded anywhere. Nothing this page can do about that, so say so
+       plainly and keep the escape hatch one click away. */
+    .wv-note {
+      flex-shrink: 0;
+      font-size: 0.78rem;
+      color: var(--tk-text-muted);
+      padding: 5px 12px;
+      background: var(--tk-surface);
+      border-top: 1px solid rgba(38, 87, 135, 0.12);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .wv-note a { color: var(--tk-primary); font-weight: 600; }
+  </style>
+</head>
+<!-- Tells the Lesson Board to give this pane the full area at 1:1 instead of
+     scaling it like a fixed-layout tool: a web page wants real estate, not
+     a shrunk-to-fit miniature. -->
+<body data-tk-fill>
+  <div class="wv-bar">
+    <input id="urlInput" type="url" placeholder="Paste a link — YouTube, Wikipedia, Google Slides…"
+           autocomplete="off" spellcheck="false">
+    <button id="goBtn">Show</button>
+    <button id="openBtn" class="ghost" title="Open in a real browser tab">↗ Tab</button>
+  </div>
+
+  <div class="wv-stage">
+    <iframe id="frame" title="Embedded page"
+            allow="fullscreen; autoplay; encrypted-media; picture-in-picture"
+            referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <div class="wv-empty" id="empty">
+      <h2>Show a web page on your board</h2>
+      <p>Paste a link above. YouTube videos, Wikipedia articles and Google
+         Slides all work — paste the normal link and it gets converted for you.</p>
+      <p>Some sites (Google Search, BBC Bitesize and others) refuse to be
+         embedded anywhere. For those, use <code>↗ Tab</code>.</p>
+    </div>
+  </div>
+
+  <div class="wv-note" id="note" hidden>
+    <span>Blank or refusing to load? That site blocks embedding.</span>
+    <a href="#" id="noteOpen">Open it in a tab instead ↗</a>
+  </div>
+
+  <script>window.TK_CURRENT = 'web-view';</script>
+  <script src="../shell/navbar.js"></script>
+  <script>
+  (function () {
+    var STORAGE_KEY = 'tk-web-view-url';
+
+    var input = document.getElementById('urlInput');
+    var frame = document.getElementById('frame');
+    var empty = document.getElementById('empty');
+    var note = document.getElementById('note');
+
+    /* Teachers paste the link from the address bar, not an embed link, so
+       convert the common classroom ones into their embeddable form. */
+    function toEmbeddable(raw) {
+      var url = raw.trim();
+      if (!url) return '';
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+      var m;
+
+      // youtu.be/VIDEO  and  youtube.com/watch?v=VIDEO
+      if ((m = url.match(/^https?:\/\/(?:www\.)?youtu\.be\/([\w-]{6,})/i))) {
+        return 'https://www.youtube.com/embed/' + m[1];
+      }
+      if ((m = url.match(/^https?:\/\/(?:www\.)?youtube\.com\/watch\?[^#]*\bv=([\w-]{6,})/i))) {
+        return 'https://www.youtube.com/embed/' + m[1];
+      }
+
+      // Google Slides / Docs / Sheets: the /edit link can't be framed, the
+      // published or preview form can.
+      if (/^https?:\/\/docs\.google\.com\/presentation\//i.test(url)) {
+        return url.replace(/\/(edit|view|pub)(\?[^#]*)?(#.*)?$/, '/embed');
+      }
+      if (/^https?:\/\/docs\.google\.com\/(document|spreadsheets)\//i.test(url)) {
+        return url.replace(/\/(edit|view)(\?[^#]*)?(#.*)?$/, '/preview');
+      }
+
+      return url;
+    }
+
+    function show(raw, remember) {
+      var src = toEmbeddable(raw);
+      if (!src) return;
+      frame.src = src;
+      empty.style.display = 'none';
+      note.hidden = false;
+      if (remember !== false) {
+        try { localStorage.setItem(STORAGE_KEY, raw); } catch (e) {}
+      }
+    }
+
+    function openInTab() {
+      var src = toEmbeddable(input.value);
+      if (src) window.open(src, '_blank', 'noopener');
+    }
+
+    document.getElementById('goBtn').addEventListener('click', function () { show(input.value); });
+    document.getElementById('openBtn').addEventListener('click', openInTab);
+    document.getElementById('noteOpen').addEventListener('click', function (e) {
+      e.preventDefault();
+      openInTab();
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') show(input.value);
+    });
+
+    // Come back to the same page after a reload, or when the board restores
+    // this pane at the start of the next lesson.
+    try {
+      var last = localStorage.getItem(STORAGE_KEY);
+      if (last) {
+        input.value = last;
+        show(last, false);
+      }
+    } catch (e) {}
+  })();
+  </script>
+</body>
+</html>

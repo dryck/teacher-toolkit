@@ -392,6 +392,15 @@
        `min-height: 100vh` on its body, and 100vh inside an iframe means the
        iframe's own height. Measuring without that would just read back
        whatever height we last set, not the content. */
+    function wantsFill(frame) {
+      try {
+        var doc = frame.contentDocument;
+        return !!(doc && doc.body && doc.body.hasAttribute('data-tk-fill'));
+      } catch (e) {
+        return false;
+      }
+    }
+
     function measureContent(frame) {
       try {
         var doc = frame.contentDocument;
@@ -412,6 +421,17 @@
       if (!body || !frame) return;
       var w = body.clientWidth, h = body.clientHeight;
       if (!w || !h) return;
+
+      // A tool marked data-tk-fill wants the pane itself, not a scaled
+       // miniature of a fixed layout -- the Web Page tile, whose whole job
+       // is to give an embedded site as much room as possible.
+      if (wantsFill(frame)) {
+        frame.style.width = w + 'px';
+        frame.style.height = h + 'px';
+        frame.style.transform = 'none';
+        frame.dataset.lastH = String(h);
+        return;
+      }
 
       var logicalH = measureContent(frame) || LOGICAL_H;
       frame.dataset.lastH = String(logicalH);
