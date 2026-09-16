@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Teacher Toolkit — Embed Unblocker",
+  "version": "1.0.0",
+  "description": "Lets the Teacher Toolkit Lesson Board show sites that normally refuse to be embedded, such as Google, BBC Bitesize and Quizlet. Only affects frames the board itself loads.",
+  "permissions": ["declarativeNetRequest"],
+  "host_permissions": ["<all_urls>"],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "unblock-embedding",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://dryck.github.io/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": ["mark.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}

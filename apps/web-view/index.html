@@ -120,13 +120,14 @@
       <h2>Show a web page on your board</h2>
       <p>Paste a link above. YouTube videos, Wikipedia articles and Google
          Slides all work — paste the normal link and it gets converted for you.</p>
-      <p>Some sites (Google Search, BBC Bitesize and others) refuse to be
-         embedded anywhere. For those, use <code>↗ Tab</code>.</p>
+      <p id="blockHint">Some sites (Google Search, BBC Bitesize and others) refuse to be
+         embedded anywhere. Use <code>↗ Tab</code> for those, or install the
+         unblocker extension from the toolkit repo to show them here too.</p>
     </div>
   </div>
 
   <div class="wv-note" id="note" hidden>
-    <span>Blank or refusing to load? That site blocks embedding.</span>
+    <span id="noteText">Blank or refusing to load? That site blocks embedding.</span>
     <a href="#" id="noteOpen">Open it in a tab instead ↗</a>
   </div>
 
@@ -195,6 +196,17 @@
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') show(input.value);
     });
+
+    /* The unblocker extension tags the document, so the tile can say whether
+       a blank pane is fixable or just how that site behaves. Without this
+       the teacher is left guessing mid-lesson. */
+    var unblocked = document.documentElement.dataset.tkUnblock === '1';
+    if (unblocked) {
+      document.getElementById('noteText').textContent =
+        'Unblocker active — sites that normally refuse to embed should load here.';
+      var hint = document.getElementById('blockHint');
+      if (hint) hint.textContent = 'The unblocker extension is installed, so sites that normally refuse to embed will load here too.';
+    }
 
     // Come back to the same page after a reload, or when the board restores
     // this pane at the start of the next lesson.
