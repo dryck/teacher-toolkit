@@ -211,6 +211,22 @@ export function NoiseMonitor({
         if (upDelayTimerRef.current) clearTimeout(upDelayTimerRef.current)
         pendingUpRef.current = false
       } else {
+        // Back to equal with the committed level -- a pending timer from a
+        // brief overshoot in either direction is now stale and must be
+        // cancelled outright, not just have its pending flag cleared.
+        // Otherwise it keeps running on its original schedule, orphaned
+        // from pendingUpRef/pendingDownRef, and can fire a commit later
+        // off a schedule that no longer reflects the actual signal --
+        // shortening the effective delay the next time a real transition
+        // starts (since the stale timer can land mid-way through it).
+        if (upDelayTimerRef.current) {
+          clearTimeout(upDelayTimerRef.current)
+          upDelayTimerRef.current = null
+        }
+        if (downDelayTimerRef.current) {
+          clearTimeout(downDelayTimerRef.current)
+          downDelayTimerRef.current = null
+        }
         pendingUpRef.current = false
         pendingDownRef.current = false
       }
