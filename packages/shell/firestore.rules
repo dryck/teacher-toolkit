@@ -15,11 +15,21 @@ service cloud.firestore {
     match /zonesSessions/{sessionId} {
       allow get: if true;
       allow list: if false;
-      allow write: if request.resource.data.keys().hasOnly(['blue', 'green', 'yellow', 'red'])
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['blue', 'green', 'yellow', 'red', 'ownerUid', 'createdAt'])
+                   && request.resource.data.ownerUid == request.auth.uid
                    && (!('blue' in request.resource.data) || request.resource.data.blue is number)
                    && (!('green' in request.resource.data) || request.resource.data.green is number)
                    && (!('yellow' in request.resource.data) || request.resource.data.yellow is number)
                    && (!('red' in request.resource.data) || request.resource.data.red is number);
+      allow update: if request.auth != null
+                   && resource.data.ownerUid == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['blue', 'green', 'yellow', 'red', 'ownerUid', 'createdAt'])
+                   && (!('blue' in request.resource.data) || request.resource.data.blue is number)
+                   && (!('green' in request.resource.data) || request.resource.data.green is number)
+                   && (!('yellow' in request.resource.data) || request.resource.data.yellow is number)
+                   && (!('red' in request.resource.data) || request.resource.data.red is number);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
     }
 
     // Exit Ticket: a config doc (written once by the teacher when
@@ -64,21 +74,29 @@ service cloud.firestore {
       }
     }
 
-    // Growth Mindset's "Wall of Yet": the session doc itself is unused
-    // (just a parent for the subcollection); entries start unapproved
-    // and only the teacher's moderation view flips `approved` or
-    // deletes a rejected one.
+    // Growth Mindset's "Wall of Yet": session doc stores ownerUid (teacher).
+    // Entries start unapproved, and ONLY the teacher can flip `approved`
+    // or delete a rejected one.
     match /growthWallSessions/{sessionId} {
-      allow read, write: if false;
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['ownerUid', 'createdAt'])
+                   && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
       match /entries/{entryId} {
         allow read: if true;
-        allow create: if request.resource.data.keys().hasOnly(['text', 'approved', 'createdAt'])
-                      && request.resource.data.approved == false
-                      && request.resource.data.text is string
-                      && request.resource.data.text.size() <= 280;
-        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approved']);
-        allow delete: if true;
+        allow create: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['text', 'approved', 'createdAt'])
+                     && request.resource.data.approved == false
+                     && request.resource.data.text is string
+                     && request.resource.data.text.size() <= 280;
+        allow update: if request.auth != null
+                     && get(/databases/$(database)/documents/growthWallSessions/$(sessionId)).data.ownerUid == request.auth.uid
+                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approved']);
+        allow delete: if request.auth != null
+                     && get(/databases/$(database)/documents/growthWallSessions/$(sessionId)).data.ownerUid == request.auth.uid;
       }
     }
 
@@ -211,20 +229,28 @@ service cloud.firestore {
     match /liveQuizSessions/{sessionId} {
       allow get: if true;
       allow list: if false;
-      allow write: if request.resource.data.keys().hasOnly(['title', 'questions', 'currentQuestion', 'revealed', 'createdAt']);
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['title', 'questions', 'currentQuestion', 'revealed', 'ownerUid', 'createdAt'])
+                   && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.ownerUid == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['title', 'questions', 'currentQuestion', 'revealed', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
       match /players/{studentId} {
         allow get, list: if true;
-        allow write: if request.resource.data.keys().hasOnly(['nickname', 'joinedAt'])
-                     && request.resource.data.nickname is string
-                     && request.resource.data.nickname.size() <= 40;
+        allow write: if request.auth != null
+                    && request.resource.data.keys().hasOnly(['nickname', 'joinedAt'])
+                    && request.resource.data.nickname is string
+                    && request.resource.data.nickname.size() <= 40;
       }
 
       match /responses/{responseId} {
         allow get, list: if true;
-        allow write: if request.resource.data.keys().hasOnly(['studentId', 'questionIndex', 'optionIndex', 'createdAt'])
-                     && request.resource.data.questionIndex is number
-                     && request.resource.data.optionIndex is number;
+        allow write: if request.auth != null
+                    && request.resource.data.keys().hasOnly(['studentId', 'questionIndex', 'optionIndex', 'createdAt'])
+                    && request.resource.data.questionIndex is number
+                    && request.resource.data.optionIndex is number;
       }
     }
 

@@ -8,13 +8,30 @@
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous 0/O/1/I
 
 export const TKFirebase = {
-  /** Get the shared Firestore database instance. Call once per page load. */
-  db: () => {
+  /** Initialize Firebase and get the shared Firestore database instance.
+   *  Handles anonymous authentication + app initialization.
+   *  Safe to call multiple times (initialization is idempotent).
+   */
+  db: async () => {
     if (!firebase.apps.length) {
       firebase.initializeApp(window.TK_FIREBASE_CONFIG);
     }
+    const auth = firebase.auth();
+    if (!auth.currentUser) {
+      try {
+        await auth.signInAnonymously();
+      } catch (err) {
+        console.warn('Anonymous auth failed (expected in CI/offline):', err.message);
+        // Continue anyway — tests/offline mode will have null user, rules will deny writes
+      }
+    }
     return firebase.firestore();
   },
+
+  /** Get the current user's UID (for ownership checks in rules).
+   *  Returns null if not authenticated (e.g., in tests or offline mode).
+   */
+  uid: () => firebase.auth().currentUser?.uid || null,
 
   /** Generate a random 5-character session code. Used for teacher-facing join URLs. */
   randomSessionCode: () => {
