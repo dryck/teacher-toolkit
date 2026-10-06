@@ -11,6 +11,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // TTL POLICY: Apply in Firebase Console -> Firestore -> Data -> (any collection)
+    // Collection Settings -> Time-to-live (TTL) -> set to 30 days on 'createdAt' field
+    // This ensures sessions auto-delete after 30 days for GDPR/privacy compliance.
+    // Collections to enable: zonesSessions, exitTicketSessions, choiceBoardSessions, etc.
+    // (All collections with createdAt field below)
+
     // Zones Check-In: one doc per session, just 4 zone counters.
     match /zonesSessions/{sessionId} {
       allow get: if true;
