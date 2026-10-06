@@ -1,70 +1,113 @@
-# Contributing to Sound Level Monitor
+# Contributing to Noise Monitor
 
-Thank you for your interest in contributing! This project is designed to help teachers manage classroom noise, and we welcome improvements from the community.
+This app is `apps/noise-monitor` inside the [Teacher Toolkit](../../README.md)
+monorepo. **Repo-wide process lives in the root
+[CONTRIBUTING.md](../../CONTRIBUTING.md)** — setup, code standards, testing
+requirements, PR and release process all apply here. This file only covers what
+is specific to this app.
 
-## How to Contribute
+## Why this app has a build step
 
-### Reporting Bugs
-1. Check if the issue already exists
-2. Create a new issue with:
-   - Clear description
-   - Steps to reproduce
-   - Browser/device info
-   - Screenshots if applicable
+Every other tool in the toolkit is plain static HTML. Noise Monitor earns
+React + Vite + TypeScript because it does real-time microphone analysis and
+drives eight animated SVG themes off that signal. Don't take it as licence to
+add a framework to a new tool — see
+[docs/CODEMAPS/tool-pattern.md](../../docs/CODEMAPS/tool-pattern.md).
 
-### Suggesting Features
-1. Open an issue with "Feature Request:" prefix
-2. Explain the use case
-3. Describe expected behavior
+## Setup
 
-### Code Contributions
+Run from the **repository root**; the npm workspace owns the install.
 
-#### Setup
 ```bash
-git clone https://github.com/dryck/sound-level-monitor.git
-cd sound-level-monitor
-npm install
-npm run dev
+npm install                  # installs all workspaces
+npm run dev:noise-monitor    # http://localhost:3000
+npm run build                # builds the whole toolkit into ../../dist
+npm test                     # Playwright suite, against dist/
 ```
 
-#### Guidelines
-- Follow existing code style
-- Write clear commit messages
-- Test on mobile and desktop
-- Update documentation if needed
+## Layout
 
-#### Areas for Contribution
-- 🎨 New visual themes
-- 🔊 Additional sound options
-- 🌍 Translations
-- ♿ Accessibility improvements
-- 📱 Mobile optimizations
+```
+src/
+├── main.tsx                 entry
+├── App.tsx                  top-level state
+├── types.ts                 shared types + the tuned defaults (see below)
+├── components/
+│   ├── NoiseMonitor.tsx     the main screen
+│   ├── ThemeSelector.tsx    theme registry + previews
+│   ├── Settings.tsx         thresholds, delays, alert options
+│   └── SoundSelector.tsx    alarm sound picker
+├── hooks/
+│   ├── useAudio.ts          microphone capture and level
+│   ├── useTTS.ts            spoken alerts
+│   └── useSettings.ts       persistence
+├── themes/                  one component per visual theme
+└── utils/
+    ├── noiseCalculator.ts   dB calculation
+    └── soundGenerator.ts    built-in alarm tones
+```
 
-### Creating New Themes
+## Things in `types.ts` that are tuned, not arbitrary
 
-Themes are React components in `src/themes/`. To create one:
+Change these only with a reason, and say what it is in the PR:
 
-1. Create `YourTheme.tsx` in `src/themes/`
-2. Implement `ThemeProps` interface
-3. Add to theme selector
-4. Include preview image
+- `WHO_RECOMMENDATIONS` — threshold dB values taken from WHO classroom
+  guidance, which is also what `apps/research/index.html` cites for this tool.
+  Changing them changes a claim the research page makes.
+- `DEFAULT_DELAYS` (`upDelay: 2`, `downDelay: 4`) — hysteresis so a single
+  cough doesn't trip the alarm and the display doesn't flicker. A past bug had
+  the delay timer gating only the too-loud alert and not the theme visuals, and
+  another left an orphaned timer that let the monitor commit early.
+- `AlertType` (`'sound' | 'voice' | 'both'`) — exists because the original
+  behaviour fired both with no way to choose.
 
-Example structure:
+## Adding a theme
+
+Themes are React components in `src/themes/`. There are two prop shapes, for
+historical reasons:
+
+- `ThemeProps` — raw `noiseLevel`, `threshold`, `isTooLoud`, plus `customImages`
+  and optional `backgroundColor`. Used by Egg, Egg Classic, Glass, Custom.
+- `NewThemeProps` — a bucketed `level: 'quiet' | 'moderate' | 'loud' | 'tooLoud'`
+  and optional `intensity`. Used by Thermometer, Battery, Weather, Volcano.
+
+Prefer `NewThemeProps` for anything new: the bucketing already respects the
+configured thresholds and delays, so your theme can't disagree with the rest of
+the UI about how loud the room is.
+
 ```tsx
-export function YourTheme({ noiseLevel, threshold, isTooLoud }: ThemeProps) {
-  // Your animation logic
-  return <svg>...</svg>
+export function YourTheme({ level, intensity }: NewThemeProps) {
+  return <svg>{/* animation driven by level */}</svg>
 }
 ```
 
-## Code of Conduct
+Then:
 
-- Be respectful and constructive
-- Focus on helping teachers and students
-- Welcome newcomers
+1. Add your id to the `Theme` union in `src/types.ts`.
+2. Import it in `src/components/ThemeSelector.tsx`, add an entry to the `themes`
+   array (id, name, description, preview), and add a `case` to
+   `renderMiniTheme()` so the picker preview works.
+3. Render it where the active theme is switched on.
 
-## Questions?
+Check it at all four levels — a theme that is beautiful when quiet and
+illegible at `tooLoud` is worse than no theme, because the moment it matters is
+the moment it stops communicating.
 
-Open an issue or reach out to the maintainers.
+## Testing this app
 
-Thank you for helping improve classroom management tools! 🎓
+The repo's smoke test loads the built app and fails on any uncaught exception.
+Beyond that, test by hand in a real room:
+
+- Mic permission denied, and permission granted then revoked mid-session.
+- Projector/fullscreen, where this normally runs.
+- A sustained spike versus a one-second bang — the delays should swallow the bang.
+- Several alarms in a row, confirming audio does not die (see `TKAudio` in the
+  root contributing guide for why that failure mode exists).
+
+## Good areas to contribute
+
+- New visual themes
+- Additional alarm sounds
+- Accessibility: contrast, motion sensitivity, screen-reader labels
+- Translations
+- Mobile/tablet layout

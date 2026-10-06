@@ -13,7 +13,8 @@ service cloud.firestore {
 
     // Zones Check-In: one doc per session, just 4 zone counters.
     match /zonesSessions/{sessionId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if request.resource.data.keys().hasOnly(['blue', 'green', 'yellow', 'red'])
                    && (!('blue' in request.resource.data) || request.resource.data.blue is number)
                    && (!('green' in request.resource.data) || request.resource.data.green is number)
@@ -37,11 +38,12 @@ service cloud.firestore {
     // red/yellow/green) is enforced client-side, same level of trust
     // this file already extends to every other collection here.
     match /exitTicketSessions/{sessionId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if request.resource.data.keys().hasOnly(['mode', 'q1Enabled', 'q1Text', 'q2Enabled', 'q3Enabled', 'q3Text', 'createdAt']);
 
       match /responses/{responseId} {
-        allow read: if true;
+        allow get, list: if true;
         allow create: if request.resource.data.keys().hasOnly(['q1Answer', 'confidence', 'q3Answer', 'clearText', 'cloudyText', 'light', 'submittedAt']);
         allow update, delete: if false;
       }
@@ -50,11 +52,12 @@ service cloud.firestore {
     // Choice Board: a config doc (board layout, written by the teacher)
     // plus a per-student progress subcollection.
     match /choiceBoardSessions/{sessionId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if request.resource.data.keys().hasOnly(['title', 'cells', 'mustDoMode', 'minRequired']);
 
       match /progress/{studentId} {
-        allow read: if true;
+        allow get, list: if true;
         allow write: if request.resource.data.keys().hasOnly(['nickname', 'completed', 'joinedAt'])
                      && request.resource.data.nickname is string
                      && request.resource.data.nickname.size() <= 40;
@@ -85,12 +88,13 @@ service cloud.firestore {
     // (merge two stickies' text together) or delete (after a merge) any
     // sticky, but never create one themselves.
     match /snowballSessions/{sessionId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if request.resource.data.keys().hasOnly(['concept', 'phase', 'createdAt'])
                    && (!('phase' in request.resource.data) || request.resource.data.phase is number);
 
       match /stickies/{stickyId} {
-        allow read: if true;
+        allow get, list: if true;
         allow create: if request.resource.data.keys().hasOnly(['text', 'phase', 'createdAt'])
                       && request.resource.data.text is string
                       && request.resource.data.text.size() <= 140;
@@ -107,11 +111,12 @@ service cloud.firestore {
     // difficulty and a list of card strings) plus a per-student progress
     // subcollection, same shape as Choice Board's.
     match /challengeDeckSessions/{sessionId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if request.resource.data.keys().hasOnly(['title', 'categories']);
 
       match /progress/{studentId} {
-        allow read: if true;
+        allow get, list: if true;
         allow write: if request.resource.data.keys().hasOnly(['nickname', 'completedCardIds', 'joinedAt'])
                      && request.resource.data.nickname is string
                      && request.resource.data.nickname.size() <= 40;
@@ -123,11 +128,12 @@ service cloud.firestore {
     // choice is an upsert (they can change their mind), same shape as
     // Choice Board's progress subcollection.
     match /chiliChallengeSessions/{sessionId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if request.resource.data.keys().hasOnly(['title', 'level1Text', 'level2Text', 'level3Text', 'createdAt']);
 
       match /choices/{studentId} {
-        allow read: if true;
+        allow get, list: if true;
         allow write: if request.resource.data.keys().hasOnly(['nickname', 'level', 'joinedAt'])
                      && request.resource.data.nickname is string
                      && request.resource.data.nickname.size() <= 40
@@ -142,11 +148,12 @@ service cloud.firestore {
     // no nickname, ever -- that a student can also delete themselves to
     // cancel, and the teacher can bulk-delete via "Clear all".
     match /helpLadderSessions/{sessionId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if request.resource.data.keys().hasOnly(['step1', 'step2', 'step3', 'step4', 'step5', 'createdAt']);
 
       match /signals/{studentId} {
-        allow read: if true;
+        allow get, list: if true;
         allow write: if request.resource.data.keys().hasOnly(['joinedAt']);
         allow delete: if true;
       }
@@ -158,11 +165,12 @@ service cloud.firestore {
     // doc per submitted idea, no student identity, never edited or
     // deleted once created.
     match /brainstormSessions/{sessionId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if request.resource.data.keys().hasOnly(['object', 'durationSeconds', 'createdAt', 'startedAt']);
 
       match /ideas/{ideaId} {
-        allow read: if true;
+        allow get, list: if true;
         allow create: if request.resource.data.keys().hasOnly(['text', 'createdAt'])
                       && request.resource.data.text is string
                       && request.resource.data.text.size() <= 100;
@@ -175,11 +183,12 @@ service cloud.firestore {
     // feedback subcollection -- one doc per submission, no student
     // identity, never edited or deleted once created.
     match /peerFeedbackSessions/{sessionId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if request.resource.data.keys().hasOnly(['targets', 'createdAt']);
 
       match /feedback/{feedbackId} {
-        allow read: if true;
+        allow get, list: if true;
         allow create: if request.resource.data.keys().hasOnly(['target', 'stars', 'wish', 'createdAt'])
                       && request.resource.data.stars is list
                       && request.resource.data.stars.size() == 2
@@ -200,18 +209,19 @@ service cloud.firestore {
     // revealed, the same trust level already extended to every other
     // collection in this file.
     match /liveQuizSessions/{sessionId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow write: if request.resource.data.keys().hasOnly(['title', 'questions', 'currentQuestion', 'revealed', 'createdAt']);
 
       match /players/{studentId} {
-        allow read: if true;
+        allow get, list: if true;
         allow write: if request.resource.data.keys().hasOnly(['nickname', 'joinedAt'])
                      && request.resource.data.nickname is string
                      && request.resource.data.nickname.size() <= 40;
       }
 
       match /responses/{responseId} {
-        allow read: if true;
+        allow get, list: if true;
         allow write: if request.resource.data.keys().hasOnly(['studentId', 'questionIndex', 'optionIndex', 'createdAt'])
                      && request.resource.data.questionIndex is number
                      && request.resource.data.optionIndex is number;
