@@ -49,7 +49,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [noiseLevel, setNoiseLevel] = useState(0)
-  const { thresholds, delays, errors, updateThreshold, updateDelay, resetToWHO, isUsingWHODefaults } = useSettings()
+  const { thresholds, delays, errors, updateThreshold, updateDelay, resetThresholds, isUsingDefaults } = useSettings()
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
@@ -87,7 +87,7 @@ function App() {
     <div className="h-full w-full bg-gradient-to-br from-gray-50 to-gray-100">
       <NoiseMonitor
         theme={settings.theme}
-        threshold={thresholds.alarmTrigger}
+        thresholds={thresholds}
         selectedSound={settings.selectedSound}
         customSounds={settings.customSounds}
         customImages={settings.customImages}
@@ -113,8 +113,8 @@ function App() {
           errors={errors}
           updateThreshold={updateThreshold}
           updateDelay={updateDelay}
-          resetToWHO={resetToWHO}
-          isUsingWHODefaults={isUsingWHODefaults}
+          resetThresholds={resetThresholds}
+          isUsingDefaults={isUsingDefaults}
           onThemeChange={(theme) => setSettings(prev => ({ ...prev, theme }))}
           onSoundSettingsChange={(soundSettings) => setSettings(prev => ({ ...prev, soundSettings }))}
           onClose={() => setShowSettings(false)}

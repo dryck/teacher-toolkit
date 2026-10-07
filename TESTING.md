@@ -17,6 +17,21 @@ npm test
   where "quietly wrong" costs something: the picker's fairness promise, group
   sizes, and timer drift in a throttled background tab.
 
+## `npm run test:unit` — 15 tests, no setup
+
+```bash
+npm run test:unit
+```
+
+Vitest, in `apps/noise-monitor`. The app shipped with no test runner at all,
+which is how three of its four configurable thresholds came to be ignored by
+the engine while the Settings panel kept drawing them.
+
+Covers `calculateNoiseLevel` (including that an empty bin array must not
+return `NaN` — it would survive the moving average and stick the display on
+"quiet" for the rest of the lesson), `smoothNoiseLevel`, and the band logic
+against every configured bound rather than ratios of one of them.
+
 ## `npm run test:rules` — 29 tests, needs a JVM
 
 ```bash
@@ -79,11 +94,12 @@ What it asserts:
 | Area | Covered by | Status |
 |---|---|---|
 | Every page loads clean | smoke | ✅ CI |
+| noise-monitor engine | noiseCalculator.test | ✅ CI (15 tests) |
 | Picker fairness, group sizes, timer drift | logic | ✅ CI |
 | Firestore rules, both directions | rules.integration | ✅ CI (29 tests) |
 | Sign-in, ownerUid, student → teacher sync | e2e.integration | ✅ CI (5 tests) |
 | The other 9 Firebase tools' sync | — | ⚠️ same pattern, untested |
-| `noise-monitor` (React, ~3.5k lines) | — | ❌ no test runner configured |
+| noise-monitor React components | — | ❌ engine only; no component tests |
 | `packages/shell/escape.js` | — | ❌ none, despite 17 call sites |
 
 ### The gap that matters most

@@ -109,6 +109,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      # noise-monitor is the one app with real logic behind a build step; its
+      # unit tests need no browser, so they run before the slow suites.
+      - name: Unit tests
+        run: npm run test:unit
+
       # Smoke tests run against the built dist/, and the deploy job needs
       # this job to succeed — so a page that throws on load can't reach
       # production the way the random-picker crash previously did.

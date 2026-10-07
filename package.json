@@ -12,7 +12,8 @@
     "serve": "node scripts/serve.mjs",
     "test": "playwright test",
     "test:rules": "playwright test --config playwright.rules.config.mjs",
-    "test:e2e": "playwright test --config playwright.e2e.config.mjs"
+    "test:e2e": "playwright test --config playwright.e2e.config.mjs",
+    "test:unit": "npm test --workspace apps/noise-monitor"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

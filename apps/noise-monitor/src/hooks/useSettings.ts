@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { ThresholdConfig, WHO_RECOMMENDATIONS, DelayConfig, DEFAULT_DELAYS } from '../types'
+import { ThresholdConfig, DEFAULT_THRESHOLDS, DelayConfig, DEFAULT_DELAYS } from '../types'
 
 const THRESHOLDS_KEY = 'noise-monitor-thresholds'
 const DELAYS_KEY = 'noise-monitor-delays'
 
 export function useSettings() {
-  const [thresholds, setThresholds] = useState<ThresholdConfig>(WHO_RECOMMENDATIONS)
+  const [thresholds, setThresholds] = useState<ThresholdConfig>(DEFAULT_THRESHOLDS)
   const [delays, setDelays] = useState<DelayConfig>(DEFAULT_DELAYS)
   const [errors, setErrors] = useState<Partial<Record<keyof ThresholdConfig, string>>>({})
 
@@ -68,17 +68,17 @@ export function useSettings() {
     setDelays(prev => ({ ...prev, [key]: value }))
   }
 
-  const resetToWHO = () => {
-    setThresholds(WHO_RECOMMENDATIONS)
+  const resetThresholds = () => {
+    setThresholds(DEFAULT_THRESHOLDS)
     setDelays(DEFAULT_DELAYS)
     setErrors({})
   }
 
-  const isUsingWHODefaults = 
-    thresholds.quietToModerate === WHO_RECOMMENDATIONS.quietToModerate &&
-    thresholds.moderateToLoud === WHO_RECOMMENDATIONS.moderateToLoud &&
-    thresholds.loudToTooLoud === WHO_RECOMMENDATIONS.loudToTooLoud &&
-    thresholds.alarmTrigger === WHO_RECOMMENDATIONS.alarmTrigger &&
+  const isUsingDefaults = 
+    thresholds.quietToModerate === DEFAULT_THRESHOLDS.quietToModerate &&
+    thresholds.moderateToLoud === DEFAULT_THRESHOLDS.moderateToLoud &&
+    thresholds.loudToTooLoud === DEFAULT_THRESHOLDS.loudToTooLoud &&
+    thresholds.alarmTrigger === DEFAULT_THRESHOLDS.alarmTrigger &&
     delays.upDelay === DEFAULT_DELAYS.upDelay &&
     delays.downDelay === DEFAULT_DELAYS.downDelay
 
@@ -88,7 +88,7 @@ export function useSettings() {
     errors,
     updateThreshold,
     updateDelay,
-    resetToWHO,
-    isUsingWHODefaults
+    resetThresholds,
+    isUsingDefaults
   }
 }

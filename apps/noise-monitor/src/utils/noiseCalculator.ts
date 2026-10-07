@@ -1,28 +1,35 @@
+import type { ThresholdConfig } from '../types'
+
 /**
- * Calculate noise level from frequency data
- * Returns a normalized value between 0 and 100
+ * Room loudness as a relative 0-100 index.
+ *
+ * NOT decibels, and deliberately not presented as such. `frequencyData` holds
+ * getByteFrequencyData output: each byte is one FFT bin's magnitude mapped
+ * from the analyser's minDecibels..maxDecibels window (-100..-30 dBFS by
+ * default) onto 0..255. That is level relative to the input's full scale,
+ * which depends on the microphone, its placement and the OS mixer -- there is
+ * no path from it to sound pressure without a calibrated reference, and the
+ * Web Audio API cannot provide one.
+ *
+ * So this is a self-relative scale: useful for "louder than we were a minute
+ * ago", which is what self-monitoring needs, and meaningless as an absolute
+ * measurement. Thresholds are points on this index, not dB values.
  */
 export function calculateNoiseLevel(frequencyData: Uint8Array): number {
-  // Calculate RMS (root mean square) for volume
+  // An empty array divides by zero and yields NaN, and NaN here is not a
+  // visible failure -- it survives smoothNoiseLevel (NaN propagates through
+  // the moving average) and every band comparison against it is false, so the
+  // display sticks on "quiet" and the alarm never fires again for the rest of
+  // the lesson. A real analyser always reports at least one bin, but a silent
+  // permanent failure is not worth leaving to that.
+  if (frequencyData.length === 0) return 0
+
   let sum = 0
   for (let i = 0; i < frequencyData.length; i++) {
     sum += frequencyData[i] * frequencyData[i]
   }
   const rms = Math.sqrt(sum / frequencyData.length)
-  
-  // Convert to decibel-like scale (0-100)
-  // RMS ranges from 0 to 255, normalize to 0-100
-  const normalizedLevel = Math.min(Math.max((rms / 128) * 100, 0), 100)
-  
-  return normalizedLevel
-}
-
-/**
- * Convert linear amplitude to decibels
- */
-export function amplitudeToDb(amplitude: number): number {
-  if (amplitude <= 0) return -Infinity
-  return 20 * Math.log10(amplitude / 255)
+  return Math.min(Math.max((rms / 128) * 100, 0), 100)
 }
 
 /**
@@ -36,33 +43,36 @@ export function smoothNoiseLevel(
   return currentLevel * (1 - smoothingFactor) + newLevel * smoothingFactor
 }
 
-/**
- * Get color based on noise level relative to threshold
- */
-export function getNoiseColor(level: number, threshold: number): string {
-  const ratio = level / threshold
-  if (ratio < 0.5) return '#10B981' // Green
-  if (ratio < 0.8) return '#F59E0B' // Yellow
-  return '#EF4444' // Red
-}
+export type NoiseBand = 'quiet' | 'moderate' | 'loud' | 'tooLoud'
 
 /**
- * Get status text based on noise level
+ * Which band a level falls into, from the teacher's four configured bounds.
+ *
+ * This is the single place the bands are decided. It used to take only
+ * `alarmTrigger` and derive the lower bounds as fixed 0.5 and 0.8 ratios of
+ * it, so three of the four sliders in Settings changed nothing: they were
+ * validated for ordering, drawn as markers on the live preview, and then
+ * ignored. With alarmTrigger at its default 85 the real boundaries were 42.5
+ * and 68, not the 40/55/70 the panel displayed.
+ *
+ * The same ratio logic also existed, written out separately, in
+ * NoiseMonitor's getLevel(). Both now call this.
  */
-export function getNoiseStatus(level: number, threshold: number): string {
-  if (level > threshold) return 'Too Loud!'
-  if (level > threshold * 0.8) return 'Getting Loud'
-  if (level > threshold * 0.5) return 'Moderate'
-  return 'Quiet'
+export function getNoiseBand(level: number, t: ThresholdConfig): NoiseBand {
+  if (level > t.alarmTrigger) return 'tooLoud'
+  if (level > t.loudToTooLoud) return 'loud'
+  if (level > t.moderateToLoud) return 'moderate'
+  return 'quiet'
 }
 
-/**
- * Get level number (1-4) based on noise level relative to threshold
- * 1 = Quiet, 2 = Moderate, 3 = Getting Loud, 4 = Too Loud
- */
-export function getNoiseLevelNumber(level: number, threshold: number): number {
-  if (level > threshold) return 4
-  if (level > threshold * 0.8) return 3
-  if (level > threshold * 0.5) return 2
-  return 1
+const BAND_NUMBER: Record<NoiseBand, number> = {
+  quiet: 1,
+  moderate: 2,
+  loud: 3,
+  tooLoud: 4
+}
+
+/** The band as 1-4, for the themes that take a number rather than a name. */
+export function getNoiseLevelNumber(level: number, t: ThresholdConfig): number {
+  return BAND_NUMBER[getNoiseBand(level, t)]
 }

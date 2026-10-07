@@ -12,8 +12,8 @@ interface SettingsProps {
   errors: Partial<Record<keyof ThresholdConfig, string>>
   updateThreshold: (key: keyof ThresholdConfig, value: number) => void
   updateDelay: (key: keyof DelayConfig, value: number) => void
-  resetToWHO: () => void
-  isUsingWHODefaults: boolean
+  resetThresholds: () => void
+  isUsingDefaults: boolean
   onThemeChange: (theme: Theme) => void
   onSoundSettingsChange: (settings: SoundSettings) => void
   onClose: () => void
@@ -37,8 +37,8 @@ export function SettingsPanel({
   errors,
   updateThreshold,
   updateDelay,
-  resetToWHO,
-  isUsingWHODefaults,
+  resetThresholds,
+  isUsingDefaults,
   onThemeChange,
   onSoundSettingsChange,
   onClose,
@@ -54,10 +54,10 @@ export function SettingsPanel({
   }
 
   const thresholdDescriptions: Record<keyof ThresholdConfig, string> = {
-    quietToModerate: 'Optimal for learning (<40 dB)',
-    moderateToLoud: 'Acceptable level (40-55 dB)',
-    loudToTooLoud: 'Disruptive to learning (55-70 dB)',
-    alarmTrigger: 'Harmful, immediate action needed (>70 dB)'
+    quietToModerate: 'Below this, the room counts as quiet',
+    moderateToLoud: 'Above this, the display shows "loud"',
+    loudToTooLoud: 'Above this, the display shows "too loud"',
+    alarmTrigger: 'Above this, the alarm sounds'
   }
 
   const playTestAlarm = () => {
@@ -139,7 +139,9 @@ export function SettingsPanel({
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
         <div className="flex justify-between items-end mb-2">
           <span className="text-sm font-semibold text-gray-700">Live Noise Level</span>
-          <span className="text-sm font-medium text-gray-900">{pct.toFixed(1)}% <span className="text-gray-500">({noiseLevel.toFixed(1)} dB)</span></span>
+          {/* One number, one unit. This rendered the same value twice --
+              "42.0% (42.0 dB)" -- which asserted the index was decibels. */}
+          <span className="text-sm font-medium text-gray-900">{pct.toFixed(1)}</span>
         </div>
         <div className="relative h-4 rounded-full overflow-hidden bg-gray-200">
           <div
@@ -174,8 +176,8 @@ export function SettingsPanel({
           </div>
         </div>
         <div className="flex justify-between mt-1 text-[10px] text-gray-500">
-          <span>0 dB</span>
-          <span>100 dB</span>
+          <span>0</span>
+          <span>100</span>
         </div>
       </div>
     )
@@ -242,15 +244,27 @@ export function SettingsPanel({
             <div className="space-y-6 pb-4">
               <LiveNoiseBar />
 
-              {/* WHO Info Box */} 
+              {/* This box presented the WHO's classroom dB(A) guidelines as
+                  though the number above were a decibel reading. It is not: a
+                  browser gets level relative to the microphone's full scale,
+                  with no route to sound pressure. Quoting a health guideline
+                  against an uncalibrated index is the one claim in this panel
+                  that could actually mislead a teacher. */}
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <h3 className="font-semibold text-blue-900 mb-2">WHO Guidelines for Classrooms</h3>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• <strong>&lt;40 dB:</strong> Optimal for learning</li>
-                  <li>• <strong>40-55 dB:</strong> Acceptable</li>
-                  <li>• <strong>55-70 dB:</strong> Disruptive</li>
-                  <li>• <strong>&gt;70 dB:</strong> Harmful, action needed</li>
-                </ul>
+                <h3 className="font-semibold text-blue-900 mb-2">About this scale</h3>
+                <p className="text-sm text-blue-800">
+                  The number above is a relative 0&ndash;100 reading from this
+                  device's microphone, not a decibel measurement. It is for
+                  comparing the room to itself &mdash; quieter or louder than a
+                  minute ago &mdash; which is what helps a class notice and
+                  regulate its own volume.
+                </p>
+                <p className="text-sm text-blue-800 mt-2">
+                  Watch the live bar for a minute with your class at a normal
+                  working volume, then set the thresholds around what you see.
+                  Microphone placement changes the numbers, so a setting that
+                  suits one room will not transfer to another.
+                </p>
               </div>
 
               {/* Threshold Sliders */}
@@ -268,7 +282,8 @@ export function SettingsPanel({
                           min={20}
                           max={100}
                         />
-                        <span className="text-gray-500">dB</span>
+                        {/* No unit: this is a point on a relative 0-100
+                            index, not a decibel figure. */}
                       </div>
                     </div>
                     <input
@@ -351,11 +366,11 @@ export function SettingsPanel({
               {/* Reset Button */}
               <div className="pt-6 border-t">
                 <button
-                  onClick={resetToWHO}
-                  disabled={isUsingWHODefaults}
+                  onClick={resetThresholds}
+                  disabled={isUsingDefaults}
                   className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-medium transition-colors"
                 >
-                  {isUsingWHODefaults ? 'Using WHO Recommendations ✓' : 'Reset to WHO Recommendations'}
+                  {isUsingDefaults ? 'Using defaults ✓' : 'Reset to defaults'}
                 </button>
               </div>
             </div>

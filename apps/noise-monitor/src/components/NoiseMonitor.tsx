@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Theme, Sound, CustomImage, SoundSettings } from '../types'
+import { Theme, Sound, CustomImage, SoundSettings, ThresholdConfig } from '../types'
 import { EggTheme } from '../themes/EggTheme'
 import { EggClassicTheme } from '../themes/EggClassicTheme'
 import { GlassTheme } from '../themes/GlassTheme'
@@ -10,7 +10,7 @@ import { WeatherTheme } from '../themes/WeatherTheme'
 import { VolcanoTheme } from '../themes/VolcanoTheme'
 import { useAudio } from '../hooks/useAudio'
 import { useTTS, TTSConfig } from '../hooks/useTTS'
-import { calculateNoiseLevel, getNoiseLevelNumber, smoothNoiseLevel } from '../utils/noiseCalculator'
+import { calculateNoiseLevel, getNoiseBand, getNoiseLevelNumber, smoothNoiseLevel } from '../utils/noiseCalculator'
 
 // Time constant (seconds) for the exponential moving average applied to the
 // raw per-frame mic reading. A single frame of FFT data is extremely noisy
@@ -22,7 +22,9 @@ const SMOOTHING_TAU = 0.3
 
 interface NoiseMonitorProps {
   theme: Theme
-  threshold: number
+  // The teacher's four band bounds, not just the alarm point. Passing only
+  // alarmTrigger is what left the other three sliders inert.
+  thresholds: ThresholdConfig
   selectedSound: string
   customSounds: Sound[]
   customImages: CustomImage[]
@@ -40,7 +42,7 @@ interface NoiseMonitorProps {
 
 export function NoiseMonitor({
   theme,
-  threshold,
+  thresholds,
   selectedSound,
   customSounds,
   customImages,
@@ -93,7 +95,27 @@ export function NoiseMonitor({
 
   const startListening = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Browser defaults enable autoGainControl, noiseSuppression and
+      // echoCancellation -- all three are designed to make a *voice call*
+      // sound good, and all three fight a noise measurement:
+      //
+      //   autoGainControl normalises loudness, so it raises the gain in a
+      //     quiet room and lowers it in a loud one. That is precisely the
+      //     signal this tool exists to show, cancelled out.
+      //   noiseSuppression strips steady broadband sound -- the hum of a busy
+      //     classroom -- while preserving one near speaker.
+      //   echoCancellation can gate the input entirely.
+      //
+      // Turning them off makes the reading a (still relative) measure of how
+      // loud the room is, rather than of how well the browser's voice
+      // pipeline is coping.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          autoGainControl: false,
+          noiseSuppression: false,
+          echoCancellation: false
+        }
+      })
       
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
       analyserRef.current = audioContextRef.current.createAnalyser()
@@ -168,13 +190,13 @@ export function NoiseMonitor({
       // level, same as before -- but now gated on the already-smoothed
       // signal, so a brief spike has to actually persist to flip anything.
       const currentLevelNumber = committedLevelNumberRef.current
-      const newLevelNumber = getNoiseLevelNumber(smoothedLevel, threshold)
+      const newLevelNumber = getNoiseLevelNumber(smoothedLevel, thresholds)
 
       if (newLevelNumber > currentLevelNumber) {
         if (!pendingUpRef.current) {
           pendingUpRef.current = true
           upDelayTimerRef.current = setTimeout(() => {
-            const freshLevelNumber = getNoiseLevelNumber(smoothedLevelRef.current, threshold)
+            const freshLevelNumber = getNoiseLevelNumber(smoothedLevelRef.current, thresholds)
             const oldLevelNumber = committedLevelNumberRef.current
             if (freshLevelNumber > oldLevelNumber) {
               committedLevelNumberRef.current = freshLevelNumber
@@ -194,7 +216,7 @@ export function NoiseMonitor({
         if (!pendingDownRef.current) {
           pendingDownRef.current = true
           downDelayTimerRef.current = setTimeout(() => {
-            const freshLevelNumber = getNoiseLevelNumber(smoothedLevelRef.current, threshold)
+            const freshLevelNumber = getNoiseLevelNumber(smoothedLevelRef.current, thresholds)
             const oldLevelNumber = committedLevelNumberRef.current
             if (freshLevelNumber < oldLevelNumber) {
               committedLevelNumberRef.current = freshLevelNumber
@@ -241,7 +263,7 @@ export function NoiseMonitor({
         cancelAnimationFrame(animationFrameRef.current)
       }
     }
-  }, [isListening, threshold, _upDelay, _downDelay, alertType, triggerAlerts, triggerTTS, stopAlerts, stopTTS, onNoiseLevelChange])
+  }, [isListening, thresholds, _upDelay, _downDelay, alertType, triggerAlerts, triggerTTS, stopAlerts, stopTTS, onNoiseLevelChange])
 
   useEffect(() => {
     return () => {
@@ -256,17 +278,24 @@ export function NoiseMonitor({
     // makes the Transition Delay setting actually govern when a theme's
     // visual state is allowed to change, instead of only gating the
     // isTooLoud alert boundary.
-    const props = { noiseLevel: committedDisplayLevel, threshold, isTooLoud, customImages, backgroundColor }
-
-    // Convert to level format for new themes
-    const getLevel = (): 'quiet' | 'moderate' | 'loud' | 'tooLoud' => {
-      if (isTooLoud) return 'tooLoud'
-      const ratio = committedDisplayLevel / threshold
-      if (ratio < 0.5) return 'quiet'
-      if (ratio < 0.8) return 'moderate'
-      return 'loud'
+    // The four themes on the older contract still take a single number; for
+    // them that is the alarm point, which is what `threshold` always meant.
+    const props = {
+      noiseLevel: committedDisplayLevel,
+      threshold: thresholds.alarmTrigger,
+      isTooLoud,
+      customImages,
+      backgroundColor
     }
-    const levelProps = { level: getLevel() }
+
+    // getNoiseBand, not a second hand-written copy of the ratio logic. isTooLoud
+    // is honoured on top of it because the transition delay may be holding the
+    // alert on after the level itself has dropped back.
+    const levelProps = {
+      level: isTooLoud
+        ? ('tooLoud' as const)
+        : getNoiseBand(committedDisplayLevel, thresholds)
+    }
     
     switch (theme) {
       case 'egg':

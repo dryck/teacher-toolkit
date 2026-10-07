@@ -61,7 +61,9 @@ export interface NewThemeProps {
   intensity?: number
 }
 
-// Threshold configuration for adjustable noise levels
+// The four band bounds, as points on the relative 0-100 index that
+// calculateNoiseLevel produces. Not decibels: see noiseCalculator.ts for why
+// a browser cannot give an absolute sound-pressure reading.
 export interface ThresholdConfig {
   quietToModerate: number
   moderateToLoud: number
@@ -69,8 +71,17 @@ export interface ThresholdConfig {
   alarmTrigger: number
 }
 
-// WHO recommendations for classroom noise levels (in dB)
-export const WHO_RECOMMENDATIONS: ThresholdConfig = {
+// These were the WHO classroom dB(A) guideline figures (40/55/70/85) used
+// directly as index values, which does not follow -- the index has no
+// relationship to sound pressure, so the numbers carried none of the meaning
+// their source gave them. They are kept as starting points because they are
+// sensibly spaced, and because changing them would silently move every
+// teacher's thresholds.
+//
+// They still want tuning against a real microphone in a real room: the index
+// depends on the mic, its placement and the OS mixer. 85 in particular is
+// only reached when the input is close to the analyser's ceiling.
+export const DEFAULT_THRESHOLDS: ThresholdConfig = {
   quietToModerate: 40,
   moderateToLoud: 55,
   loudToTooLoud: 70,
