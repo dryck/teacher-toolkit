@@ -23,28 +23,34 @@ export const CALIBRATION_MS = 6000
 export const MIN_CALIBRATION_SAMPLES = 60
 
 /**
- * Offsets above the measured floor, in index units.
+ * Where the three lower bounds sit between the floor and the alarm point, as
+ * fractions of that span.
  *
- * Derived from what the index actually does rather than chosen for roundness.
- * With fftSize 256 and the -100..-30 dBFS window, speech energy occupying
- * roughly the first 21 of 128 bins reads about:
- *
- *     bins at byte 120 (-67 dBFS)  ->  38    a room murmuring
- *     bins at byte 180 (-51 dBFS)  ->  57    normal talk
- *     bins at byte 230 (-37 dBFS)  ->  73    loud group work
- *     bins at byte 255 (ceiling)   ->  81    saturated
- *
- * So the usable span from a quiet floor to saturation is roughly 40 index
- * units, and these offsets divide it: talking sits near the moderate bound,
- * loud group work near the loud bound, and the alarm below saturation so it
- * can actually fire.
+ * One shape, used by both ways of calibrating: the automatic one, which has to
+ * guess the alarm point, and the teacher-set one, which is told it. Keeping a
+ * single set of proportions means the bands feel the same either way.
  */
-export const FLOOR_OFFSETS = {
-  quietToModerate: 8,
-  moderateToLoud: 20,
-  loudToTooLoud: 32,
-  alarmTrigger: 40
+export const BAND_FRACTIONS = {
+  quietToModerate: 0.2,
+  moderateToLoud: 0.5,
+  loudToTooLoud: 0.8
 } as const
+
+/**
+ * How far above the floor to put the alarm when nobody has said.
+ *
+ * This is the one number in the tool that is still a guess, and it is a guess
+ * about a room: how much louder than its resting level a class has to get
+ * before a teacher would want to intervene. Derived from what the index does
+ * -- with fftSize 256 and the -100..-30 dBFS window, speech in roughly the
+ * first 21 of 128 bins reads about 38 at a murmur, 57 at normal talk, 73 at
+ * loud group work and 81 saturated -- so 40 above a quiet floor lands near the
+ * top of what a room actually produces.
+ *
+ * A teacher who disagrees does not have to argue with it: "use the current
+ * level as the limit" in Settings replaces it with a measurement.
+ */
+export const DEFAULT_ALARM_OFFSET = 40
 
 /**
  * The room's quiet floor from a window of samples.
@@ -72,21 +78,36 @@ export function floorFromSamples(samples: readonly number[]): number | null {
  */
 export function bandsFromFloor(floor: number): ThresholdConfig {
   const headroom = 100 - floor
-  // Below this the offsets would not fit, so scale them into what is left.
-  const scale = Math.min(1, headroom / (FLOOR_OFFSETS.alarmTrigger + 2))
+  // Below this the offset would not fit, so scale it into what is left: a loud
+  // room gives a high floor, and an alarm point past 100 can never be crossed
+  // -- the failure the old shipped constants had.
+  const limit = Math.min(99, floor + Math.min(DEFAULT_ALARM_OFFSET, headroom - 1))
+  return bandsFromFloorAndLimit(floor, limit)
+}
 
-  const place = (offset: number) =>
-    Math.round(Math.min(99, floor + offset * scale) * 10) / 10
+/**
+ * Bands between a measured floor and a known alarm point.
+ *
+ * This is the path with no guess left in it: the floor is measured from the
+ * room and the limit is the level the teacher pointed at.
+ */
+export function bandsFromFloorAndLimit(floor: number, limit: number): ThresholdConfig {
+  const lo = Math.min(Math.max(floor, 0), 99)
+  // The limit has to sit above the floor with room for three bounds between.
+  const hi = Math.min(Math.max(limit, lo + 0.4), 99.9)
+  const span = hi - lo
+
+  const place = (fraction: number) => Math.round((lo + span * fraction) * 10) / 10
 
   const bands = {
-    quietToModerate: place(FLOOR_OFFSETS.quietToModerate),
-    moderateToLoud: place(FLOOR_OFFSETS.moderateToLoud),
-    loudToTooLoud: place(FLOOR_OFFSETS.loudToTooLoud),
-    alarmTrigger: place(FLOOR_OFFSETS.alarmTrigger)
+    quietToModerate: place(BAND_FRACTIONS.quietToModerate),
+    moderateToLoud: place(BAND_FRACTIONS.moderateToLoud),
+    loudToTooLoud: place(BAND_FRACTIONS.loudToTooLoud),
+    alarmTrigger: Math.round(hi * 10) / 10
   }
 
-  // Scaling can collapse two bounds onto the same value; the band logic needs
-  // them strictly ascending or a band becomes unreachable.
+  // Rounding a narrow span can collapse two bounds onto each other, which
+  // would leave a band no level can reach.
   const keys = [
     'quietToModerate',
     'moderateToLoud',
@@ -106,4 +127,13 @@ export function bandsFromFloor(floor: number): ThresholdConfig {
 export function calibrate(samples: readonly number[]): ThresholdConfig | null {
   const floor = floorFromSamples(samples)
   return floor === null ? null : bandsFromFloor(floor)
+}
+
+/** As calibrate, but also returns the floor, which the teacher-set alarm point
+ *  needs in order to redistribute the lower bounds beneath it. */
+export function calibrateWithFloor(
+  samples: readonly number[]
+): { floor: number; bands: ThresholdConfig } | null {
+  const floor = floorFromSamples(samples)
+  return floor === null ? null : { floor, bands: bandsFromFloor(floor) }
 }

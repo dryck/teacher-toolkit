@@ -30,6 +30,7 @@ function setup(overrides: Partial<Parameters<typeof SettingsPanel>[0]> = {}) {
     delays: DEFAULT_DELAYS,
     errors: {},
     source: 'calibrated' as ThresholdSource,
+    onUseCurrentAsLimit: vi.fn(),
     updateThreshold,
     updateDelay: vi.fn(),
     resetThresholds: vi.fn(),
@@ -134,6 +135,34 @@ describe('threshold inputs', () => {
     setup({ errors: { alarmTrigger: 'Must be greater than Loud→Too Loud' } })
     openThresholds()
     expect(screen.getByText(/Must be greater than/)).toBeTruthy()
+  })
+})
+
+describe('setting the limit from the room', () => {
+  it('offers the current level as the "too loud" point', () => {
+    const onUseCurrentAsLimit = vi.fn()
+    setup({ noiseLevel: 63, onUseCurrentAsLimit })
+    openThresholds()
+    fireEvent.click(screen.getByRole('button', { name: /use the current level/i }))
+    expect(onUseCurrentAsLimit).toHaveBeenCalledWith(63)
+  })
+
+  it('shows the level it would use, so the number is not a mystery', () => {
+    setup({ noiseLevel: 63 })
+    openThresholds()
+    expect(screen.getByRole('button', { name: /\(63\)/ })).toBeTruthy()
+  })
+
+  it('is unavailable until the monitor is running', () => {
+    // Without a live reading there is nothing to point at, and 0 would place
+    // the alarm at the bottom of the scale.
+    const onUseCurrentAsLimit = vi.fn()
+    setup({ noiseLevel: 0, onUseCurrentAsLimit })
+    openThresholds()
+    const button = screen.getByRole('button', { name: /start the monitor to set the limit/i })
+    expect(button).toHaveProperty('disabled', true)
+    fireEvent.click(button)
+    expect(onUseCurrentAsLimit).not.toHaveBeenCalled()
   })
 })
 

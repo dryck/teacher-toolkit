@@ -11,7 +11,7 @@ import { VolcanoTheme } from '../themes/VolcanoTheme'
 import { useAudio } from '../hooks/useAudio'
 import { useTTS, TTSConfig } from '../hooks/useTTS'
 import { calculateNoiseLevel, getNoiseBand, getNoiseLevelNumber, smoothNoiseLevel } from '../utils/noiseCalculator'
-import { calibrate, CALIBRATION_MS } from '../utils/calibration'
+import { calibrateWithFloor, CALIBRATION_MS } from '../utils/calibration'
 
 // Time constant (seconds) for the exponential moving average applied to the
 // raw per-frame mic reading. A single frame of FFT data is extremely noisy
@@ -28,7 +28,7 @@ interface NoiseMonitorProps {
   thresholds: ThresholdConfig
   // Called once with bands measured from this room, a few seconds after
   // listening starts. Omit it to skip calibration entirely.
-  onCalibrated?: (bands: ThresholdConfig) => void
+  onCalibrated?: (bands: ThresholdConfig, floor: number) => void
   selectedSound: string
   customSounds: Sound[]
   customImages: CustomImage[]
@@ -214,10 +214,10 @@ export function NoiseMonitor({
         samples.push(rawLevel)
         if (now >= calibrationUntilRef.current) {
           calibrationSamplesRef.current = null
-          const bands = calibrate(samples)
+          const measured = calibrateWithFloor(samples)
           // null means the window was too short or too noisy to trust, in
           // which case the existing thresholds simply stand.
-          if (bands) onCalibrated?.(bands)
+          if (measured) onCalibrated?.(measured.bands, measured.floor)
         }
       }
 

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ThresholdConfig, DEFAULT_THRESHOLDS, DelayConfig, DEFAULT_DELAYS } from '../types'
+import { bandsFromFloorAndLimit } from '../utils/calibration'
 
 const THRESHOLDS_KEY = 'noise-monitor-thresholds'
 const DELAYS_KEY = 'noise-monitor-delays'
 const SOURCE_KEY = 'noise-monitor-threshold-source'
+const FLOOR_KEY = 'noise-monitor-measured-floor'
 
 /** Where the current bands came from, which is what the panel reports and
  *  what decides whether a fresh calibration is allowed to overwrite them. */
@@ -79,6 +81,9 @@ export function useSettings() {
   // Mirrors `source` so applyCalibration can read it without being recreated
   // on every change, and without putting a side effect inside a state updater.
   const sourceRef = useRef<ThresholdSource>('default')
+  // The room's measured quiet floor, kept so that setLimitFromCurrent can
+  // redistribute the lower bounds beneath whatever limit the teacher points at.
+  const [floor, setFloor] = useState<number | null>(null)
   const [errors, setErrors] = useState<Partial<Record<keyof ThresholdConfig, string>>>({})
 
   useEffect(() => {
@@ -96,6 +101,9 @@ export function useSettings() {
       }
       const storedDelays = parseDelays(localStorage.getItem(DELAYS_KEY))
       if (storedDelays) setDelays(storedDelays)
+
+      const storedFloor = Number(localStorage.getItem(FLOOR_KEY))
+      if (Number.isFinite(storedFloor) && storedFloor > 0) setFloor(storedFloor)
     } catch {
       // No storage access at all; defaults stand.
     }
@@ -141,13 +149,39 @@ export function useSettings() {
 
   /** Adopt bands measured from the room. Never overrides what a teacher set by
    *  hand -- they came to Settings and chose those numbers. */
-  const applyCalibration = useCallback((bands: ThresholdConfig) => {
+  const applyCalibration = useCallback((bands: ThresholdConfig, measuredFloor?: number) => {
+    // The floor is worth keeping even when the bands are not: a teacher who
+    // set their bands by hand may still want to point at a limit later, and
+    // that needs the room's resting level.
+    if (typeof measuredFloor === 'number' && Number.isFinite(measuredFloor)) {
+      setFloor(measuredFloor)
+      save(FLOOR_KEY, measuredFloor)
+    }
     if (sourceRef.current === 'manual') return
     sourceRef.current = 'calibrated'
     setThresholds(bands)
     setSource('calibrated')
     setErrors({})
   }, [])
+
+  /**
+   * Put the alarm on the level the room is at right now.
+   *
+   * The one number automatic calibration has to guess is how far above a
+   * room's resting level counts as too loud. This replaces the guess with
+   * something the teacher observed: they watch the class reach the volume they
+   * would intervene at, and press once. The lower bands redistribute beneath
+   * it, so the display keeps agreeing with the alarm.
+   */
+  const setLimitFromCurrent = useCallback((level: number) => {
+    if (!Number.isFinite(level) || level <= 0) return
+    const base = floor ?? Math.max(0, level - 20)
+    const bands = bandsFromFloorAndLimit(base, level)
+    sourceRef.current = 'manual'
+    setThresholds(bands)
+    setSource('manual')
+    setErrors({})
+  }, [floor])
 
   const resetThresholds = () => {
     setThresholds(DEFAULT_THRESHOLDS)
@@ -167,9 +201,11 @@ export function useSettings() {
     delays,
     errors,
     source,
+    measuredFloor: floor,
     updateThreshold,
     updateDelay,
     applyCalibration,
+    setLimitFromCurrent,
     resetThresholds,
     isUsingDefaults
   }

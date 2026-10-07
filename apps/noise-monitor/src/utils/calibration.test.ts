@@ -3,7 +3,8 @@ import {
   floorFromSamples,
   bandsFromFloor,
   calibrate,
-  FLOOR_OFFSETS,
+  DEFAULT_ALARM_OFFSET,
+  bandsFromFloorAndLimit,
   MIN_CALIBRATION_SAMPLES
 } from './calibration'
 import { getNoiseBand } from './noiseCalculator'
@@ -62,10 +63,11 @@ describe('bandsFromFloor', () => {
     expect(b.alarmTrigger).toBeGreaterThan(b.loudToTooLoud)
   })
 
-  it('uses the offsets directly when there is headroom', () => {
+  it('puts the alarm a full offset above the floor when there is headroom', () => {
     const b = bandsFromFloor(30)
-    expect(b.quietToModerate).toBeCloseTo(30 + FLOOR_OFFSETS.quietToModerate, 1)
-    expect(b.alarmTrigger).toBeCloseTo(30 + FLOOR_OFFSETS.alarmTrigger, 1)
+    expect(b.alarmTrigger).toBeCloseTo(30 + DEFAULT_ALARM_OFFSET, 1)
+    expect(b.quietToModerate).toBeGreaterThan(30)
+    expect(b.quietToModerate).toBeLessThan(b.alarmTrigger)
   })
 
   it('keeps the alarm reachable from a loud room', () => {
@@ -133,5 +135,57 @@ describe('calibrate', () => {
     const b = calibrate(room(36))!
     expect(getNoiseBand(57, b)).not.toBe('tooLoud')
     expect(getNoiseBand(57, b)).not.toBe('quiet')
+  })
+})
+
+describe('bandsFromFloorAndLimit', () => {
+  // The path with no guess in it: the floor is measured and the teacher has
+  // pointed at the level they want the alarm on.
+  it('puts the alarm exactly where it was told', () => {
+    expect(bandsFromFloorAndLimit(35, 62).alarmTrigger).toBeCloseTo(62, 1)
+  })
+
+  it('spreads the lower bounds between the floor and the limit', () => {
+    const b = bandsFromFloorAndLimit(30, 70)
+    expect(b.quietToModerate).toBeGreaterThan(30)
+    expect(b.moderateToLoud).toBeGreaterThan(b.quietToModerate)
+    expect(b.loudToTooLoud).toBeGreaterThan(b.moderateToLoud)
+    expect(b.alarmTrigger).toBeGreaterThan(b.loudToTooLoud)
+    expect(b.loudToTooLoud).toBeLessThan(70)
+  })
+
+  it('copes with a limit below the floor instead of inverting the bands', () => {
+    // A teacher could press the button while the room is quieter than it was
+    // during calibration.
+    const b = bandsFromFloorAndLimit(60, 40)
+    expect(b.quietToModerate).toBeLessThan(b.moderateToLoud)
+    expect(b.moderateToLoud).toBeLessThan(b.loudToTooLoud)
+    expect(b.loudToTooLoud).toBeLessThan(b.alarmTrigger)
+  })
+
+  it('keeps four distinct bounds when floor and limit are nearly equal', () => {
+    for (const [floor, limit] of [[50, 50], [50, 50.1], [99, 99.5], [0, 0]]) {
+      const b = bandsFromFloorAndLimit(floor, limit)
+      const values = [b.quietToModerate, b.moderateToLoud, b.loudToTooLoud, b.alarmTrigger]
+      expect(new Set(values).size, `floor ${floor} limit ${limit}`).toBe(4)
+      for (let i = 1; i < values.length; i++) {
+        expect(values[i]).toBeGreaterThan(values[i - 1])
+      }
+    }
+  })
+
+  it('never places a bound at or above 100', () => {
+    for (const [floor, limit] of [[90, 120], [99, 100], [50, 1000]]) {
+      const b = bandsFromFloorAndLimit(floor, limit)
+      expect(b.alarmTrigger, `floor ${floor} limit ${limit}`).toBeLessThan(100)
+    }
+  })
+
+  it('agrees with the automatic path when given the same limit', () => {
+    // bandsFromFloor is bandsFromFloorAndLimit with a guessed limit, so the
+    // two must not drift apart.
+    const auto = bandsFromFloor(30)
+    const explicit = bandsFromFloorAndLimit(30, 30 + DEFAULT_ALARM_OFFSET)
+    expect(explicit).toEqual(auto)
   })
 })

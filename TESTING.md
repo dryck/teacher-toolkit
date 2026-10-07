@@ -17,7 +17,7 @@ npm test
   where "quietly wrong" costs something: the picker's fairness promise, group
   sizes, and timer drift in a throttled background tab.
 
-## `npm run test:unit` — 88 tests, no setup
+## `npm run test:unit` — 104 tests, no setup
 
 ```bash
 npm run test:unit
@@ -52,7 +52,10 @@ AudioContext), and what NoiseMonitor asks of the browser — the three
 microphone processors off, and the analyser's dB window pinned, since those
 decide what the whole scale means and a wrong value there is invisible.
 
-Also covers `calibration.ts`, which replaced the shipped threshold constants.
+Also covers `calibration.ts`, which replaced the shipped threshold constants,
+including the path with no guess left in it: the teacher presses "use the
+current level as the too-loud point" and the bands are placed between the
+room's measured floor and the level they pointed at.
 The index is relative to the microphone's full scale, so no fixed set of
 numbers can be right for two rooms; the monitor now measures its own quiet
 floor for six seconds and places the bands above it. The tests pin the parts
@@ -122,7 +125,7 @@ What it asserts:
 | Area | Covered by | Status |
 |---|---|---|
 | Every page loads clean | smoke | ✅ CI |
-| noise-monitor: engine, calibration, themes, settings, mic setup | 6 vitest files | ✅ CI (88 tests) |
+| noise-monitor: engine, calibration, themes, settings, mic setup | 6 vitest files | ✅ CI (104 tests) |
 | Picker fairness, group sizes, timer drift | logic | ✅ CI |
 | Firestore rules, both directions | rules.integration | ✅ CI (29 tests) |
 | Sign-in, ownerUid, student → teacher sync | e2e.integration | ✅ CI (5 tests) |

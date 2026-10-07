@@ -83,6 +83,7 @@ interface SettingsProps {
   delays: DelayConfig
   errors: Partial<Record<keyof ThresholdConfig, string>>
   source: ThresholdSource
+  onUseCurrentAsLimit: (level: number) => void
   updateThreshold: (key: keyof ThresholdConfig, value: number) => void
   updateDelay: (key: keyof DelayConfig, value: number) => void
   resetThresholds: () => void
@@ -109,6 +110,7 @@ export function SettingsPanel({
   delays,
   errors,
   source,
+  onUseCurrentAsLimit,
   updateThreshold,
   updateDelay,
   resetThresholds,
@@ -289,6 +291,21 @@ export function SettingsPanel({
                   suits one room will not transfer to another.
                 </p>
               </div>
+
+              {/* The one number automatic calibration has to guess is how
+                  far above a room's resting level counts as too loud. Rather
+                  than ship a better guess, let the teacher point at it: they
+                  watch the class reach the volume they would step in at, and
+                  press once. */}
+              <button
+                onClick={() => onUseCurrentAsLimit(noiseLevel ?? 0)}
+                disabled={!noiseLevel}
+                className="w-full py-3 px-4 bg-tisa-purple/10 hover:bg-tisa-purple/20 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl font-medium text-sm transition-colors"
+              >
+                {noiseLevel
+                  ? `Use the current level (${noiseLevel.toFixed(0)}) as the "too loud" point`
+                  : 'Start the monitor to set the limit from the room'}
+              </button>
 
               {/* Where the current bands came from. Without this the panel
                   gives no way to tell a measured band from a shipped guess,

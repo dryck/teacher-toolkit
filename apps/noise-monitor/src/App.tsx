@@ -49,7 +49,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [noiseLevel, setNoiseLevel] = useState(0)
-  const { thresholds, delays, errors, source, updateThreshold, updateDelay, applyCalibration, resetThresholds, isUsingDefaults } = useSettings()
+  const { thresholds, delays, errors, source, updateThreshold, updateDelay, applyCalibration, setLimitFromCurrent, resetThresholds, isUsingDefaults } = useSettings()
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
@@ -117,6 +117,7 @@ function App() {
           delays={delays}
           errors={errors}
           source={source}
+          onUseCurrentAsLimit={setLimitFromCurrent}
           updateThreshold={updateThreshold}
           updateDelay={updateDelay}
           resetThresholds={resetThresholds}
