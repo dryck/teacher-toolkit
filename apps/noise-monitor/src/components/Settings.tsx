@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { Theme, CustomImage, ThresholdConfig, DelayConfig, SoundSettings } from '../types'
+import type { ThresholdSource } from '../hooks/useSettings'
 import { ThemeSelector } from './ThemeSelector'
 
 interface SettingsProps {
@@ -10,6 +11,7 @@ interface SettingsProps {
   thresholds: ThresholdConfig
   delays: DelayConfig
   errors: Partial<Record<keyof ThresholdConfig, string>>
+  source: ThresholdSource
   updateThreshold: (key: keyof ThresholdConfig, value: number) => void
   updateDelay: (key: keyof DelayConfig, value: number) => void
   resetThresholds: () => void
@@ -35,6 +37,7 @@ export function SettingsPanel({
   thresholds,
   delays,
   errors,
+  source,
   updateThreshold,
   updateDelay,
   resetThresholds,
@@ -266,6 +269,18 @@ export function SettingsPanel({
                   suits one room will not transfer to another.
                 </p>
               </div>
+
+              {/* Where the current bands came from. Without this the panel
+                  gives no way to tell a measured band from a shipped guess,
+                  and the shipped numbers were guesses. */}
+              <p className="text-xs text-gray-500">
+                {source === 'calibrated' &&
+                  'Measured from this room when the monitor started. Move any slider to set them yourself.'}
+                {source === 'manual' &&
+                  'Set by hand. Automatic calibration will not overwrite these.'}
+                {source === 'default' &&
+                  'Starting values, not yet measured. They will be replaced a few seconds after the monitor starts listening.'}
+              </p>
 
               {/* Threshold Sliders */}
               <div className="space-y-6">

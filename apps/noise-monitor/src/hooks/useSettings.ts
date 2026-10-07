@@ -1,66 +1,137 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ThresholdConfig, DEFAULT_THRESHOLDS, DelayConfig, DEFAULT_DELAYS } from '../types'
 
 const THRESHOLDS_KEY = 'noise-monitor-thresholds'
 const DELAYS_KEY = 'noise-monitor-delays'
+const SOURCE_KEY = 'noise-monitor-threshold-source'
+
+/** Where the current bands came from, which is what the panel reports and
+ *  what decides whether a fresh calibration is allowed to overwrite them. */
+export type ThresholdSource = 'default' | 'calibrated' | 'manual'
+
+const THRESHOLD_KEYS = [
+  'quietToModerate',
+  'moderateToLoud',
+  'loudToTooLoud',
+  'alarmTrigger'
+] as const
+
+/**
+ * A stored config, or null if it is not one.
+ *
+ * This used to be `setThresholds(JSON.parse(stored))` with no check. A value
+ * saved by an older build missing `alarmTrigger` left it undefined, every
+ * `level > undefined` comparison was false, and the alarm silently never fired
+ * again -- with nothing in the console to say so. Same failure shape as a NaN
+ * reading: invisible, and lasts the whole lesson.
+ */
+function parseThresholds(raw: string | null): ThresholdConfig | null {
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    const merged = { ...DEFAULT_THRESHOLDS } as ThresholdConfig
+    for (const key of THRESHOLD_KEYS) {
+      const value = parsed[key]
+      if (typeof value !== 'number' || !Number.isFinite(value)) return null
+      merged[key] = value
+    }
+    // Out-of-order bounds make a band unreachable, so treat them as corrupt
+    // rather than loading them and leaving a band that can never show.
+    for (let i = 1; i < THRESHOLD_KEYS.length; i++) {
+      if (merged[THRESHOLD_KEYS[i]] <= merged[THRESHOLD_KEYS[i - 1]]) return null
+    }
+    return merged
+  } catch {
+    return null
+  }
+}
+
+function parseDelays(raw: string | null): DelayConfig | null {
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    const up = parsed.upDelay
+    const down = parsed.downDelay
+    if (typeof up !== 'number' || !Number.isFinite(up)) return null
+    if (typeof down !== 'number' || !Number.isFinite(down)) return null
+    return { upDelay: up, downDelay: down }
+  } catch {
+    return null
+  }
+}
+
+/** localStorage throws in Safari private browsing and when the quota is full;
+ *  losing a setting is not worth taking the page down for. */
+function save(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    // Settings will not persist this session. The tool still works.
+  }
+}
 
 export function useSettings() {
   const [thresholds, setThresholds] = useState<ThresholdConfig>(DEFAULT_THRESHOLDS)
   const [delays, setDelays] = useState<DelayConfig>(DEFAULT_DELAYS)
+  const [source, setSource] = useState<ThresholdSource>('default')
+  // Mirrors `source` so applyCalibration can read it without being recreated
+  // on every change, and without putting a side effect inside a state updater.
+  const sourceRef = useRef<ThresholdSource>('default')
   const [errors, setErrors] = useState<Partial<Record<keyof ThresholdConfig, string>>>({})
 
-  // Load from localStorage on mount
   useEffect(() => {
-    const storedThresholds = localStorage.getItem(THRESHOLDS_KEY)
-    if (storedThresholds) {
-      try {
-        const parsed = JSON.parse(storedThresholds)
-        setThresholds(parsed)
-      } catch {
-        // Invalid stored data, use defaults
+    try {
+      const stored = parseThresholds(localStorage.getItem(THRESHOLDS_KEY))
+      if (stored) {
+        setThresholds(stored)
+        const storedSource = localStorage.getItem(SOURCE_KEY)
+        const resolved: ThresholdSource =
+          storedSource === 'calibrated' || storedSource === 'manual'
+            ? storedSource
+            : 'manual'
+        sourceRef.current = resolved
+        setSource(resolved)
       }
-    }
-    const storedDelays = localStorage.getItem(DELAYS_KEY)
-    if (storedDelays) {
-      try {
-        const parsed = JSON.parse(storedDelays)
-        setDelays(parsed)
-      } catch {
-        // Invalid stored data, use defaults
-      }
+      const storedDelays = parseDelays(localStorage.getItem(DELAYS_KEY))
+      if (storedDelays) setDelays(storedDelays)
+    } catch {
+      // No storage access at all; defaults stand.
     }
   }, [])
 
-  // Save to localStorage on change
+  useEffect(() => { save(THRESHOLDS_KEY, thresholds) }, [thresholds])
+  useEffect(() => { save(DELAYS_KEY, delays) }, [delays])
   useEffect(() => {
-    localStorage.setItem(THRESHOLDS_KEY, JSON.stringify(thresholds))
-  }, [thresholds])
+    sourceRef.current = source
+    save(SOURCE_KEY, source)
+  }, [source])
 
-  useEffect(() => {
-    localStorage.setItem(DELAYS_KEY, JSON.stringify(delays))
-  }, [delays])
-
-  const validateThresholds = (newThresholds: ThresholdConfig): boolean => {
+  const validateThresholds = (next: ThresholdConfig): boolean => {
     const newErrors: Partial<Record<keyof ThresholdConfig, string>> = {}
-    
-    if (newThresholds.quietToModerate >= newThresholds.moderateToLoud) {
+    if (next.quietToModerate >= next.moderateToLoud) {
       newErrors.moderateToLoud = 'Must be greater than Quiet→Moderate'
     }
-    if (newThresholds.moderateToLoud >= newThresholds.loudToTooLoud) {
+    if (next.moderateToLoud >= next.loudToTooLoud) {
       newErrors.loudToTooLoud = 'Must be greater than Moderate→Loud'
     }
-    if (newThresholds.loudToTooLoud >= newThresholds.alarmTrigger) {
+    if (next.loudToTooLoud >= next.alarmTrigger) {
       newErrors.alarmTrigger = 'Must be greater than Loud→Too Loud'
     }
-    
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const updateThreshold = (key: keyof ThresholdConfig, value: number) => {
-    const newThresholds = { ...thresholds, [key]: value }
-    if (validateThresholds(newThresholds)) {
-      setThresholds(newThresholds)
+    // min/max on a number input is advisory: typing 500, or clearing the field
+    // to get Number('') === 0, both reach here otherwise.
+    const clamped = Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0
+    const next = { ...thresholds, [key]: clamped }
+    if (validateThresholds(next)) {
+      setThresholds(next)
+      sourceRef.current = 'manual'
+      setSource('manual')
     }
   }
 
@@ -68,17 +139,26 @@ export function useSettings() {
     setDelays(prev => ({ ...prev, [key]: value }))
   }
 
+  /** Adopt bands measured from the room. Never overrides what a teacher set by
+   *  hand -- they came to Settings and chose those numbers. */
+  const applyCalibration = useCallback((bands: ThresholdConfig) => {
+    if (sourceRef.current === 'manual') return
+    sourceRef.current = 'calibrated'
+    setThresholds(bands)
+    setSource('calibrated')
+    setErrors({})
+  }, [])
+
   const resetThresholds = () => {
     setThresholds(DEFAULT_THRESHOLDS)
     setDelays(DEFAULT_DELAYS)
+    sourceRef.current = 'default'
+    setSource('default')
     setErrors({})
   }
 
-  const isUsingDefaults = 
-    thresholds.quietToModerate === DEFAULT_THRESHOLDS.quietToModerate &&
-    thresholds.moderateToLoud === DEFAULT_THRESHOLDS.moderateToLoud &&
-    thresholds.loudToTooLoud === DEFAULT_THRESHOLDS.loudToTooLoud &&
-    thresholds.alarmTrigger === DEFAULT_THRESHOLDS.alarmTrigger &&
+  const isUsingDefaults =
+    source === 'default' &&
     delays.upDelay === DEFAULT_DELAYS.upDelay &&
     delays.downDelay === DEFAULT_DELAYS.downDelay
 
@@ -86,8 +166,10 @@ export function useSettings() {
     thresholds,
     delays,
     errors,
+    source,
     updateThreshold,
     updateDelay,
+    applyCalibration,
     resetThresholds,
     isUsingDefaults
   }

@@ -32,6 +32,14 @@ return `NaN` — it would survive the moving average and stick the display on
 "quiet" for the rest of the lesson), `smoothNoiseLevel`, and the band logic
 against every configured bound rather than ratios of one of them.
 
+Also covers `calibration.ts`, which replaced the shipped threshold constants.
+The index is relative to the microphone's full scale, so no fixed set of
+numbers can be right for two rooms; the monitor now measures its own quiet
+floor for six seconds and places the bands above it. The tests pin the parts
+that would fail silently: the floor is the 20th percentile so a dropout frame
+cannot drag it to zero and talking cannot drag it up, and the bands stay
+ordered, distinct and all reachable even from a floor of 99.
+
 ## `npm run test:rules` — 29 tests, needs a JVM
 
 ```bash
@@ -94,7 +102,7 @@ What it asserts:
 | Area | Covered by | Status |
 |---|---|---|
 | Every page loads clean | smoke | ✅ CI |
-| noise-monitor engine | noiseCalculator.test | ✅ CI (15 tests) |
+| noise-monitor engine + calibration | 2 vitest files | ✅ CI (30 tests) |
 | Picker fairness, group sizes, timer drift | logic | ✅ CI |
 | Firestore rules, both directions | rules.integration | ✅ CI (29 tests) |
 | Sign-in, ownerUid, student → teacher sync | e2e.integration | ✅ CI (5 tests) |

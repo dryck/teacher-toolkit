@@ -49,7 +49,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [noiseLevel, setNoiseLevel] = useState(0)
-  const { thresholds, delays, errors, updateThreshold, updateDelay, resetThresholds, isUsingDefaults } = useSettings()
+  const { thresholds, delays, errors, source, updateThreshold, updateDelay, applyCalibration, resetThresholds, isUsingDefaults } = useSettings()
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
@@ -88,6 +88,7 @@ function App() {
       <NoiseMonitor
         theme={settings.theme}
         thresholds={thresholds}
+        onCalibrated={applyCalibration}
         selectedSound={settings.selectedSound}
         customSounds={settings.customSounds}
         customImages={settings.customImages}
@@ -111,6 +112,7 @@ function App() {
           thresholds={thresholds}
           delays={delays}
           errors={errors}
+          source={source}
           updateThreshold={updateThreshold}
           updateDelay={updateDelay}
           resetThresholds={resetThresholds}

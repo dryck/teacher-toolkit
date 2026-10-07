@@ -11,6 +11,7 @@ import { VolcanoTheme } from '../themes/VolcanoTheme'
 import { useAudio } from '../hooks/useAudio'
 import { useTTS, TTSConfig } from '../hooks/useTTS'
 import { calculateNoiseLevel, getNoiseBand, getNoiseLevelNumber, smoothNoiseLevel } from '../utils/noiseCalculator'
+import { calibrate, CALIBRATION_MS } from '../utils/calibration'
 
 // Time constant (seconds) for the exponential moving average applied to the
 // raw per-frame mic reading. A single frame of FFT data is extremely noisy
@@ -25,6 +26,9 @@ interface NoiseMonitorProps {
   // The teacher's four band bounds, not just the alarm point. Passing only
   // alarmTrigger is what left the other three sliders inert.
   thresholds: ThresholdConfig
+  // Called once with bands measured from this room, a few seconds after
+  // listening starts. Omit it to skip calibration entirely.
+  onCalibrated?: (bands: ThresholdConfig) => void
   selectedSound: string
   customSounds: Sound[]
   customImages: CustomImage[]
@@ -43,6 +47,7 @@ interface NoiseMonitorProps {
 export function NoiseMonitor({
   theme,
   thresholds,
+  onCalibrated,
   selectedSound,
   customSounds,
   customImages,
@@ -58,6 +63,10 @@ export function NoiseMonitor({
   onNoiseLevelChange,
 }: NoiseMonitorProps) {
   const [isTooLoud, setIsTooLoud] = useState(false)
+  // Raw samples from the first few seconds of listening, used once to place
+  // the bands relative to this room's own floor. Dropped afterwards.
+  const calibrationSamplesRef = useRef<number[] | null>(null)
+  const calibrationUntilRef = useRef<number>(0)
   const [isListening, setIsListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -120,10 +129,24 @@ export function NoiseMonitor({
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
       analyserRef.current = audioContextRef.current.createAnalyser()
       analyserRef.current.fftSize = 256
+      // Set explicitly rather than relying on the spec defaults. These two
+      // decide the dBFS window that getByteFrequencyData maps onto 0..255, so
+      // they set the whole scale -- leaving them implicit means a browser
+      // changing its defaults silently moves every teacher's thresholds.
+      // The values are the current defaults, so this pins today's behaviour.
+      analyserRef.current.minDecibels = -100
+      analyserRef.current.maxDecibels = -30
+      // The analyser's own smoothing, on top of smoothNoiseLevel. Also pinned.
+      analyserRef.current.smoothingTimeConstant = 0.8
       
       microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream)
       microphoneRef.current.connect(analyserRef.current)
       
+      // Open the calibration window. performance.now() is the same clock the
+      // measurement loop reads, so the two cannot disagree.
+      calibrationSamplesRef.current = []
+      calibrationUntilRef.current = performance.now() + CALIBRATION_MS
+
       setIsListening(true)
       setError(null)
     } catch (err) {
@@ -150,6 +173,8 @@ export function NoiseMonitor({
     pendingDownRef.current = false
     smoothedLevelRef.current = 0
     lastFrameTimeRef.current = null
+    calibrationSamplesRef.current = null
+    calibrationUntilRef.current = 0
     committedLevelNumberRef.current = 1
     setCommittedDisplayLevel(0)
     stopAlerts()
@@ -180,6 +205,21 @@ export function NoiseMonitor({
       const alpha = 1 - Math.exp(-dt / SMOOTHING_TAU)
       smoothedLevelRef.current = smoothNoiseLevel(smoothedLevelRef.current, rawLevel, alpha)
       const smoothedLevel = smoothedLevelRef.current
+
+      // Calibration window: gather the raw, unsmoothed index and derive the
+      // bands from this room's quiet floor. Shipped constants cannot be right
+      // for two rooms -- the index is relative to the microphone's full scale.
+      const samples = calibrationSamplesRef.current
+      if (samples) {
+        samples.push(rawLevel)
+        if (now >= calibrationUntilRef.current) {
+          calibrationSamplesRef.current = null
+          const bands = calibrate(samples)
+          // null means the window was too short or too noisy to trust, in
+          // which case the existing thresholds simply stand.
+          if (bands) onCalibrated?.(bands)
+        }
+      }
 
       // Continuous, every-frame update -- this is what themes animate
       // against, so the visual tracks the room smoothly instead of sitting
@@ -263,7 +303,7 @@ export function NoiseMonitor({
         cancelAnimationFrame(animationFrameRef.current)
       }
     }
-  }, [isListening, thresholds, _upDelay, _downDelay, alertType, triggerAlerts, triggerTTS, stopAlerts, stopTTS, onNoiseLevelChange])
+  }, [isListening, thresholds, _upDelay, _downDelay, alertType, triggerAlerts, triggerTTS, stopAlerts, stopTTS, onNoiseLevelChange, onCalibrated])
 
   useEffect(() => {
     return () => {
