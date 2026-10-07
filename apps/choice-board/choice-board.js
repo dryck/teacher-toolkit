@@ -2,8 +2,8 @@
 // teacher dashboard. Loaded after firebase-config.js and the Firebase
 // compat SDK scripts.
 (function () {
-  firebase.initializeApp(window.TK_FIREBASE_CONFIG);
-  const db = firebase.firestore();
+  
+  const db = window.TKFirebase.db();
 
   const CELL_COUNT = 9;
 
@@ -21,21 +21,8 @@
     { emoji: '⭐', label: 'Free choice' }
   ];
 
-  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous 0/O/1/I
-
-  function randomSessionCode() {
-    let code = '';
-    for (let i = 0; i < 5; i++) {
-      code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-    }
-    return code;
-  }
-
-  // Stable per-device student identifier, stored in localStorage alongside
-  // the nickname so a student's progress doc persists across visits.
-  function randomStudentId() {
-    return 'stu_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  }
+  // Import from shared firebase.js
+  const { randomSessionCode, randomStudentId } = window.TKFirebase;
 
   function boardDocRef(sessionId) {
     return db.collection('choiceBoardSessions').doc(sessionId);

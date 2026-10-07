@@ -2,16 +2,12 @@
 // teacher dashboard. Loaded after firebase-config.js and the Firebase
 // compat SDK scripts. Mirrors apps/chili-challenge/chili-challenge.js.
 (function () {
-  firebase.initializeApp(window.TK_FIREBASE_CONFIG);
-  const db = firebase.firestore();
+  
+  const db = window.TKFirebase.db();
 
-  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous 0/O/1/I
 
-  function randomSessionCode() {
-    let code = '';
-    for (let i = 0; i < 5; i++) {
-      code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-    }
+  // Import from shared firebase.js
+  const { randomSessionCode, randomStudentId } = window.TKFirebase;
     return code;
   }
 

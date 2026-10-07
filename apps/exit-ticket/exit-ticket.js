@@ -2,20 +2,16 @@
 // teacher dashboard. Loaded after firebase-config.js and the Firebase compat
 // SDK scripts (mirrors apps/zones/zones.js).
 (function () {
-  firebase.initializeApp(window.TK_FIREBASE_CONFIG);
-  const db = firebase.firestore();
+  
+  const db = window.TKFirebase.db();
 
   const DEFAULT_Q1_TEXT = 'What did you learn today?';
   const DEFAULT_Q2_TEXT = 'How confident do you feel?'; // fixed wording, not editable by the teacher
   const DEFAULT_Q3_TEXT = 'What question do you still have?';
 
-  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous 0/O/1/I
 
-  function randomSessionCode() {
-    let code = '';
-    for (let i = 0; i < 5; i++) {
-      code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-    }
+  // Import from shared firebase.js
+  const { randomSessionCode, randomStudentId } = window.TKFirebase;
     return code;
   }
 
