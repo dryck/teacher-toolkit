@@ -193,7 +193,11 @@
       // it is missing, so a mistyped code used to spawn a brand-new session
       // and swallow the check-in. update() fails on a session that isn't
       // there, which is the honest answer.
-      TKZones.sessionDocRef(sessionId).update(update)
+      // Gate on anonymous sign-in: the rules reject an unauthenticated write,
+      // and Firestore does not retry one. Without this the tap looked like it
+      // worked, then timed out eight seconds later with a generic toast.
+      window.TKFirebase.ready
+        .then(() => TKZones.sessionDocRef(sessionId).update(update))
         .then(() => {
           if (settled) return;
           settled = true;

@@ -285,9 +285,14 @@
         TKToast.show('Could not send your signal — check your connection and try again.');
       }, 8000);
 
-      TKHelpLadder.signalDocRef(sessionId, studentId).set({
-        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
+      // Gate on anonymous sign-in: the rules reject an unauthenticated write
+      // and Firestore does not retry one, so without this the tap looks like
+      // it worked and then times out eight seconds later with a generic toast.
+      window.TKFirebase.ready.then(() =>
+        TKHelpLadder.signalDocRef(sessionId, studentId).set({
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+        })
+      ).then(() => {
         if (settled) return;
         settled = true;
         clearTimeout(timeoutId);
@@ -315,7 +320,12 @@
         TKToast.show('Could not cancel your signal — check your connection and try again.');
       }, 8000);
 
-      TKHelpLadder.signalDocRef(sessionId, studentId).delete().then(() => {
+      // Gate on anonymous sign-in: the rules reject an unauthenticated write
+      // and Firestore does not retry one, so without this the tap looks like
+      // it worked and then times out eight seconds later with a generic toast.
+      window.TKFirebase.ready.then(() =>
+        TKHelpLadder.signalDocRef(sessionId, studentId).delete()
+      ).then(() => {
         if (settled) return;
         settled = true;
         clearTimeout(timeoutId);

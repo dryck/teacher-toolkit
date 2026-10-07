@@ -275,11 +275,16 @@
         errEl.textContent = 'Could not join — check your connection and try again.';
       }, 8000);
 
-      TKChallengeDeck.progressDocRef(sessionId, studentId).set({
-        nickname,
-        completedCardIds: [],
-        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true }).then(() => {
+      // Gate on anonymous sign-in: the rules reject an unauthenticated write
+      // and Firestore does not retry one, so without this the tap looks like
+      // it worked and then times out eight seconds later with a generic toast.
+      window.TKFirebase.ready.then(() =>
+        TKChallengeDeck.progressDocRef(sessionId, studentId).set({
+          nickname,
+          completedCardIds: [],
+          joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true })
+      ).then(() => {
         if (joinSettled) return;
         joinSettled = true;
         clearTimeout(joinTimeoutId);
@@ -432,10 +437,15 @@
         TKToast.show('Could not save — check your connection and try again.');
       }, 8000);
 
-      TKChallengeDeck.progressDocRef(sessionId, studentId).set({
-        nickname,
-        completedCardIds: newCompleted
-      }, { merge: true }).then(() => {
+      // Gate on anonymous sign-in: the rules reject an unauthenticated write
+      // and Firestore does not retry one, so without this the tap looks like
+      // it worked and then times out eight seconds later with a generic toast.
+      window.TKFirebase.ready.then(() =>
+        TKChallengeDeck.progressDocRef(sessionId, studentId).set({
+          nickname,
+          completedCardIds: newCompleted
+        }, { merge: true })
+      ).then(() => {
         if (doneSettled) return;
         doneSettled = true;
         clearTimeout(doneTimeoutId);

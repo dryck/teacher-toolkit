@@ -14,8 +14,29 @@
 (function () {
   const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous 0/O/1/I
 
+  // Set by tests/e2e.integration.mjs via page.addInitScript, never in
+  // production: { firestore: 'host:port', auth: 'http://host:port' }. This is
+  // the only way to point a page at the emulator, since every tool reaches
+  // Firestore through the shared init below rather than wiring its own.
+  function connectEmulators() {
+    const em = window.TK_EMULATOR;
+    if (!em) return;
+    if (em.auth) firebase.auth().useEmulator(em.auth, { disableWarnings: true });
+    if (em.firestore) {
+      const [host, port] = em.firestore.split(':');
+      firebase.firestore().useEmulator(host, Number(port));
+    }
+  }
+
+  let initialised = false;
+
   function app() {
     if (!firebase.apps.length) firebase.initializeApp(window.TK_FIREBASE_CONFIG);
+    if (!initialised) {
+      initialised = true;
+      // useEmulator must run before the first read/write, and exactly once.
+      connectEmulators();
+    }
     return firebase.app();
   }
 
