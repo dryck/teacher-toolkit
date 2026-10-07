@@ -71,6 +71,10 @@ function App() {
     } else {
       document.exitFullscreen().then(() => {
         setIsFullscreen(false)
+      }).catch(() => {
+        // The enter path handles its rejection; this one did not, so a refusal
+        // here surfaced as an unhandled promise rejection instead of a log.
+        console.error('Could not leave fullscreen')
       })
     }
   }, [])

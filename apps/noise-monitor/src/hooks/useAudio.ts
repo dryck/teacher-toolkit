@@ -1,6 +1,6 @@
 import { useCallback, useRef, useEffect, useState } from 'react'
 import { Sound, SoundSettings } from '../types'
-import { generateBellSound, generateChimeSound, generateBuzzSound } from '../utils/soundGenerator'
+import { getGeneratedSoundUrls } from '../utils/soundGenerator'
 
 const builtInSounds: Sound[] = [
   { id: 'bell', name: 'School Bell', url: '', isBuiltIn: true },
@@ -20,20 +20,14 @@ export function useAudio(
   const alarmHasPlayedRef = useRef(false)
   const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Generate sounds on first use
+  // Generated once per page and shared with the Settings panel's test button,
+  // rather than per mount -- each generator call creates a blob URL.
   useEffect(() => {
-    const generateSounds = async () => {
-      const urls: Record<string, string> = {}
-      try {
-        urls['bell'] = generateBellSound()
-        urls['chime'] = generateChimeSound()
-        urls['buzz'] = generateBuzzSound()
-        setGeneratedUrls(urls)
-      } catch (e) {
-        console.error('Failed to generate sounds:', e)
-      }
+    try {
+      setGeneratedUrls(getGeneratedSoundUrls())
+    } catch (e) {
+      console.error('Failed to generate sounds:', e)
     }
-    generateSounds()
   }, [])
 
   // Reset one-shot flags when conditions change

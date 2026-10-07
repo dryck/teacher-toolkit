@@ -1,7 +1,7 @@
 {
-  "name": "sound-level-monitor",
+  "name": "@teacher-toolkit/noise-monitor",
   "version": "2.0.0",
-  "description": "Professional classroom noise management tool for teachers",
+  "description": "Classroom noise monitor: a relative, self-calibrating loudness display for self-regulation.",
   "type": "module",
   "scripts": {
     "dev": "vite",

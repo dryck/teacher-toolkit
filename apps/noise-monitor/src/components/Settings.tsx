@@ -1,7 +1,78 @@
 import { useState, useRef } from 'react'
 import { Theme, CustomImage, ThresholdConfig, DelayConfig, SoundSettings } from '../types'
+import { getGeneratedSoundUrls } from '../utils/soundGenerator'
 import type { ThresholdSource } from '../hooks/useSettings'
 import { ThemeSelector } from './ThemeSelector'
+
+/**
+ * Hoisted to module scope deliberately.
+ *
+ * Declared inside SettingsPanel, this was a *new component type* on every
+ * render. React cannot reconcile two different types, so it unmounted and
+ * rebuilt the whole subtree each time -- and noiseLevel updates on every
+ * animation frame while the panel is open, so that was roughly sixty teardowns
+ * a second, on a machine also driving a projector.
+ */
+function LiveNoiseBar({
+  noiseLevel,
+  thresholds
+}: {
+  noiseLevel: number
+  thresholds: ThresholdConfig
+}) {
+  const pct = Math.min(Math.max(noiseLevel, 0), 100)
+  const markerPositions = {
+    lv2: Math.min(Math.max(thresholds.quietToModerate, 0), 100),
+    lv3: Math.min(Math.max(thresholds.moderateToLoud, 0), 100),
+    lv4: Math.min(Math.max(thresholds.loudToTooLoud, 0), 100),
+  }
+  return (
+    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
+      <div className="flex justify-between items-end mb-2">
+        <span className="text-sm font-semibold text-gray-700">Live Noise Level</span>
+        {/* One number, one unit. This rendered the same value twice --
+            "42.0% (42.0 dB)" -- which asserted the index was decibels. */}
+        <span className="text-sm font-medium text-gray-900">{pct.toFixed(1)}</span>
+      </div>
+      <div className="relative h-4 rounded-full overflow-hidden bg-gray-200">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full"
+          style={{
+            width: `${pct}%`,
+            background: 'linear-gradient(90deg, #22c55e 0%, #eab308 45%, #f97316 75%, #ef4444 100%)',
+            transition: 'width 100ms linear',
+          }}
+        />
+        {/* Markers */}
+        <div
+          className="absolute top-0 bottom-0 w-0.5 bg-gray-800"
+          style={{ left: `${markerPositions.lv2}%` }}
+          title="Lv.2"
+        >
+          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-700">2</span>
+        </div>
+        <div
+          className="absolute top-0 bottom-0 w-0.5 bg-gray-800"
+          style={{ left: `${markerPositions.lv3}%` }}
+          title="Lv.3"
+        >
+          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-700">3</span>
+        </div>
+        <div
+          className="absolute top-0 bottom-0 w-0.5 bg-gray-800"
+          style={{ left: `${markerPositions.lv4}%` }}
+          title="Lv.4"
+        >
+          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-700">4</span>
+        </div>
+      </div>
+      <div className="flex justify-between mt-1 text-[10px] text-gray-500">
+        <span>0</span>
+        <span>100</span>
+      </div>
+    </div>
+  )
+}
 
 interface SettingsProps {
   currentTheme: Theme
@@ -47,7 +118,6 @@ export function SettingsPanel({
   onClose,
 }: SettingsProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('themes')
-  const ttsRef = useRef<SpeechSynthesisUtterance | null>(null)
 
   const thresholdLabels: Record<keyof ThresholdConfig, string> = {
     quietToModerate: 'Quiet → Moderate',
@@ -63,29 +133,34 @@ export function SettingsPanel({
     alarmTrigger: 'Above this, the alarm sounds'
   }
 
+  // Plays the sound the alarm will actually play.
+  //
+  // This used to synthesise a bare half-second oscillator tone -- a sine at
+  // 523Hz for "bell", a sawtooth for "buzz" -- while the real alarm plays the
+  // generated WAV from soundGenerator. The comment above it claimed it used
+  // "the same generator as the app". It did not, so the button did not test
+  // the alarm: a teacher could hear a beep here and still get something else
+  // in the lesson.
+  //
+  // It also opened a new AudioContext on every click and never closed one.
+  // Browsers cap those at around six, so Test Alarm went silent after a few
+  // presses -- with nothing to say why. Playing a data URL through an Audio
+  // element needs no context at all.
+  const testAudioRef = useRef<HTMLAudioElement | null>(null)
+  const generatedAlarmUrls = getGeneratedSoundUrls()
+
   const playTestAlarm = () => {
-    const sound = BUILT_IN_SOUNDS.find((s) => s.id === soundSettings.selectedAlarmSound)
-    if (!sound) return
-    // Use the same generator as the app via a quick Audio beep for test
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const osc = audioCtx.createOscillator()
-    const gain = audioCtx.createGain()
-    if (sound.id === 'bell') {
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(523.25, audioCtx.currentTime)
-    } else if (sound.id === 'chime') {
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime)
-    } else {
-      osc.type = 'sawtooth'
-      osc.frequency.setValueAtTime(220, audioCtx.currentTime)
-    }
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5)
-    osc.connect(gain)
-    gain.connect(audioCtx.destination)
-    osc.start()
-    osc.stop(audioCtx.currentTime + 0.5)
+    const url = generatedAlarmUrls[soundSettings.selectedAlarmSound]
+    if (!url) return
+    if (!testAudioRef.current) testAudioRef.current = new Audio()
+    const audio = testAudioRef.current
+    audio.src = url
+    audio.currentTime = 0
+    audio.play().catch((err) => {
+      // Autoplay policy, or a decode failure. Either way the teacher pressed
+      // a button and deserves to know nothing happened.
+      console.warn('Test alarm could not play:', err)
+    })
   }
 
   const playTestTTS = async () => {
@@ -123,7 +198,6 @@ export function SettingsPanel({
     const voices = window.speechSynthesis.getVoices()
     const usVoice = voices.find((v) => v.lang === 'en-US')
     if (usVoice) utterance.voice = usVoice
-    ttsRef.current = utterance
     window.speechSynthesis.speak(utterance)
   }
 
@@ -131,60 +205,6 @@ export function SettingsPanel({
     onSoundSettingsChange({ ...soundSettings, [key]: value })
   }
 
-  const LiveNoiseBar = () => {
-    const pct = Math.min(Math.max(noiseLevel, 0), 100)
-    const markerPositions = {
-      lv2: Math.min(Math.max(thresholds.quietToModerate, 0), 100),
-      lv3: Math.min(Math.max(thresholds.moderateToLoud, 0), 100),
-      lv4: Math.min(Math.max(thresholds.loudToTooLoud, 0), 100),
-    }
-    return (
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
-        <div className="flex justify-between items-end mb-2">
-          <span className="text-sm font-semibold text-gray-700">Live Noise Level</span>
-          {/* One number, one unit. This rendered the same value twice --
-              "42.0% (42.0 dB)" -- which asserted the index was decibels. */}
-          <span className="text-sm font-medium text-gray-900">{pct.toFixed(1)}</span>
-        </div>
-        <div className="relative h-4 rounded-full overflow-hidden bg-gray-200">
-          <div
-            className="absolute inset-y-0 left-0 rounded-full"
-            style={{
-              width: `${pct}%`,
-              background: 'linear-gradient(90deg, #22c55e 0%, #eab308 45%, #f97316 75%, #ef4444 100%)',
-              transition: 'width 100ms linear',
-            }}
-          />
-          {/* Markers */}
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-gray-800"
-            style={{ left: `${markerPositions.lv2}%` }}
-            title="Lv.2"
-          >
-            <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-700">2</span>
-          </div>
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-gray-800"
-            style={{ left: `${markerPositions.lv3}%` }}
-            title="Lv.3"
-          >
-            <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-700">3</span>
-          </div>
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-gray-800"
-            style={{ left: `${markerPositions.lv4}%` }}
-            title="Lv.4"
-          >
-            <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-700">4</span>
-          </div>
-        </div>
-        <div className="flex justify-between mt-1 text-[10px] text-gray-500">
-          <span>0</span>
-          <span>100</span>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -245,7 +265,7 @@ export function SettingsPanel({
 
           {activeTab === 'thresholds' && (
             <div className="space-y-6 pb-4">
-              <LiveNoiseBar />
+              <LiveNoiseBar noiseLevel={noiseLevel} thresholds={thresholds} />
 
               {/* This box presented the WHO's classroom dB(A) guidelines as
                   though the number above were a decibel reading. It is not: a

@@ -1,6 +1,7 @@
 import { useCallback, useRef, useEffect, useState } from 'react'
+import type { TTSMode } from '../types'
 
-export type TTSMode = 'oneShot' | 'repeat'
+
 
 export interface TTSConfig {
   text: string
@@ -26,10 +27,20 @@ export function useTTS(config: TTSConfig, isMuted: boolean) {
   const cachedUrlRef = useRef<string | null>(null)
   const isElevenLabsRef = useRef(false)
 
-  // Reset when config or mute changes
+  // Reset when config or mute changes.
+  //
+  // Dropping the cached audio is the part that matters. This effect fired on
+  // config.text changing but left cachedUrlRef alone, so the next trigger took
+  // the "already synthesised" branch below and played the *previous* message --
+  // for the rest of the session. A teacher edits the wording, hears the old
+  // sentence, and has no way to tell why. The old blob leaked too.
   useEffect(() => {
     hasPlayedRef.current = false
     stopTTS()
+    if (cachedUrlRef.current) {
+      if (isElevenLabsRef.current) URL.revokeObjectURL(cachedUrlRef.current)
+      cachedUrlRef.current = null
+    }
   }, [isMuted, config.text, config.mode, config.voiceId, config.apiKey])
 
   // Cleanup on unmount
