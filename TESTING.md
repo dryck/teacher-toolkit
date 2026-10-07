@@ -17,7 +17,7 @@ npm test
   where "quietly wrong" costs something: the picker's fairness promise, group
   sizes, and timer drift in a throttled background tab.
 
-## `npm run test:unit` — 57 tests, no setup
+## `npm run test:unit` — 88 tests, no setup
 
 ```bash
 npm run test:unit
@@ -42,6 +42,15 @@ disagree, and nothing said so.
 The first version of that test did not work: it moved `intensity` along with
 the band, so a deliberately broken theme still passed. Worth knowing if you
 extend it — vary one input.
+
+Also covers `useSettings` (the stored config must be rejected rather than
+loaded when a field is missing — the original bug left `alarmTrigger`
+undefined, made every comparison false, and silenced the alarm with nothing in
+the console), the Settings panel (no `dB` anywhere in its output, the band
+source is reported, Test Alarm plays the real sound without opening an
+AudioContext), and what NoiseMonitor asks of the browser — the three
+microphone processors off, and the analyser's dB window pinned, since those
+decide what the whole scale means and a wrong value there is invisible.
 
 Also covers `calibration.ts`, which replaced the shipped threshold constants.
 The index is relative to the microphone's full scale, so no fixed set of
@@ -113,12 +122,11 @@ What it asserts:
 | Area | Covered by | Status |
 |---|---|---|
 | Every page loads clean | smoke | ✅ CI |
-| noise-monitor engine, calibration, themes | 3 vitest files | ✅ CI (57 tests) |
+| noise-monitor: engine, calibration, themes, settings, mic setup | 6 vitest files | ✅ CI (88 tests) |
 | Picker fairness, group sizes, timer drift | logic | ✅ CI |
 | Firestore rules, both directions | rules.integration | ✅ CI (29 tests) |
 | Sign-in, ownerUid, student → teacher sync | e2e.integration | ✅ CI (5 tests) |
 | The other 9 Firebase tools' sync | — | ⚠️ same pattern, untested |
-| noise-monitor Settings/NoiseMonitor components | — | ❌ themes only |
 | `packages/shell/escape.js` | — | ❌ none, despite 17 call sites |
 
 ### The gap that matters most
