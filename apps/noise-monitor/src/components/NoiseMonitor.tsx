@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Theme, Sound, CustomImage, SoundSettings, ThresholdConfig } from '../types'
+import { Theme, Sound, CustomImage, SoundSettings, ThresholdConfig, ThemeProps } from '../types'
 import { EggTheme } from '../themes/EggTheme'
 import { EggClassicTheme } from '../themes/EggClassicTheme'
 import { GlassTheme } from '../themes/GlassTheme'
@@ -318,25 +318,19 @@ export function NoiseMonitor({
     // makes the Transition Delay setting actually govern when a theme's
     // visual state is allowed to change, instead of only gating the
     // isTooLoud alert boundary.
-    // The four themes on the older contract still take a single number; for
-    // them that is the alarm point, which is what `threshold` always meant.
-    const props = {
-      noiseLevel: committedDisplayLevel,
-      threshold: thresholds.alarmTrigger,
+    // One set of props for every theme. The band comes from getNoiseBand, so
+    // all four of the teacher's bounds reach the display -- not just the alarm
+    // point, which is all the old contract carried.
+    const props: ThemeProps = {
+      band: isTooLoud ? 'tooLoud' : getNoiseBand(committedDisplayLevel, thresholds),
+      intensity: thresholds.alarmTrigger > 0
+        ? committedDisplayLevel / thresholds.alarmTrigger
+        : 0,
       isTooLoud,
       customImages,
       backgroundColor
     }
 
-    // getNoiseBand, not a second hand-written copy of the ratio logic. isTooLoud
-    // is honoured on top of it because the transition delay may be holding the
-    // alert on after the level itself has dropped back.
-    const levelProps = {
-      level: isTooLoud
-        ? ('tooLoud' as const)
-        : getNoiseBand(committedDisplayLevel, thresholds)
-    }
-    
     switch (theme) {
       case 'egg':
         return <EggTheme {...props} />
@@ -347,13 +341,13 @@ export function NoiseMonitor({
       case 'custom':
         return <CustomTheme {...props} />
       case 'thermometer':
-        return <ThermometerTheme {...levelProps} />
+        return <ThermometerTheme {...props} />
       case 'battery':
-        return <BatteryTheme {...levelProps} />
+        return <BatteryTheme {...props} />
       case 'weather':
-        return <WeatherTheme {...levelProps} />
+        return <WeatherTheme {...props} />
       case 'volcano':
-        return <VolcanoTheme {...levelProps} />
+        return <VolcanoTheme {...props} />
       default:
         return <EggTheme {...props} />
     }

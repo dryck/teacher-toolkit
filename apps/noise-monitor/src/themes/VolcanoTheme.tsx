@@ -1,5 +1,5 @@
 import React from 'react';
-import { NewThemeProps } from '../types';
+import { ThemeProps } from '../types';
 
 /**
  * Volcano Theme
@@ -10,9 +10,9 @@ import { NewThemeProps } from '../types';
  * Level 4 (Too Loud): Full eruption, lava flow, explosion
  */
 
-export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
+export const VolcanoTheme: React.FC<ThemeProps> = ({ band }) => {
   const getSkyColor = () => {
-    switch (level) {
+    switch (band) {
       case 'quiet': return 'from-cyan-300 to-blue-400';
       case 'moderate': return 'from-blue-300 to-purple-300';
       case 'loud': return 'from-orange-300 to-red-400';
@@ -22,7 +22,7 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
   };
 
   const getLevelIndex = () => {
-    switch (level) {
+    switch (band) {
       case 'quiet': return 0;
       case 'moderate': return 1;
       case 'loud': return 2;
@@ -36,7 +36,7 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
   return (
     <div className={`w-full h-full flex flex-col items-center justify-end bg-gradient-to-b ${getSkyColor()} transition-all duration-700 relative overflow-hidden`}>
       {/* Stars (visible in quiet) */}
-      {level === 'quiet' && (
+      {band === 'quiet' && (
         <div className="absolute inset-0 pointer-events-none">
           {[12,45,23,67,89,34,56,78,12,90,45,67,23,89,56].map((left, i) => (
             <div
@@ -53,7 +53,7 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
       )}
 
       {/* Birds for quiet */}
-      {level === 'quiet' && (
+      {band === 'quiet' && (
         <div className="absolute top-16 left-1/4 animate-pulse">
           <svg width="60" height="40" viewBox="0 0 60 40">
             <path d="M10 20 Q20 10 30 20 Q40 10 50 20" stroke="#1F2937" strokeWidth="2" fill="none">
@@ -64,9 +64,9 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
       )}
 
       {/* Smoke particles - moderate+ */}
-      {(level === 'moderate' || level === 'loud' || level === 'tooLoud') && (
+      {(band === 'moderate' || band === 'loud' || band === 'tooLoud') && (
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 pointer-events-none">
-          {[...Array(level === 'tooLoud' ? 8 : level === 'loud' ? 5 : 3)].map((_, i) => (
+          {[...Array(band === 'tooLoud' ? 8 : band === 'loud' ? 5 : 3)].map((_, i) => (
             <div
               key={i}
               className="absolute"
@@ -77,7 +77,7 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
             >
               <div 
                 className={`rounded-full ${
-                  level === 'tooLoud' ? 'bg-gray-700' : level === 'loud' ? 'bg-gray-500' : 'bg-gray-400'
+                  band === 'tooLoud' ? 'bg-gray-700' : band === 'loud' ? 'bg-gray-500' : 'bg-gray-400'
                 }`}
                 style={{ width: `${20 + i * 8}px`, height: `${20 + i * 8}px` }}
               />
@@ -93,11 +93,11 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
       )}
 
       {/* Ground shake effect for loud+ */}
-      {(level === 'loud' || level === 'tooLoud') && (
+      {(band === 'loud' || band === 'tooLoud') && (
         <div 
           className="absolute inset-0 pointer-events-none"
           style={{
-            animation: level === 'tooLoud' ? 'shake 0.3s ease-in-out infinite' : 'shake 0.5s ease-in-out infinite'
+            animation: band === 'tooLoud' ? 'shake 0.3s ease-in-out infinite' : 'shake 0.5s ease-in-out infinite'
           }}
         >
           <style>{`
@@ -117,7 +117,7 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
             {/* Mountain base */}
             <path 
               d="M50 250 L120 80 Q150 60 180 80 L250 250 Z" 
-              fill={level === 'tooLoud' ? '#4B5563' : level === 'loud' ? '#6B7280' : '#57534E'}
+              fill={band === 'tooLoud' ? '#4B5563' : band === 'loud' ? '#6B7280' : '#57534E'}
               className="transition-colors duration-500"
             />
             
@@ -131,9 +131,9 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
             />
 
             {/* Lava glow inside crater - loud+ */}
-            {(level === 'loud' || level === 'tooLoud') && (
+            {(band === 'loud' || band === 'tooLoud') && (
               <ellipse cx="150" cy="85" rx="25" ry="8" fill="#EF4444" opacity="0.8">
-                <animate attributeName="opacity" values="0.6;1;0.6" dur={level === 'tooLoud' ? '0.3s' : '1s'} repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.6;1;0.6" dur={band === 'tooLoud' ? '0.3s' : '1s'} repeatCount="indefinite"/>
               </ellipse>
             )}
 
@@ -141,7 +141,7 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
             <ellipse cx="150" cy="80" rx="30" ry="10" fill="#44403C"/>
 
             {/* Lava flow - tooLoud only */}
-            {level === 'tooLoud' && (
+            {band === 'tooLoud' && (
               <>
                 {/* Left flow */}
                 <path d="M130 85 Q110 120 90 180 Q85 200 80 250 L110 250 Q115 200 125 160 Q135 120 140 85" fill="#DC2626">
@@ -159,7 +159,7 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
             )}
 
             {/* Eruption particles - tooLoud only */}
-            {level === 'tooLoud' && (
+            {band === 'tooLoud' && (
               <>
                 {[140,160,130,170,145,155,125,165,135,175].map((cx, i) => (
                   <circle 
@@ -195,7 +195,7 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
             {/* Face on volcano */}
             <g transform="translate(150, 160)">
               {/* Eyes */}
-              {level === 'quiet' && (
+              {band === 'quiet' && (
                 <>
                   <circle cx="-20" cy="-10" r="6" fill="#1F2937"/>
                   <circle cx="20" cy="-10" r="6" fill="#1F2937"/>
@@ -203,13 +203,13 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
                   <circle cx="22" cy="-12" r="2" fill="white"/>
                 </>
               )}
-              {level === 'moderate' && (
+              {band === 'moderate' && (
                 <>
                   <line x1="-25" y1="-10" x2="-15" y2="-10" stroke="#1F2937" strokeWidth="3"/>
                   <line x1="15" y1="-10" x2="25" y2="-10" stroke="#1F2937" strokeWidth="3"/>
                 </>
               )}
-              {level === 'loud' && (
+              {band === 'loud' && (
                 <>
                   <circle cx="-20" cy="-10" r="8" fill="white"/>
                   <circle cx="20" cy="-10" r="8" fill="white"/>
@@ -217,7 +217,7 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
                   <circle cx="20" cy="-10" r="3" fill="#1F2937"/>
                 </>
               )}
-              {level === 'tooLoud' && (
+              {band === 'tooLoud' && (
                 <>
                   <path d="M-28 -15 L-12 -5 M-28 -5 L-12 -15" stroke="#EF4444" strokeWidth="4" strokeLinecap="round"/>
                   <path d="M12 -15 L28 -5 M12 -5 L28 -15" stroke="#EF4444" strokeWidth="4" strokeLinecap="round"/>
@@ -225,10 +225,10 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
               )}
 
               {/* Mouth */}
-              {level === 'quiet' && <path d="M-15 15 Q0 25 15 15" stroke="#1F2937" strokeWidth="3" fill="none"/>}
-              {level === 'moderate' && <line x1="-10" y1="20" x2="10" y2="20" stroke="#1F2937" strokeWidth="3"/>}
-              {level === 'loud' && <ellipse cx="0" cy="20" rx="10" ry="8" fill="#1F2937"/>}
-              {level === 'tooLoud' && <path d="M-15 10 Q0 35 15 10" fill="#7F1D1D" stroke="#EF4444" strokeWidth="2"/>}
+              {band === 'quiet' && <path d="M-15 15 Q0 25 15 15" stroke="#1F2937" strokeWidth="3" fill="none"/>}
+              {band === 'moderate' && <line x1="-10" y1="20" x2="10" y2="20" stroke="#1F2937" strokeWidth="3"/>}
+              {band === 'loud' && <ellipse cx="0" cy="20" rx="10" ry="8" fill="#1F2937"/>}
+              {band === 'tooLoud' && <path d="M-15 10 Q0 35 15 10" fill="#7F1D1D" stroke="#EF4444" strokeWidth="2"/>}
             </g>
           </svg>
         </div>
@@ -239,14 +239,14 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
         <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 400 60">
           <path 
             d="M0 60 L0 30 Q100 20 200 35 Q300 50 400 25 L400 60 Z" 
-            fill={level === 'tooLoud' ? '#292524' : '#44403C'}
+            fill={band === 'tooLoud' ? '#292524' : '#44403C'}
             className="transition-colors duration-500"
           />
         </svg>
       </div>
 
       {/* Trees for quiet */}
-      {level === 'quiet' && (
+      {band === 'quiet' && (
         <div className="absolute bottom-12 left-8 pointer-events-none">
           <svg width="40" height="60" viewBox="0 0 40 60">
             <rect x="17" y="40" width="6" height="20" fill="#78350F"/>
@@ -255,7 +255,7 @@ export const VolcanoTheme: React.FC<NewThemeProps> = ({ level }) => {
           </svg>
         </div>
       )}
-      {level === 'quiet' && (
+      {band === 'quiet' && (
         <div className="absolute bottom-10 right-12 pointer-events-none">
           <svg width="30" height="50" viewBox="0 0 30 50">
             <rect x="12" y="30" width="6" height="20" fill="#78350F"/>

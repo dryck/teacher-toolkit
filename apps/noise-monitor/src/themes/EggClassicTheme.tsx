@@ -1,4 +1,4 @@
-import { ThemeProps } from '../types'
+import { ThemeProps, NoiseBand } from '../types'
 
 // Original classic egg SVG path
 const EGG_PATH = 'M150,28 C218,28 262,90 262,178 C262,272 215,352 150,352 C85,352 38,272 38,178 C38,90 82,28 150,28 Z'
@@ -41,17 +41,19 @@ const EGGS = {
   },
 }
 
-export function EggClassicTheme({ noiseLevel, threshold, isTooLoud }: ThemeProps) {
-  // Calculate level (1-4)
-  const getLevel = () => {
-    if (isTooLoud) return 4
-    const ratio = noiseLevel / threshold
-    if (ratio < 0.5) return 1
-    if (ratio < 0.8) return 2
-    return 3
-  }
+/** Band to the 1-4 stage these illustrations are numbered by. */
+const BAND_STAGE: Record<NoiseBand, 1 | 2 | 3 | 4> = {
+  quiet: 1,
+  moderate: 2,
+  loud: 3,
+  tooLoud: 4
+}
 
-  const level = getLevel()
+export function EggClassicTheme({ band, isTooLoud }: ThemeProps) {
+  // isTooLoud on top of the band: the transition delay can hold the alert on
+  // after the level has fallen back, and the cracked egg should stay cracked
+  // for as long as the alert does.
+  const level = isTooLoud ? 4 : BAND_STAGE[band]
   const egg = EGGS[level as keyof typeof EGGS]
 
   return (

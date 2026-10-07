@@ -1,5 +1,5 @@
 import React from 'react';
-import { NewThemeProps } from '../types';
+import { ThemeProps } from '../types';
 
 /**
  * Weather Theme
@@ -10,9 +10,9 @@ import { NewThemeProps } from '../types';
  * Level 4 (Too Loud): Thunderstorm, lightning, angry clouds
  */
 
-export const WeatherTheme: React.FC<NewThemeProps> = ({ level }) => {
+export const WeatherTheme: React.FC<ThemeProps> = ({ band }) => {
   const getSkyGradient = () => {
-    switch (level) {
+    switch (band) {
       case 'quiet': return { from: '#60A5FA', to: '#BFDBFE' }; // Blue sky
       case 'moderate': return { from: '#93C5FD', to: '#E0E7FF' }; // Light clouds
       case 'loud': return { from: '#6B7280', to: '#9CA3AF' }; // Gray
@@ -29,9 +29,9 @@ export const WeatherTheme: React.FC<NewThemeProps> = ({ level }) => {
       style={{ background: `linear-gradient(to bottom, ${sky.from}, ${sky.to})` }}
     >
       {/* Sun - visible in quiet and moderate */}
-      {(level === 'quiet' || level === 'moderate') && (
+      {(band === 'quiet' || band === 'moderate') && (
         <div className={`absolute transition-all duration-700 ${
-          level === 'quiet' ? 'top-8 right-8' : 'top-12 right-16 opacity-70'
+          band === 'quiet' ? 'top-8 right-8' : 'top-12 right-16 opacity-70'
         }`}>
           <svg width="100" height="100" viewBox="0 0 100 100">
             {/* Sun rays */}
@@ -74,15 +74,15 @@ export const WeatherTheme: React.FC<NewThemeProps> = ({ level }) => {
       <div className="absolute inset-0 pointer-events-none">
         {/* Small cloud - always visible */}
         <div className={`absolute transition-all duration-700 ${
-          level === 'quiet' ? 'top-20 left-10 opacity-40' :
-          level === 'moderate' ? 'top-16 left-8 opacity-70' :
-          level === 'loud' ? 'top-12 left-6 opacity-90' :
+          band === 'quiet' ? 'top-20 left-10 opacity-40' :
+          band === 'moderate' ? 'top-16 left-8 opacity-70' :
+          band === 'loud' ? 'top-12 left-6 opacity-90' :
           'top-8 left-4 opacity-100'
         }`}>
           <svg width="120" height="70" viewBox="0 0 120 70">
             <path 
               d="M20 50 Q10 50 10 40 Q10 25 25 25 Q30 10 50 10 Q70 10 75 25 Q90 25 95 40 Q100 50 90 50 Z" 
-              fill={level === 'tooLoud' ? '#4B5563' : level === 'loud' ? '#6B7280' : '#F3F4F6'}
+              fill={band === 'tooLoud' ? '#4B5563' : band === 'loud' ? '#6B7280' : '#F3F4F6'}
               className="transition-colors duration-500"
             />
           </svg>
@@ -90,25 +90,25 @@ export const WeatherTheme: React.FC<NewThemeProps> = ({ level }) => {
 
         {/* Main cloud - center */}
         <div className={`absolute left-1/2 -translate-x-1/2 transition-all duration-700 ${
-          level === 'quiet' ? 'top-32 opacity-20' :
-          level === 'moderate' ? 'top-28 opacity-60' :
-          level === 'loud' ? 'top-20 opacity-90' :
+          band === 'quiet' ? 'top-32 opacity-20' :
+          band === 'moderate' ? 'top-28 opacity-60' :
+          band === 'loud' ? 'top-20 opacity-90' :
           'top-16 opacity-100'
         }`}>
           <svg width="200" height="120" viewBox="0 0 200 120">
             <path 
               d="M40 90 Q20 90 20 70 Q20 45 45 45 Q55 20 85 15 Q115 10 130 35 Q155 35 165 55 Q180 75 170 90 Q160 100 140 100 H50 Q40 100 40 90 Z" 
-              fill={level === 'tooLoud' ? '#374151' : level === 'loud' ? '#4B5563' : '#E5E7EB'}
+              fill={band === 'tooLoud' ? '#374151' : band === 'loud' ? '#4B5563' : '#E5E7EB'}
               className="transition-colors duration-500"
             />
             {/* Cloud face for loud/tooLoud */}
-            {(level === 'loud' || level === 'tooLoud') && (
+            {(band === 'loud' || band === 'tooLoud') && (
               <g>
-                <circle cx="80" cy="60" r="5" fill={level === 'tooLoud' ? '#EF4444' : '#F59E0B'}/>
-                <circle cx="120" cy="60" r="5" fill={level === 'tooLoud' ? '#EF4444' : '#F59E0B'}/>
+                <circle cx="80" cy="60" r="5" fill={band === 'tooLoud' ? '#EF4444' : '#F59E0B'}/>
+                <circle cx="120" cy="60" r="5" fill={band === 'tooLoud' ? '#EF4444' : '#F59E0B'}/>
                 <path 
-                  d={level === 'tooLoud' ? "M85 80 Q100 70 115 80" : "M85 75 Q100 85 115 75"} 
-                  stroke={level === 'tooLoud' ? '#EF4444' : '#F59E0B'} 
+                  d={band === 'tooLoud' ? "M85 80 Q100 70 115 80" : "M85 75 Q100 85 115 75"} 
+                  stroke={band === 'tooLoud' ? '#EF4444' : '#F59E0B'} 
                   strokeWidth="3" 
                   fill="none"
                 />
@@ -118,12 +118,12 @@ export const WeatherTheme: React.FC<NewThemeProps> = ({ level }) => {
         </div>
 
         {/* Storm cloud for loud/tooLoud */}
-        {(level === 'loud' || level === 'tooLoud') && (
+        {(band === 'loud' || band === 'tooLoud') && (
           <div className="absolute top-8 right-8">
             <svg width="150" height="100" viewBox="0 0 150 100">
               <path 
                 d="M30 75 Q15 75 15 60 Q15 40 35 40 Q45 20 70 15 Q95 10 110 30 Q130 30 138 45 Q145 60 135 75 Q125 85 105 85 H40 Q30 85 30 75 Z" 
-                fill={level === 'tooLoud' ? '#1F2937' : '#4B5563'}
+                fill={band === 'tooLoud' ? '#1F2937' : '#4B5563'}
               >
                 <animate 
                   attributeName="d" 
@@ -138,7 +138,7 @@ export const WeatherTheme: React.FC<NewThemeProps> = ({ level }) => {
       </div>
 
       {/* Rain for loud */}
-      {level === 'loud' && (
+      {band === 'loud' && (
         <div className="absolute inset-0 pointer-events-none">
           {[...Array(12)].map((_, i) => (
             <div
@@ -166,7 +166,7 @@ export const WeatherTheme: React.FC<NewThemeProps> = ({ level }) => {
       )}
 
       {/* Lightning and heavy rain for tooLoud */}
-      {level === 'tooLoud' && (
+      {band === 'tooLoud' && (
         <>
           {/* Lightning */}
           <div className="absolute inset-0 pointer-events-none">
@@ -238,7 +238,7 @@ export const WeatherTheme: React.FC<NewThemeProps> = ({ level }) => {
         <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 400 100">
           <path 
             d="M0 100 L0 60 Q100 40 200 55 Q300 70 400 50 L400 100 Z" 
-            fill={level === 'tooLoud' ? '#1F2937' : level === 'loud' ? '#374151' : '#22C55E'}
+            fill={band === 'tooLoud' ? '#1F2937' : band === 'loud' ? '#374151' : '#22C55E'}
             className="transition-colors duration-500"
           />
         </svg>
@@ -247,7 +247,7 @@ export const WeatherTheme: React.FC<NewThemeProps> = ({ level }) => {
 
 
       {/* Wind lines for moderate+ */}
-      {level !== 'quiet' && (
+      {band !== 'quiet' && (
         <div className="absolute top-1/2 left-0 right-0 pointer-events-none">
           {[...Array(3)].map((_, i) => (
             <div
@@ -274,7 +274,7 @@ export const WeatherTheme: React.FC<NewThemeProps> = ({ level }) => {
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
         <div className="flex items-center gap-3 px-4 py-2 bg-black/30 backdrop-blur-sm rounded-full">
           {[0, 1, 2, 3].map((dotIndex) => {
-            const levelIndex = level === 'quiet' ? 0 : level === 'moderate' ? 1 : level === 'loud' ? 2 : 3;
+            const levelIndex = band === 'quiet' ? 0 : band === 'moderate' ? 1 : band === 'loud' ? 2 : 3;
             const dotColors = ['#10B981', '#F59E0B', '#F97316', '#EF4444']; // Green, Yellow, Orange, Red
             const isActive = dotIndex <= levelIndex;
             return (

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NewThemeProps } from '../types';
+import { ThemeProps } from '../types';
 
 /**
  * Thermometer Theme
@@ -10,9 +10,9 @@ import { NewThemeProps } from '../types';
  * Level 4 (Too Loud): Red, max mercury, boiling/steam
  */
 
-export const ThermometerTheme: React.FC<NewThemeProps> = ({ level }) => {
+export const ThermometerTheme: React.FC<ThemeProps> = ({ band }) => {
   const getMercuryHeight = () => {
-    switch (level) {
+    switch (band) {
       case 'quiet': return '20%';
       case 'moderate': return '45%';
       case 'loud': return '70%';
@@ -22,7 +22,7 @@ export const ThermometerTheme: React.FC<NewThemeProps> = ({ level }) => {
   };
 
   const getMercuryColor = () => {
-    switch (level) {
+    switch (band) {
       case 'quiet': return '#3B82F6'; // Blue
       case 'moderate': return '#22C55E'; // Green
       case 'loud': return '#F97316'; // Orange
@@ -32,7 +32,7 @@ export const ThermometerTheme: React.FC<NewThemeProps> = ({ level }) => {
   };
 
   const getBgGradient = () => {
-    switch (level) {
+    switch (band) {
       case 'quiet': return 'from-blue-50 to-blue-100';
       case 'moderate': return 'from-green-50 to-green-100';
       case 'loud': return 'from-orange-50 to-orange-100';
@@ -42,7 +42,7 @@ export const ThermometerTheme: React.FC<NewThemeProps> = ({ level }) => {
   };
 
   const getFaceExpression = () => {
-    switch (level) {
+    switch (band) {
       case 'quiet': return { eyes: '○ ○', mouth: '︶', sweat: false };
       case 'moderate': return { eyes: '◕ ◕', mouth: '‿', sweat: false };
       case 'loud': return { eyes: '◑ ◑', mouth: '︵', sweat: true };
@@ -60,7 +60,7 @@ export const ThermometerTheme: React.FC<NewThemeProps> = ({ level }) => {
     <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${getBgGradient()} transition-all duration-500`}>
       <div className="relative">
         {/* Steam particles for too loud */}
-        {level === 'tooLoud' && (
+        {band === 'tooLoud' && (
           <>
             <div className="absolute -top-8 left-1/2 -translate-x-1/2 animate-ping">
               <svg width="40" height="30" viewBox="0 0 40 30" className="opacity-60">
@@ -97,7 +97,7 @@ export const ThermometerTheme: React.FC<NewThemeProps> = ({ level }) => {
               <animate 
                 attributeName="y" 
                 from="240" 
-                to={level === 'quiet' ? '216' : level === 'moderate' ? '132' : level === 'loud' ? '66' : '30'}
+                to={band === 'quiet' ? '216' : band === 'moderate' ? '132' : band === 'loud' ? '66' : '30'}
                 dur="0.7s" 
                 fill="freeze"
                 calcMode="spline"
@@ -106,7 +106,7 @@ export const ThermometerTheme: React.FC<NewThemeProps> = ({ level }) => {
               <animate 
                 attributeName="height" 
                 from="0" 
-                to={level === 'quiet' ? '24' : level === 'moderate' ? '108' : level === 'loud' ? '174' : '210'}
+                to={band === 'quiet' ? '24' : band === 'moderate' ? '108' : band === 'loud' ? '174' : '210'}
                 dur="0.7s" 
                 fill="freeze"
                 calcMode="spline"
@@ -166,7 +166,7 @@ export const ThermometerTheme: React.FC<NewThemeProps> = ({ level }) => {
         {/* 4 Colored dots indicator - BELOW the thermometer */}
         <div className="flex items-center justify-center gap-3 mt-6">
           {[0, 1, 2, 3].map((dotIndex) => {
-            const levelIndex = level === 'quiet' ? 0 : level === 'moderate' ? 1 : level === 'loud' ? 2 : 3;
+            const levelIndex = band === 'quiet' ? 0 : band === 'moderate' ? 1 : band === 'loud' ? 2 : 3;
             const dotColors = ['#3B82F6', '#22C55E', '#F97316', '#EF4444']; // Blue, Green, Orange, Red
             const isActive = dotIndex <= levelIndex;
             return (

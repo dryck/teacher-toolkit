@@ -1,41 +1,43 @@
-import { ThemeProps } from '../types'
+import { ThemeProps, NoiseBand } from '../types'
 
-export function CustomTheme({ noiseLevel, threshold, isTooLoud, customImages }: ThemeProps) {
-  // Select image based on noise level
+// A teacher's own pictures, shown one per band. Which picture, how many dots
+// and what colour were three separate ratio ladders over the alarm point
+// (0.5/1, then 0.25/0.5/0.75, then 0.5/0.75) -- so a teacher could move the
+// "loud" slider and watch nothing change here.
+const BAND_IMAGE: Record<NoiseBand, number> = {
+  quiet: 0,
+  moderate: 1,
+  loud: 1,
+  tooLoud: 2
+}
+const BAND_DOTS: Record<NoiseBand, number> = {
+  quiet: 1,
+  moderate: 2,
+  loud: 3,
+  tooLoud: 4
+}
+const BAND_COLOR: Record<NoiseBand, string> = {
+  quiet: '#10B981',
+  moderate: '#3B82F6',
+  loud: '#F59E0B',
+  tooLoud: '#EF4444'
+}
+
+export function CustomTheme({ band, isTooLoud, customImages }: ThemeProps) {
   const getImageIndex = () => {
     if (customImages.length === 0) return -1
-    if (customImages.length === 1) return 0
-    
-    const ratio = noiseLevel / threshold
-    if (ratio < 0.5) return 0
-    if (ratio < 1) return Math.min(1, customImages.length - 1)
-    return Math.min(2, customImages.length - 1)
+    return Math.min(BAND_IMAGE[band], customImages.length - 1)
   }
 
   const imageIndex = getImageIndex()
   const currentImage = imageIndex >= 0 ? customImages[imageIndex] : null
-  
-  // Animation intensity
+
   const scale = 1 + (isTooLoud ? 0.05 : 0)
+  const activeDots = BAND_DOTS[band]
 
-  // Calculate which dots should be active based on noise level ratio
-  const ratio = noiseLevel / threshold
-  const getActiveDotCount = () => {
-    if (ratio < 0.25) return 1
-    if (ratio < 0.5) return 2
-    if (ratio < 0.75) return 3
-    return 4
-  }
-  const activeDots = getActiveDotCount()
-
-  // Get color based on noise level
   const getDotColor = (index: number) => {
-    const isActive = index < activeDots
-    if (!isActive) return '#E5E7EB' // gray-200 for inactive
-    if (isTooLoud) return '#EF4444' // red-500
-    if (ratio > 0.75) return '#F59E0B' // amber-500
-    if (ratio > 0.5) return '#3B82F6' // blue-500
-    return '#10B981' // emerald-500
+    if (index >= activeDots) return '#E5E7EB' // gray-200 for inactive
+    return isTooLoud ? '#EF4444' : BAND_COLOR[band]
   }
 
   if (!currentImage) {
@@ -78,7 +80,7 @@ export function CustomTheme({ noiseLevel, threshold, isTooLoud, customImages }: 
             style={{
               background: isTooLoud 
                 ? 'radial-gradient(circle, transparent 30%, rgba(239, 68, 68, 0.4) 100%)'
-                : `radial-gradient(circle, transparent 30%, ${noiseLevel > threshold * 0.7 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'} 100%)`,
+                : `radial-gradient(circle, transparent 30%, ${band === 'loud' || band === 'tooLoud' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'} 100%)`,
             }}
           />
         </div>

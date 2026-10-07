@@ -1,4 +1,4 @@
-import type { ThresholdConfig } from '../types'
+import type { ThresholdConfig, NoiseBand } from '../types'
 
 /**
  * Room loudness as a relative 0-100 index.
@@ -42,8 +42,6 @@ export function smoothNoiseLevel(
 ): number {
   return currentLevel * (1 - smoothingFactor) + newLevel * smoothingFactor
 }
-
-export type NoiseBand = 'quiet' | 'moderate' | 'loud' | 'tooLoud'
 
 /**
  * Which band a level falls into, from the teacher's four configured bounds.
