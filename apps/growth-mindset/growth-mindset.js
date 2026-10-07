@@ -1,16 +1,10 @@
 // Shared Firebase/session helpers + the reframe-template library, used by
 // both the student page (index.html) and the teacher "Wall of Yet" page
-// (wall.html). Loaded after firebase-config.js and the Firebase compat SDK
+// (wall.html). Loaded after ../shell/firebase.js and the Firebase compat SDK
 // scripts (same pattern as apps/zones/zones.js).
 (function () {
-  
   const db = window.TKFirebase.db();
-
-
-  // Import from shared firebase.js
-  const { randomSessionCode, randomStudentId } = window.TKFirebase;
-    return code;
-  }
+  const { randomSessionCode } = window.TKFirebase;
 
   // growthWallSessions/{code}/entries/{autoId} -- { text, approved, createdAt }
   function sessionDocRef(sessionId) {

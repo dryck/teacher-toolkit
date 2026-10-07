@@ -1,19 +1,13 @@
 // Shared Firebase/session helpers for both the student ticket page and the
-// teacher dashboard. Loaded after firebase-config.js and the Firebase compat
+// teacher dashboard. Loaded after ../shell/firebase.js and the Firebase compat
 // SDK scripts (mirrors apps/zones/zones.js).
 (function () {
-  
   const db = window.TKFirebase.db();
+  const { randomSessionCode } = window.TKFirebase;
 
   const DEFAULT_Q1_TEXT = 'What did you learn today?';
   const DEFAULT_Q2_TEXT = 'How confident do you feel?'; // fixed wording, not editable by the teacher
   const DEFAULT_Q3_TEXT = 'What question do you still have?';
-
-
-  // Import from shared firebase.js
-  const { randomSessionCode, randomStudentId } = window.TKFirebase;
-    return code;
-  }
 
   // Top-level collection, distinct from Zones' `zonesSessions` in the same
   // Firebase project. One doc per session holds the setup config:

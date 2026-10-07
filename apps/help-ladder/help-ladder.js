@@ -1,6 +1,6 @@
 // Shared Firebase/session helpers + local-storage step config, used by
 // the teacher dashboard (teacher.html) and the student page (index.html).
-// Loaded after firebase-config.js and the Firebase compat SDK scripts
+// Loaded after ../shell/firebase.js and the Firebase compat SDK scripts
 // (same pattern as apps/zones/zones.js and apps/choice-board/choice-board.js).
 //
 // This tool has two independent modes:
@@ -9,21 +9,12 @@
 //   unconfigured/unreachable.
 //   Mode B "Ask 3 Before Me" is Firebase-backed, described below.
 (function () {
-  
   const db = window.TKFirebase.db();
-
-
-  // Import from shared firebase.js
   const { randomSessionCode, randomStudentId } = window.TKFirebase;
-    return code;
-  }
 
   // Stable per-device student identifier, stored in localStorage, so a
   // student can un-signal (delete their own doc) and re-tapping "I'm still
   // stuck" doesn't create a duplicate signal.
-  function randomStudentId() {
-    return 'stu_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  }
 
   // Firestore shape:
   //   helpLadderSessions/{sessionId} -- { step1, step2, step3, step4, step5, createdAt }

@@ -1,10 +1,9 @@
 // Shared Firebase/session helpers for both the student wall page and the
-// teacher dashboard. Loaded after firebase-config.js and the Firebase
+// teacher dashboard. Loaded after ../shell/firebase.js and the Firebase
 // compat SDK scripts.
 (function () {
-  
   const db = window.TKFirebase.db();
-
+  const { randomSessionCode } = window.TKFirebase;
 
   const MAX_STICKY_LEN = 140;
 
@@ -19,11 +18,6 @@
 
   function phaseInfo(n) {
     return PHASES.find(p => p.n === n) || PHASES[0];
-  }
-
-  // Import from shared firebase.js
-  const { randomSessionCode, randomStudentId } = window.TKFirebase;
-    return code;
   }
 
   function sessionDocRef(sessionId) {

@@ -1,9 +1,9 @@
 // Shared Firebase/session helpers for both the student board page and the
-// teacher dashboard. Loaded after firebase-config.js and the Firebase
+// teacher dashboard. Loaded after ../shell/firebase.js and the Firebase
 // compat SDK scripts.
 (function () {
-  
   const db = window.TKFirebase.db();
+  const { randomSessionCode, randomStudentId } = window.TKFirebase;
 
   const CELL_COUNT = 9;
 
@@ -21,8 +21,8 @@
     { emoji: '⭐', label: 'Free choice' }
   ];
 
-  // Import from shared firebase.js
-  const { randomSessionCode, randomStudentId } = window.TKFirebase;
+  // Stable per-device student identifier, stored in localStorage alongside
+  // the nickname so a student's progress doc persists across visits.
 
   function boardDocRef(sessionId) {
     return db.collection('choiceBoardSessions').doc(sessionId);

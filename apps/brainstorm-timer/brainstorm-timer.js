@@ -1,15 +1,9 @@
 // Shared Firebase/session helpers for both the student page and the
-// teacher dashboard. Loaded after firebase-config.js and the Firebase
+// teacher dashboard. Loaded after ../shell/firebase.js and the Firebase
 // compat SDK scripts. Mirrors apps/chili-challenge/chili-challenge.js.
 (function () {
-  
   const db = window.TKFirebase.db();
-
-
-  // Import from shared firebase.js
-  const { randomSessionCode, randomStudentId } = window.TKFirebase;
-    return code;
-  }
+  const { randomSessionCode } = window.TKFirebase;
 
   function sessionDocRef(sessionId) {
     return db.collection('brainstormSessions').doc(sessionId);
