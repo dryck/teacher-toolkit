@@ -376,7 +376,11 @@
           btn.classList.add('done');
           btn.innerHTML = `<span class="check">✓</span><span class="label">${escapeHtml(cell.title || '')}</span>`;
         } else {
-          btn.innerHTML = `<span class="emoji">${cell.icon}</span><span class="label">${escapeHtml(cell.title || '')}</span>`;
+          // cell.icon comes from the session doc, same as cell.title. The teacher
+          // UI only offers a <select> of emoji, but that is a client-side
+          // constraint and the Firestore rules validate the key set, not the
+          // contents -- so escape it like every other remote field.
+          btn.innerHTML = `<span class="emoji">${escapeHtml(cell.icon || '')}</span><span class="label">${escapeHtml(cell.title || '')}</span>`;
         }
         if (cell) {
           btn.onclick = () => openModal(i);

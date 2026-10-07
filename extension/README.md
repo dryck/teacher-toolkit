@@ -26,7 +26,15 @@ way rather than from the Web Store.
 Sites stop themselves being embedded by sending an `X-Frame-Options` header or
 a Content-Security-Policy `frame-ancestors` directive. Chrome enforces those
 before any page script runs, which is why the toolkit itself cannot work around
-it. This extension removes those headers so the frame is allowed to render.
+it. This extension removes `X-Frame-Options` so the frame is allowed to render.
+
+It no longer touches `Content-Security-Policy`. Chrome's rule API can only
+remove a whole header, not one directive, so dropping CSP to get at
+`frame-ancestors` also disabled the embedded site's own XSS defences — its
+script allowlists and nonces — for as long as it sat in your board. That is a
+much bigger trade than this feature needs. The cost is that a site which
+blocks framing *only* via CSP `frame-ancestors`, with no `X-Frame-Options`
+header, will still refuse to embed. Open those in a normal tab instead.
 
 ## Why this is scoped the way it is
 
@@ -37,18 +45,18 @@ Stripping them everywhere would remove that protection across your whole browser
 So the rule is deliberately narrow:
 
 - `"resourceTypes": ["sub_frame"]` — only frames, never top-level pages you visit.
-- `"initiatorDomains"` — only frames loaded **by the Teacher Toolkit itself**
-  (`dryck.github.io`, plus localhost for development).
+- `"initiatorDomains": ["dryck.github.io"]` — only frames loaded **by the
+  Teacher Toolkit itself**.
+
+`localhost` and `127.0.0.1` used to be in that list for development, and have
+been removed. A local port is not a trust boundary: any other project serving
+on localhost — including something a dependency's install script started —
+would have inherited the ability to frame authenticated sites with
+clickjacking protection stripped. If you need it while developing, add it back
+locally and don't commit it.
 
 Any other site that tries to frame Google still gets blocked exactly as before.
 The change applies to your board and nothing else.
-
-One honest caveat: Chrome's rule API can remove a whole header but cannot edit
-part of one, so the entire `Content-Security-Policy` is dropped for those frames
-rather than just the `frame-ancestors` directive. That means the embedded page
-also loses its other CSP protections *while inside your board*. For a page you
-chose to display on your own classroom screen that is a reasonable trade, but it
-is the reason this is scoped to your board's frames only.
 
 ## If you also run the toolkit somewhere else
 
