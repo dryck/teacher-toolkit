@@ -22,5 +22,11 @@ export default defineConfig({
     url: `http://localhost:${PORT}/index.html`,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000
+  },
+  // Environment variables for rules.integration.mjs
+  // Set FIRESTORE_EMULATOR_HOST before running:
+  // firebase emulators:start --only firestore
+  env: {
+    FIRESTORE_EMULATOR_HOST: 'localhost:8080'
   }
 });
