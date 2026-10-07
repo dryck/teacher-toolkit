@@ -245,3 +245,47 @@ test.describe('Student submissions stay inside their declared shape', () => {
     await assertFails(db(TEACHER).doc('somethingElse/CODE01').set({ a: 1 }));
   });
 });
+
+/* ------------------------------------------------- legacy sessions */
+
+test.describe('Sessions created before ownerUid existed', () => {
+  // These have no ownerUid. The rules read it with .get('ownerUid', '') so a
+  // missing field evaluates to false instead of throwing, which makes the
+  // behaviour a decision rather than an accident: a lesson already running
+  // keeps collecting submissions, but nobody inherits ownership of it.
+  test('a Zones check-in still lands on a session with no owner', async () => {
+    await seed('zonesSessions/LEGACY', { blue: 0, green: 0, yellow: 0, red: 0 });
+    await assertSucceeds(db(STUDENT).doc('zonesSessions/LEGACY').update({ green: 1 }));
+  });
+
+  test('nobody can claim an unowned session by writing ownerUid', async () => {
+    await seed('zonesSessions/LEGACY', { blue: 0, green: 0, yellow: 0, red: 0 });
+    await assertFails(
+      db(STUDENT).doc('zonesSessions/LEGACY').update({ green: 1, ownerUid: STUDENT }));
+  });
+
+  test('an unowned session config can no longer be edited', async () => {
+    await seed('liveQuizSessions/LEGACY',
+      { title: 'old', questions: [], currentQuestion: 0, revealed: false });
+    await assertFails(db(TEACHER).doc('liveQuizSessions/LEGACY').update({ revealed: true }));
+    await assertFails(db(TEACHER).doc('liveQuizSessions/LEGACY').delete());
+  });
+
+  test('students can still submit to an unowned session', async () => {
+    await seed('exitTicketSessions/LEGACY', { mode: 'ticket' });
+    await assertSucceeds(db(STUDENT).doc('exitTicketSessions/LEGACY/responses/r1').set({
+      q1Answer: 'still works', submittedAt: new Date()
+    }));
+  });
+
+  test('moderation on an unowned growth wall is denied, not crashed', async () => {
+    // The parent session doc does not exist at all here, which is how every
+    // growth wall used to look -- only the entries subcollection was written.
+    // Without the exists() guard the rule threw on get(...).data.
+    await seed('growthWallSessions/LEGACY/entries/e1', { text: 'hi', approved: false });
+    await assertFails(
+      db(TEACHER).doc('growthWallSessions/LEGACY/entries/e1').update({ approved: true }));
+    await assertFails(
+      db(STUDENT).doc('growthWallSessions/LEGACY/entries/e1').update({ approved: true }));
+  });
+});

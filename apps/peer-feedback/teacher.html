@@ -200,29 +200,9 @@
   <script>
     let sessionId = (new URLSearchParams(location.search).get('session') || '').toUpperCase();
 
-    // Without a timeout, a bad connection/config leaves a write pending
-    // forever with no feedback at all — same failure mode fixed on the
-    // student page. `onSuccess`/`onFailure` are mutually exclusive via the
-    // `settled` flag. Mirrors apps/chili-challenge/teacher.html.
-    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
-      let settled = false;
-      const timeoutId = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        onFailure(new Error('timeout'));
-      }, ms);
-      promise.then(result => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onSuccess(result);
-      }).catch(err => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onFailure(err);
-      });
-    }
+    // Shared: packages/shell/firebase.js. Waits for anonymous sign-in before
+    // issuing the write, since the rules reject unauthenticated ones.
+    const withTimeout = window.TKFirebase.withWriteTimeout;
 
     const setupCard = document.getElementById('setupCard');
     const targetsInput = document.getElementById('targetsInput');
@@ -282,7 +262,7 @@
       startBtn.disabled = true;
       setupError.textContent = '';
       withTimeout(
-        window.TKFirebase.createSession('peerFeedbackSessions', newId, {
+        () => window.TKFirebase.createSession('peerFeedbackSessions', newId, {
           targets
         }),
         () => {

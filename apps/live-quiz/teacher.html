@@ -278,29 +278,9 @@
   <script>
     let sessionId = (new URLSearchParams(location.search).get('session') || '').toUpperCase();
 
-    // Without a timeout, a bad connection/config leaves a write pending
-    // forever with no feedback at all — same failure mode fixed on the
-    // student page. `onTimeout` and the promise's own then/catch are
-    // mutually exclusive via the `settled` flag.
-    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
-      let settled = false;
-      const timeoutId = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        onFailure(new Error('timeout'));
-      }, ms);
-      promise.then(result => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onSuccess(result);
-      }).catch(err => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onFailure(err);
-      });
-    }
+    // Shared: packages/shell/firebase.js. Waits for anonymous sign-in before
+    // issuing the write, since the rules reject unauthenticated ones.
+    const withTimeout = window.TKFirebase.withWriteTimeout;
 
     const setupCard = document.getElementById('setupCard');
     const titleInput = document.getElementById('titleInput');
@@ -520,11 +500,11 @@
       }
       const newId = TKLiveQuiz.randomSessionCode();
       startBtn.disabled = true;
+      // createSession waits for anonymous sign-in, then stamps ownerUid and
+      // createdAt. The rules only accept a session create from its owner, and
+      // only let the owner change currentQuestion/revealed afterwards.
       withTimeout(
-        // createSession waits for anonymous sign-in, then stamps ownerUid and
-        // createdAt. The rules only accept a session create from its owner,
-        // and only let the owner change currentQuestion/revealed afterwards.
-        window.TKFirebase.createSession('liveQuizSessions', newId, {
+        () => window.TKFirebase.createSession('liveQuizSessions', newId, {
           title,
           questions,
           currentQuestion: -1,
@@ -727,7 +707,7 @@
       if (currentQuestion >= questions.length) return;
       nextBtn.disabled = true;
       withTimeout(
-        TKLiveQuiz.sessionDocRef(sessionId).update({
+        () => TKLiveQuiz.sessionDocRef(sessionId).update({
           currentQuestion: currentQuestion + 1,
           revealed: false
         }),
@@ -744,7 +724,7 @@
       if (!sessionData) return;
       revealBtn.disabled = true;
       withTimeout(
-        TKLiveQuiz.sessionDocRef(sessionId).update({ revealed: true }),
+        () => TKLiveQuiz.sessionDocRef(sessionId).update({ revealed: true }),
         () => { revealBtn.disabled = false; },
         err => {
           revealBtn.disabled = false;

@@ -263,29 +263,9 @@
     let selectedStickyId = null;
     let selectedStickyText = null;
 
-    // Without a timeout, a bad connection/config leaves a write pending
-    // forever with no feedback at all — same failure mode fixed on the
-    // student page. `onSuccess`/`onFailure` are mutually exclusive via the
-    // `settled` flag.
-    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
-      let settled = false;
-      const timeoutId = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        onFailure(new Error('timeout'));
-      }, ms);
-      promise.then(result => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onSuccess(result);
-      }).catch(err => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onFailure(err);
-      });
-    }
+    // Shared: packages/shell/firebase.js. Waits for anonymous sign-in before
+    // issuing the write, since the rules reject unauthenticated ones.
+    const withTimeout = window.TKFirebase.withWriteTimeout;
 
     const setupCard = document.getElementById('setupCard');
     const conceptInput = document.getElementById('conceptInput');
@@ -352,7 +332,7 @@
       const newId = TKSnowball.randomSessionCode();
       startBtn.disabled = true;
       withTimeout(
-        window.TKFirebase.createSession('snowballSessions', newId, {
+        () => window.TKFirebase.createSession('snowballSessions', newId, {
           concept,
           phase: 1
         }),
@@ -418,7 +398,7 @@
       if (currentPhase >= 4) return;
       nextPhaseBtn.disabled = true;
       withTimeout(
-        TKSnowball.sessionDocRef(sessionId).update({ phase: currentPhase + 1 }),
+        () => TKSnowball.sessionDocRef(sessionId).update({ phase: currentPhase + 1 }),
         () => { nextPhaseBtn.disabled = false; },
         err => {
           nextPhaseBtn.disabled = false;
@@ -488,7 +468,7 @@
 
       const mergedText = firstText + ' + ' + secondText;
       withTimeout(
-        Promise.all([
+        () => Promise.all([
           TKSnowball.stickiesCollRef(sessionId).doc(firstId).update({ text: mergedText }),
           TKSnowball.stickiesCollRef(sessionId).doc(secondId).delete()
         ]),

@@ -137,6 +137,38 @@
       }
     },
 
+    /** Callback-shaped variant of withTimeout, matching the helper that was
+     *  pasted into nine teacher/student pages.
+     *
+     *  Prefer passing a function rather than a promise. A promise has already
+     *  started, so if anonymous sign-in has not landed yet the write goes out
+     *  unauthenticated and the rules reject it -- and Firestore does not retry
+     *  a permission-denied mutation. A function is called after sign-in.
+     */
+    withWriteTimeout: function (op, onSuccess, onFailure, ms = 8000) {
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        onFailure(new Error('timeout'));
+      }, ms);
+
+      ready()
+        .then(() => (typeof op === 'function' ? op() : op))
+        .then(result => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          onSuccess(result);
+        })
+        .catch(err => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          onFailure(err);
+        });
+    },
+
     /** Create a session doc, stamped with its owner so the rules can scope
      *  later edits to the teacher who made it.
      *

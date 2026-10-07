@@ -188,27 +188,9 @@
     const params = new URLSearchParams(location.search);
     let sessionId = (params.get('session') || '').toUpperCase();
 
-    // Without a timeout, a bad connection/config leaves a write pending
-    // forever with no feedback at all. Mirrors apps/choice-board/index.html.
-    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
-      let settled = false;
-      const timeoutId = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        onFailure(new Error('timeout'));
-      }, ms);
-      promise.then(result => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onSuccess(result);
-      }).catch(err => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onFailure(err);
-      });
-    }
+    // Shared: packages/shell/firebase.js. Waits for anonymous sign-in before
+    // issuing the write, since the rules reject unauthenticated ones.
+    const withTimeout = window.TKFirebase.withWriteTimeout;
 
     const joinScreen = document.getElementById('joinScreen');
     const nicknameScreen = document.getElementById('nicknameScreen');
@@ -239,7 +221,7 @@
     function tryJoinCode(code, fromLink) {
       if (!fromLink) joinBtn.disabled = true;
       withTimeout(
-        TKLiveQuiz.sessionDocRef(code).get(),
+        () => TKLiveQuiz.sessionDocRef(code).get(),
         doc => {
           if (!fromLink) joinBtn.disabled = false;
           if (!doc.exists) {
@@ -445,7 +427,7 @@
       if (submitting) return;
       submitting = true;
       withTimeout(
-        TKLiveQuiz.responseDocRef(sessionId, studentId, questionIndex).set({
+        () => TKLiveQuiz.responseDocRef(sessionId, studentId, questionIndex).set({
           studentId,
           questionIndex,
           optionIndex,

@@ -290,29 +290,9 @@
   <script>
     let sessionId = (new URLSearchParams(location.search).get('session') || '').toUpperCase();
 
-    // Without a timeout, a bad connection/config leaves a write (or read)
-    // pending forever with no feedback at all. `onFailure` and the
-    // promise's own then/catch are mutually exclusive via the `settled`
-    // flag. Mirrors apps/chili-challenge/teacher.html.
-    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
-      let settled = false;
-      const timeoutId = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        onFailure(new Error('timeout'));
-      }, ms);
-      promise.then(result => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onSuccess(result);
-      }).catch(err => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onFailure(err);
-      });
-    }
+    // Shared: packages/shell/firebase.js. Waits for anonymous sign-in before
+    // issuing the write, since the rules reject unauthenticated ones.
+    const withTimeout = window.TKFirebase.withWriteTimeout;
 
     const DURATION_PRESETS = [60, 90, 120, 180];
     let selectedSeconds = 120;
@@ -437,7 +417,7 @@
       const newId = TKBrainstormTimer.randomSessionCode();
       generateBtn.disabled = true;
       withTimeout(
-        window.TKFirebase.createSession('brainstormSessions', newId, {
+        () => window.TKFirebase.createSession('brainstormSessions', newId, {
           object,
           durationSeconds
         }),
@@ -479,7 +459,7 @@
     startThinkingBtn.onclick = () => {
       startThinkingBtn.disabled = true;
       withTimeout(
-        TKBrainstormTimer.sessionDocRef(sessionId).set({
+        () => TKBrainstormTimer.sessionDocRef(sessionId).set({
           startedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true }),
         () => {
@@ -567,7 +547,7 @@
       reviewCountLine.textContent = 'Loading ideas…';
       shuffleBtn.disabled = true;
       withTimeout(
-        TKBrainstormTimer.ideasCollRef(sessionId).get(),
+        () => TKBrainstormTimer.ideasCollRef(sessionId).get(),
         snap => {
           allIdeas = [];
           snap.forEach(doc => {
@@ -612,7 +592,7 @@
     // apps/chili-challenge/teacher.html.
     if (sessionId) {
       withTimeout(
-        TKBrainstormTimer.sessionDocRef(sessionId).get(),
+        () => TKBrainstormTimer.sessionDocRef(sessionId).get(),
         doc => {
           if (!doc.exists) {
             sessionId = '';
