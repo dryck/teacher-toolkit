@@ -409,7 +409,7 @@
       const newId = TKChoiceBoard.randomSessionCode();
       generateBtn.disabled = true;
       withTimeout(
-        TKChoiceBoard.boardDocRef(newId).set(config),
+        window.TKFirebase.createSession('choiceBoardSessions', newId, config),
         () => {
           generateBtn.disabled = false;
           sessionId = newId;
@@ -432,7 +432,10 @@
       const config = collectBoardConfig();
       saveBtn.disabled = true;
       withTimeout(
-        TKChoiceBoard.boardDocRef(sessionId).set(config),
+        // update(), not set(): set() replaces the document and would drop
+        // ownerUid/createdAt, after which the rules would reject every
+        // further edit to this board.
+        TKChoiceBoard.boardDocRef(sessionId).update(config),
         () => {
           saveBtn.disabled = false;
           showFlash('Saved!');

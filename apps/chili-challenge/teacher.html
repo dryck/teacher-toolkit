@@ -318,9 +318,7 @@
       const newId = TKChiliChallenge.randomSessionCode();
       generateBtn.disabled = true;
       withTimeout(
-        TKChiliChallenge.sessionDocRef(newId).set(Object.assign({}, config, {
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        })),
+        window.TKFirebase.createSession('chiliChallengeSessions', newId, config),
         () => {
           generateBtn.disabled = false;
           sessionId = newId;

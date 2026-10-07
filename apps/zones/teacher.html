@@ -233,13 +233,43 @@
 
     render(TKZones.emptyCounts());
 
+    // Claim the session doc up front, stamped with this teacher's uid. The
+    // doc used to be created implicitly by the first student's merge-write,
+    // which meant a mistyped code silently created a brand-new session and
+    // lost that check-in. Now the student page refuses an unknown code, and
+    // the rules only accept a create from the owner.
+    TKZones.sessionDocRef(sessionId).get()
+      .then(doc => {
+        if (doc.exists) return null;
+        return window.TKFirebase.createSession(
+          'zonesSessions', sessionId, TKZones.emptyCounts()
+        );
+      })
+      .catch(err => {
+        console.error(err);
+        if (window.TKToast) {
+          TKToast.show('Could not start this session — check your connection.');
+        }
+      });
+
     TKZones.sessionDocRef(sessionId).onSnapshot(doc => {
       render(doc.exists ? doc.data() : TKZones.emptyCounts());
-    }, err => console.error(err));
+    }, err => {
+      console.error(err);
+      if (window.TKToast) {
+        TKToast.show('Lost connection to the live dashboard — check your network.');
+      }
+    });
 
     document.getElementById('resetBtn').onclick = () => {
       if (!confirm('Reset all counts for this session? (Use this to start a fresh lesson.)')) return;
-      TKZones.sessionDocRef(sessionId).set(TKZones.emptyCounts());
+      // update(), not set(): set() would drop ownerUid/createdAt from the doc,
+      // and the rules only let an update touch the four counters.
+      TKZones.sessionDocRef(sessionId).update(TKZones.emptyCounts())
+        .catch(err => {
+          console.error(err);
+          if (window.TKToast) TKToast.show('Could not reset the counts.');
+        });
     };
 
     document.getElementById('newSessionBtn').onclick = () => {

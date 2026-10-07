@@ -1,161 +1,247 @@
-/**
- * Firestore Rules Integration Tests
- * Tests security model with @firebase/rules-unit-testing + emulator
+/* Firestore rules tests.
  *
- * Run: npm test -- rules.integration.mjs
- * Requires: Firestore emulator running (firebase emulators:start)
+ * These assert the security model itself rather than any page: that a session
+ * cannot be enumerated, that a student cannot rewrite the teacher's config,
+ * and that moderation is enforced by the database instead of by a disabled
+ * button. It is the only place in the repo where a bug has consequences
+ * beyond one lesson, so it is worth testing both directions of every rule.
+ *
+ * Needs the emulator, which is why this is not part of `npm test`:
+ *   npm i -g firebase-tools
+ *   firebase emulators:start --only firestore     # terminal 1
+ *   npm run test:rules                            # terminal 2
  */
-
 import { test, expect } from '@playwright/test';
-import { initializeTestEnvironment, RulesTestContext } from '@firebase/rules-unit-testing';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import {
+  initializeTestEnvironment,
+  assertFails,
+  assertSucceeds
+} from '@firebase/rules-unit-testing';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { join, dirname } from 'node:path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const rulesPath = join(__dirname, '../packages/shell/firestore.rules');
+const RULES = join(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'shell', 'firestore.rules');
 
-let testEnv;
+const TEACHER = 'teacher-uid';
+const OTHER_TEACHER = 'other-teacher-uid';
+const STUDENT = 'student-uid';
 
-test.describe('Firestore Rules Integration Tests', () => {
-  test.beforeAll(async () => {
-    // Load rules from file
-    const rules = readFileSync(rulesPath, 'utf8');
+let env;
 
-    // Initialize test environment with actual rules
-    testEnv = await initializeTestEnvironment({
-      projectId: 'teacher-toolkit-test',
-      firestore: { rules, host: 'localhost', port: 8080 }
+test.beforeAll(async () => {
+  env = await initializeTestEnvironment({
+    projectId: 'teacher-toolkit-rules-test',
+    firestore: { rules: readFileSync(RULES, 'utf8') }
+  });
+});
+
+test.afterAll(async () => {
+  if (env) await env.cleanup();
+});
+
+test.beforeEach(async () => {
+  await env.clearFirestore();
+});
+
+/** Write a document bypassing the rules, to set up a fixture. */
+async function seed(path, data) {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await ctx.firestore().doc(path).set(data);
+  });
+}
+
+const db = (uid) =>
+  (uid ? env.authenticatedContext(uid) : env.unauthenticatedContext()).firestore();
+
+/* ------------------------------------------------------------------ C1 */
+
+test.describe('C1: a session collection cannot be enumerated', () => {
+  // `allow read` grants get AND list. With list open, the 5-char code was not
+  // access control at all: anyone with the public config could dump every
+  // session every class had ever created, free text included.
+  const COLLECTIONS = [
+    'zonesSessions', 'exitTicketSessions', 'choiceBoardSessions',
+    'growthWallSessions', 'snowballSessions', 'challengeDeckSessions',
+    'chiliChallengeSessions', 'helpLadderSessions', 'brainstormSessions',
+    'peerFeedbackSessions', 'liveQuizSessions'
+  ];
+
+  for (const coll of COLLECTIONS) {
+    test(`${coll}: get on a known id succeeds, list is denied`, async () => {
+      await seed(`${coll}/CODE01`, { ownerUid: TEACHER });
+
+      // A student arriving from a QR code resolves one known id.
+      await assertSucceeds(db(null).doc(`${coll}/CODE01`).get());
+
+      // Nobody gets to walk the collection.
+      await assertFails(db(null).collection(coll).get());
+      await assertFails(db(STUDENT).collection(coll).get());
     });
+  }
+});
+
+/* ------------------------------------------------------------------ C2 */
+
+test.describe('C2: session config is writable only by its creator', () => {
+  test('liveQuiz: the owner creates, a student cannot overwrite', async () => {
+    const quiz = {
+      title: 'Fractions',
+      questions: [{ text: 'Q1', options: ['a', 'b'], correctIndex: 0 }],
+      currentQuestion: -1,
+      revealed: false,
+      ownerUid: TEACHER,
+      createdAt: new Date()
+    };
+
+    await assertSucceeds(db(TEACHER).doc('liveQuizSessions/CODE01').set(quiz));
+
+    // The live-quiz attack: swap the question set, or jump/reveal mid-lesson,
+    // which silently rewrites every student's derived score.
+    await assertFails(
+      db(STUDENT).doc('liveQuizSessions/CODE01').update({ revealed: true }));
+    await assertFails(
+      db(STUDENT).doc('liveQuizSessions/CODE01').update({ currentQuestion: 99 }));
+    await assertFails(
+      db(STUDENT).doc('liveQuizSessions/CODE01').update({ questions: [] }));
+    await assertFails(
+      db(OTHER_TEACHER).doc('liveQuizSessions/CODE01').update({ title: 'Mine now' }));
+
+    await assertSucceeds(
+      db(TEACHER).doc('liveQuizSessions/CODE01').update({ revealed: true }));
   });
 
-  test.afterAll(async () => {
-    await testEnv.cleanup();
+  test('creating a session claiming someone else as owner is denied', async () => {
+    await assertFails(db(STUDENT).doc('liveQuizSessions/CODE02').set({
+      title: 'x', questions: [], currentQuestion: 0, revealed: false,
+      ownerUid: TEACHER, createdAt: new Date()
+    }));
   });
 
-  test.describe('C1: Enumeration Protection', () => {
-    test('unauthenticated user CAN get() known session', async () => {
-      const db = testEnv.unauthenticatedContext().firestore();
-
-      // Create a known session first (as admin)
-      await testEnv.withSecurityRulesDisabled(async (context) => {
-        await context.firestore()
-          .collection('zonesSessions')
-          .doc('TEST123')
-          .set({ blue: 0, green: 0, yellow: 0, red: 0, ownerUid: 'admin', createdAt: new Date() });
-      });
-
-      // Unauthenticated user should be able to GET it
-      const doc = await db.collection('zonesSessions').doc('TEST123').get();
-      expect(doc.exists).toBe(true);
-    });
-
-    test('unauthenticated user CANNOT list() sessions', async () => {
-      const db = testEnv.unauthenticatedContext().firestore();
-
-      // Should fail: list all sessions
-      await expect(db.collection('zonesSessions').get())
-        .rejects.toThrow(/permission|denied/i);
-    });
+  test('an unauthenticated client cannot create a session at all', async () => {
+    await assertFails(db(null).doc('choiceBoardSessions/CODE03').set({
+      title: 'x', cells: [], mustDoMode: false, minRequired: 1,
+      ownerUid: TEACHER, createdAt: new Date()
+    }));
   });
 
-  test.describe('C2: Ownership Protection', () => {
-    test('student CANNOT create session without ownerUid', async () => {
-      const studentDb = testEnv.authenticatedContext('student-123').firestore();
+  test('only the owner can delete a session', async () => {
+    await seed('snowballSessions/CODE04', { concept: 'c', phase: 1, ownerUid: TEACHER });
+    await assertFails(db(STUDENT).doc('snowballSessions/CODE04').delete());
+    await assertSucceeds(db(TEACHER).doc('snowballSessions/CODE04').delete());
+  });
+});
 
-      await expect(
-        studentDb.collection('liveQuizSessions').doc('QUIZ1').create({
-          title: 'Math Quiz',
-          questions: []
-          // Missing ownerUid - should fail
-        })
-      ).rejects.toThrow(/permission|denied/i);
-    });
+/* ------------------------------------------------------------------ H1 */
 
-    test('teacher CAN create session (ownerUid auto-set)', async () => {
-      const teacherDb = testEnv.authenticatedContext('teacher-456').firestore();
+test.describe('H1: moderation is enforced by the rules, not the UI', () => {
+  test('growth wall: a student cannot approve or delete an entry', async () => {
+    await seed('growthWallSessions/CODE01', { ownerUid: TEACHER });
 
-      // Should succeed
-      await expect(
-        teacherDb.collection('liveQuizSessions').doc('QUIZ2').create({
-          title: 'History Quiz',
-          questions: [{ text: 'Q1', options: ['A', 'B'], correctIndex: 0 }],
-          currentQuestion: 0,
-          revealed: false,
-          ownerUid: 'teacher-456',
-          createdAt: new Date()
-        })
-      ).resolves.toBeUndefined();
-    });
+    // A student may submit, but only as unapproved.
+    await assertSucceeds(db(STUDENT).doc('growthWallSessions/CODE01/entries/e1').set({
+      text: "I can't do long division", approved: false, createdAt: new Date()
+    }));
+    await assertFails(db(STUDENT).doc('growthWallSessions/CODE01/entries/e2').set({
+      text: 'straight to the projector', approved: true, createdAt: new Date()
+    }));
 
-    test('student CANNOT modify quiz (ownership check)', async () => {
-      const teacherDb = testEnv.authenticatedContext('teacher-456').firestore();
-      const studentDb = testEnv.authenticatedContext('student-789').firestore();
+    // The whole point of the two-state design: self-approval is impossible.
+    await assertFails(
+      db(STUDENT).doc('growthWallSessions/CODE01/entries/e1').update({ approved: true }));
+    await assertFails(
+      db(STUDENT).doc('growthWallSessions/CODE01/entries/e1').delete());
 
-      // Teacher creates quiz
-      await teacherDb.collection('liveQuizSessions').doc('QUIZ3').create({
-        title: 'Science Quiz',
-        questions: [],
-        currentQuestion: 0,
-        revealed: false,
-        ownerUid: 'teacher-456',
-        createdAt: new Date()
-      });
-
-      // Student tries to modify it
-      await expect(
-        studentDb.collection('liveQuizSessions').doc('QUIZ3').update({
-          revealed: true
-        })
-      ).rejects.toThrow(/permission|denied/i);
-    });
+    await assertSucceeds(
+      db(TEACHER).doc('growthWallSessions/CODE01/entries/e1').update({ approved: true }));
   });
 
-  test.describe('H1: Moderation Protection', () => {
-    test('student CANNOT self-approve growth mindset entry', async () => {
-      const teacherDb = testEnv.authenticatedContext('teacher-111').firestore();
-      const studentDb = testEnv.authenticatedContext('student-222').firestore();
+  test('snowball: a student cannot wipe the class wall', async () => {
+    await seed('snowballSessions/CODE01', { concept: 'c', phase: 1, ownerUid: TEACHER });
+    await seed('snowballSessions/CODE01/stickies/s1', { text: 'an idea', phase: 1 });
 
-      // Teacher creates session
-      await teacherDb.collection('growthWallSessions').doc('WALL1').create({
-        ownerUid: 'teacher-111',
-        createdAt: new Date()
-      });
+    await assertFails(db(STUDENT).doc('snowballSessions/CODE01/stickies/s1').delete());
+    await assertSucceeds(db(TEACHER).doc('snowballSessions/CODE01/stickies/s1').delete());
+  });
+});
 
-      // Student submits entry (unapproved)
-      await studentDb.collection('growthWallSessions/WALL1/entries').doc('E1').create({
-        text: 'I can learn anything',
-        approved: false,
-        createdAt: new Date()
-      });
+/* ---------------------------------------------------------------- Zones */
 
-      // Student tries to self-approve
-      await expect(
-        studentDb.collection('growthWallSessions/WALL1/entries').doc('E1').update({
-          approved: true
-        })
-      ).rejects.toThrow(/permission|denied/i);
+test.describe('Zones: the session doc is student-written, so ownership works differently', () => {
+  // Zones is the one tool where students write the session document itself
+  // (four counters via increment), so update cannot be owner-scoped without
+  // blocking every check-in. Ownership guards create/delete; the counters
+  // stay open but nothing else about the document does.
+  test('a student may move counters but not touch anything else', async () => {
+    await seed('zonesSessions/CODE01',
+      { blue: 0, green: 0, yellow: 0, red: 0, ownerUid: TEACHER, createdAt: new Date() });
 
-      // Teacher CAN approve
-      await expect(
-        teacherDb.collection('growthWallSessions/WALL1/entries').doc('E1').update({
-          approved: true
-        })
-      ).resolves.toBeUndefined();
-    });
+    await assertSucceeds(db(STUDENT).doc('zonesSessions/CODE01').update({ green: 1 }));
+
+    // Reassigning the session to yourself, or smuggling in a field.
+    await assertFails(db(STUDENT).doc('zonesSessions/CODE01').update({ ownerUid: STUDENT }));
+    await assertFails(db(STUDENT).doc('zonesSessions/CODE01').update({ note: 'hi' }));
+
+    // Negative counters would corrupt the teacher's reading of the room.
+    await assertFails(db(STUDENT).doc('zonesSessions/CODE01').update({ red: -500 }));
   });
 
-  test.describe('Authentication Required', () => {
-    test('unauthenticated user CANNOT create session', async () => {
-      const db = testEnv.unauthenticatedContext().firestore();
+  test('a student cannot conjure a session from a mistyped code', async () => {
+    // set(..., {merge:true}) used to create the doc, so a typo silently made
+    // a brand-new session and swallowed the check-in.
+    await assertFails(db(STUDENT).doc('zonesSessions/NOSUCH').set(
+      { green: 1 }, { merge: true }));
+  });
 
-      await expect(
-        db.collection('zonesSessions').doc('ZONES1').create({
-          blue: 0, green: 0, yellow: 0, red: 0,
-          ownerUid: 'fake-uid',
-          createdAt: new Date()
-        })
-      ).rejects.toThrow(/permission|denied/i);
-    });
+  test('only the owner deletes', async () => {
+    await seed('zonesSessions/CODE01',
+      { blue: 0, green: 0, yellow: 0, red: 0, ownerUid: TEACHER });
+    await assertFails(db(STUDENT).doc('zonesSessions/CODE01').delete());
+    await assertSucceeds(db(TEACHER).doc('zonesSessions/CODE01').delete());
+  });
+});
+
+/* ------------------------------------------------- field-level validation */
+
+test.describe('Student submissions stay inside their declared shape', () => {
+  test('exit ticket: free text is length-capped', async () => {
+    await seed('exitTicketSessions/CODE01', { mode: 'ticket', ownerUid: TEACHER });
+
+    await assertSucceeds(db(STUDENT).doc('exitTicketSessions/CODE01/responses/r1').set({
+      q1Answer: 'fractions', confidence: 3, submittedAt: new Date()
+    }));
+
+    // Previously uncapped: a ~1MB answer renders onto the projected dashboard.
+    await assertFails(db(STUDENT).doc('exitTicketSessions/CODE01/responses/r2').set({
+      q1Answer: 'x'.repeat(5000), submittedAt: new Date()
+    }));
+  });
+
+  test('exit ticket responses cannot be edited or deleted once submitted', async () => {
+    await seed('exitTicketSessions/CODE01', { mode: 'ticket', ownerUid: TEACHER });
+    await seed('exitTicketSessions/CODE01/responses/r1', { q1Answer: 'a' });
+
+    await assertFails(
+      db(STUDENT).doc('exitTicketSessions/CODE01/responses/r1').update({ q1Answer: 'b' }));
+    await assertFails(
+      db(STUDENT).doc('exitTicketSessions/CODE01/responses/r1').delete());
+  });
+
+  test('chili challenge: level must be one of the three chillies', async () => {
+    await seed('chiliChallengeSessions/CODE01', { title: 't', ownerUid: TEACHER });
+
+    await assertSucceeds(db(STUDENT).doc('chiliChallengeSessions/CODE01/choices/s1').set({
+      nickname: 'Sam', level: 2, joinedAt: new Date()
+    }));
+    await assertFails(db(STUDENT).doc('chiliChallengeSessions/CODE01/choices/s1').set({
+      nickname: 'Sam', level: 99, joinedAt: new Date()
+    }));
+    await assertFails(db(STUDENT).doc('chiliChallengeSessions/CODE01/choices/s1').set({
+      nickname: 'x'.repeat(100), level: 1, joinedAt: new Date()
+    }));
+  });
+
+  test('an unknown collection is denied outright', async () => {
+    await assertFails(db(TEACHER).doc('somethingElse/CODE01').set({ a: 1 }));
   });
 });

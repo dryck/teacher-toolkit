@@ -352,10 +352,9 @@
       const newId = TKSnowball.randomSessionCode();
       startBtn.disabled = true;
       withTimeout(
-        TKSnowball.sessionDocRef(newId).set({
+        window.TKFirebase.createSession('snowballSessions', newId, {
           concept,
-          phase: 1,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          phase: 1
         }),
         () => {
           startBtn.disabled = false;

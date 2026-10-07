@@ -70,21 +70,42 @@
       }
     },
 
-    /** Random 8-character session code, one random byte per character.
+    /** Random 6-character session code, one random byte per character.
      *
      *  Was 5 chars from Math.random(): ~33M codes, and V8's PRNG state is
-     *  recoverable from observed output, so codes shown on a projector in
-     *  sequence are predictable. 8 chars from crypto.getRandomValues() is
-     *  32^8 ~= 1.1e12. 256 is a multiple of 32, so `byte % 32` is unbiased.
+     *  recoverable from observed output, so codes generated in sequence on a
+     *  projector are predictable. crypto.getRandomValues() fixes the
+     *  predictability; the sixth character takes the space to 32^6 ~= 1.1e9.
+     *
+     *  Six rather than eight is deliberate. A nine-year-old types this off a
+     *  classroom wall, and the code was never the real access control anyway:
+     *  `list` is denied, writes need auth, and session edits are owner-scoped.
+     *  256 is a multiple of 32, so `byte % 32` carries no modulo bias.
+     *
+     *  Join screens accept 5 or 6 characters so codes already in use keep
+     *  working -- see SESSION_CODE_MIN/MAX below.
      */
     randomSessionCode: function () {
-      const bytes = new Uint8Array(8);
+      const bytes = new Uint8Array(6);
       crypto.getRandomValues(bytes);
       let code = '';
       for (let i = 0; i < bytes.length; i++) {
         code += CODE_CHARS[bytes[i] % CODE_CHARS.length];
       }
       return code;
+    },
+
+    /** Accepted length range on a join screen: 5 for sessions created before
+     *  the code length changed, 6 for everything new. */
+    SESSION_CODE_MIN: 5,
+    SESSION_CODE_MAX: 6,
+
+    /** True if `code` could be a session code. Join screens use this instead
+     *  of a hardcoded length so the range lives in one place. */
+    isSessionCode: function (code) {
+      return typeof code === 'string'
+        && code.length >= TKFirebase.SESSION_CODE_MIN
+        && code.length <= TKFirebase.SESSION_CODE_MAX;
     },
 
     /** Stable per-device student id, persisted by each tool in localStorage. */

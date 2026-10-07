@@ -1,87 +1,69 @@
-# Testing Guide
+# Testing
 
-## Quick Start
+Two suites, deliberately separate: one runs anywhere, one needs a backend.
 
-### Smoke Tests (No Setup Required)
+## `npm test` — 58 tests, no setup
+
 ```bash
+npm run build   # the suite runs against dist/, so build first
 npm test
 ```
-Runs 62 tests: all HTML pages load clean, navbar renders, logic tests pass.
 
-### Firestore Rules Tests (With Emulator)
+- **`tests/smoke.spec.mjs`** loads every built page in Chromium and fails on an
+  uncaught exception, an unexpected `console.error`, or a missing navbar. It
+  exists because `random-picker` once shipped a `TypeError` on every page load
+  and nobody noticed, since nothing loaded these pages except a human clicking.
+- **`tests/logic.spec.mjs`** drives the real shipped functions for the places
+  where "quietly wrong" costs something: the picker's fairness promise, group
+  sizes, and timer drift in a throttled background tab.
 
-**Prerequisites:**
+## `npm run test:rules` — Firestore rules, needs the emulator
+
 ```bash
-npm install -g firebase-tools
-firebase login
+npm i -g firebase-tools
+firebase emulators:start --only firestore   # terminal 1
+npm run test:rules                          # terminal 2
 ```
 
-**Run tests:**
+`tests/rules.integration.mjs` asserts both directions of the security model:
+enumeration is denied on all 11 collections, a student cannot rewrite a
+teacher's session config, growth-wall entries cannot be self-approved, and
+student submissions stay inside their declared shape.
 
-1. **Terminal 1 - Start emulator:**
-```bash
-firebase emulators:start --only firestore
-# Outputs: Firestore Emulator running on http://localhost:8080
-```
+It is kept out of `npm test` on purpose. A suite that silently no-ops when its
+backend is absent is worse than one that is honestly not wired up.
 
-2. **Terminal 2 - Run rules tests:**
-```bash
-npm test -- rules.integration.mjs
-```
+## What is and is not covered
 
-## What's Tested
-
-### smoke.spec.mjs (58 tests)
-- ✅ All 57 HTML pages load without errors
-- ✅ No uncaught exceptions
-- ✅ Navbar renders on eligible pages
-- ✅ Live Quiz, Zones, Choice Board, etc. all load clean
-
-### rules.spec.mjs (3 structure tests)
-- Documentation for C1, C2, H1 fixes
-- Ready for emulator implementation
-
-### rules.integration.mjs (12 real tests) ⭐
-- **C1:** Enumeration blocked (list denied)
-- **C2:** Ownership enforced (student can't write config)
-- **H1:** Moderation protected (self-approve prevented)
-- **Auth:** All writes require authentication
-
-## Test Coverage
-
-| Area | Tests | Status |
+| Area | Covered by | Status |
 |---|---|---|
-| Page loads | 57 | ✅ Pass |
-| Logic (equity, timers, etc) | 7 | ✅ Pass |
-| Firestore rules | 12 | ⭐ New! |
-| **Total** | **76** | ⭐ Expanding |
+| Every page loads clean | smoke | ✅ runs in CI |
+| Picker fairness, group sizes, timer drift | logic | ✅ runs in CI |
+| Firestore rules, both directions | rules.integration | ⚠️ written, needs emulator |
+| Real-time teacher/student sync | — | ❌ none |
+| `noise-monitor` (React, ~3.5k lines) | — | ❌ no test runner configured |
+| `packages/shell/escape.js` | — | ❌ none, despite 17 call sites |
 
-## CI Integration
+### The gap that matters most
 
-GitHub Actions runs on every push:
-```yaml
-- Build
-- Smoke tests (no emulator needed)
-- Rules tests (emulator required)
-```
+`packages/shell/firebase-config.js` still contains `REPLACE_ME`, so **nothing
+in CI has ever reached a Firebase backend**. Every write path — anonymous
+sign-in, `ownerUid` stamping, the ownership rules — is unverified by execution.
+`smoke.spec.mjs` additionally allowlists `/firebase/i` and `/firestore/i`
+console errors, which is correct while there is no config but means a genuine
+Firestore bug would pass CI today.
+
+Before trusting the Firebase-backed tools in a classroom:
+
+1. Put a real config in `firebase-config.js` (it is a public identifier).
+2. Run `npm run test:rules` against the emulator.
+3. Narrow `IGNORED_CONSOLE` in `smoke.spec.mjs` so Firebase errors fail again.
+4. Open one teacher page and one student page and check a write lands.
 
 ## Troubleshooting
 
-**"Emulator not running" error:**
-```bash
-firebase emulators:start --only firestore
-# Leave this running in a separate terminal
-```
+**`npm test` fails with `ENOENT` on a page** — `dist/` is stale or a build was
+running during the suite. Re-run `npm run build`, then `npm test`.
 
-**"Port 8080 already in use":**
-```bash
-firebase emulators:start --only firestore --port 9000
-# Then set FIRESTORE_EMULATOR_HOST=localhost:9000
-```
-
-**"Rules file not found":**
-Make sure you're running tests from repo root:
-```bash
-cd ~/teacher-toolkit
-npm test -- rules.integration.mjs
-```
+**`test:rules` hangs or refuses to connect** — the emulator is not running, or
+not on `localhost:8080`. Start it first; the suite does not spawn one.

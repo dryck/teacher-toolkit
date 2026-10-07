@@ -282,9 +282,8 @@
       startBtn.disabled = true;
       setupError.textContent = '';
       withTimeout(
-        TKPeerFeedback.sessionDocRef(newId).set({
-          targets,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        window.TKFirebase.createSession('peerFeedbackSessions', newId, {
+          targets
         }),
         () => {
           startBtn.disabled = false;

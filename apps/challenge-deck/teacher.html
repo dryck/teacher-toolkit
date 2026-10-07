@@ -384,7 +384,7 @@
       const newId = TKChallengeDeck.randomSessionCode();
       generateBtn.disabled = true;
       withTimeout(
-        TKChallengeDeck.sessionDocRef(newId).set(config),
+        window.TKFirebase.createSession('challengeDeckSessions', newId, config),
         () => {
           generateBtn.disabled = false;
           sessionId = newId;
@@ -407,7 +407,10 @@
       const config = collectDeckConfig();
       saveBtn.disabled = true;
       withTimeout(
-        TKChallengeDeck.sessionDocRef(sessionId).set(config),
+        // update(), not set(): set() replaces the document and would drop
+        // ownerUid/createdAt, after which the rules would reject every
+        // further edit to this session.
+        TKChallengeDeck.sessionDocRef(sessionId).update(config),
         () => {
           saveBtn.disabled = false;
           showFlash('Saved!');
@@ -448,7 +451,7 @@
       const newId = TKChallengeDeck.randomSessionCode();
       newSessionBtn.disabled = true;
       withTimeout(
-        TKChallengeDeck.sessionDocRef(newId).set(config),
+        window.TKFirebase.createSession('challengeDeckSessions', newId, config),
         () => {
           newSessionBtn.disabled = false;
           sessionId = newId;

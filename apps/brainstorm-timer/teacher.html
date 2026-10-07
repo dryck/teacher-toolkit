@@ -437,10 +437,9 @@
       const newId = TKBrainstormTimer.randomSessionCode();
       generateBtn.disabled = true;
       withTimeout(
-        TKBrainstormTimer.sessionDocRef(newId).set({
+        window.TKFirebase.createSession('brainstormSessions', newId, {
           object,
-          durationSeconds,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          durationSeconds
         }),
         () => {
           generateBtn.disabled = false;

@@ -17,7 +17,11 @@ service cloud.firestore {
     // Collections to enable: zonesSessions, exitTicketSessions, choiceBoardSessions, etc.
     // (All collections with createdAt field below)
 
-    // Zones Check-In: one doc per session, just 4 zone counters.
+    // Zones Check-In: unlike every other tool here, the session doc IS the
+    // student-written data -- four counters bumped by FieldValue.increment --
+    // so `update` cannot be owner-scoped without blocking every check-in.
+    // Instead: only the owner creates and deletes, anyone signed in may move
+    // the counters, and ownerUid/createdAt are immutable once set.
     match /zonesSessions/{sessionId} {
       allow get: if true;
       allow list: if false;
@@ -29,12 +33,17 @@ service cloud.firestore {
                    && (!('yellow' in request.resource.data) || request.resource.data.yellow is number)
                    && (!('red' in request.resource.data) || request.resource.data.red is number);
       allow update: if request.auth != null
-                   && resource.data.ownerUid == request.auth.uid
-                   && request.resource.data.keys().hasOnly(['blue', 'green', 'yellow', 'red', 'ownerUid', 'createdAt'])
-                   && (!('blue' in request.resource.data) || request.resource.data.blue is number)
-                   && (!('green' in request.resource.data) || request.resource.data.green is number)
-                   && (!('yellow' in request.resource.data) || request.resource.data.yellow is number)
-                   && (!('red' in request.resource.data) || request.resource.data.red is number);
+                   && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['blue', 'green', 'yellow', 'red'])
+                   && request.resource.data.ownerUid == resource.data.ownerUid
+                   && request.resource.data.blue is number
+                   && request.resource.data.green is number
+                   && request.resource.data.yellow is number
+                   && request.resource.data.red is number
+                   && request.resource.data.blue >= 0
+                   && request.resource.data.green >= 0
+                   && request.resource.data.yellow >= 0
+                   && request.resource.data.red >= 0;
       allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
     }
 
@@ -56,11 +65,24 @@ service cloud.firestore {
     match /exitTicketSessions/{sessionId} {
       allow get: if true;
       allow list: if false;
-      allow write: if request.resource.data.keys().hasOnly(['mode', 'q1Enabled', 'q1Text', 'q2Enabled', 'q3Enabled', 'q3Text', 'createdAt']);
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['mode', 'q1Enabled', 'q1Text', 'q2Enabled', 'q3Enabled', 'q3Text', 'ownerUid', 'createdAt'])
+                   && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.ownerUid == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['mode', 'q1Enabled', 'q1Text', 'q2Enabled', 'q3Enabled', 'q3Text', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
       match /responses/{responseId} {
         allow get, list: if true;
-        allow create: if request.resource.data.keys().hasOnly(['q1Answer', 'confidence', 'q3Answer', 'clearText', 'cloudyText', 'light', 'submittedAt']);
+        // Free text with no length cap was the one unbounded field here: a
+        // ~1MB answer renders straight onto the projected dashboard.
+        allow create: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['q1Answer', 'confidence', 'q3Answer', 'clearText', 'cloudyText', 'light', 'submittedAt'])
+                     && (!('q1Answer' in request.resource.data) || request.resource.data.q1Answer.size() <= 500)
+                     && (!('q3Answer' in request.resource.data) || request.resource.data.q3Answer.size() <= 500)
+                     && (!('clearText' in request.resource.data) || request.resource.data.clearText.size() <= 500)
+                     && (!('cloudyText' in request.resource.data) || request.resource.data.cloudyText.size() <= 500);
         allow update, delete: if false;
       }
     }
@@ -70,11 +92,20 @@ service cloud.firestore {
     match /choiceBoardSessions/{sessionId} {
       allow get: if true;
       allow list: if false;
-      allow write: if request.resource.data.keys().hasOnly(['title', 'cells', 'mustDoMode', 'minRequired']);
+      // createdAt added to the allowlist so the TTL policy has a field to
+      // expire on; createSession() stamps it on every new session.
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['title', 'cells', 'mustDoMode', 'minRequired', 'ownerUid', 'createdAt'])
+                   && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.ownerUid == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['title', 'cells', 'mustDoMode', 'minRequired', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
       match /progress/{studentId} {
         allow get, list: if true;
-        allow write: if request.resource.data.keys().hasOnly(['nickname', 'completed', 'joinedAt'])
+        allow write: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['nickname', 'completed', 'joinedAt'])
                      && request.resource.data.nickname is string
                      && request.resource.data.nickname.size() <= 40;
       }
@@ -114,20 +145,32 @@ service cloud.firestore {
     match /snowballSessions/{sessionId} {
       allow get: if true;
       allow list: if false;
-      allow write: if request.resource.data.keys().hasOnly(['concept', 'phase', 'createdAt'])
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['concept', 'phase', 'ownerUid', 'createdAt'])
+                   && request.resource.data.ownerUid == request.auth.uid
                    && (!('phase' in request.resource.data) || request.resource.data.phase is number);
+      allow update: if request.auth != null
+                   && resource.data.ownerUid == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['concept', 'phase', 'ownerUid', 'createdAt'])
+                   && (!('phase' in request.resource.data) || request.resource.data.phase is number);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
       match /stickies/{stickyId} {
         allow get, list: if true;
-        allow create: if request.resource.data.keys().hasOnly(['text', 'phase', 'createdAt'])
+        allow create: if request.auth != null
+                      && request.resource.data.keys().hasOnly(['text', 'phase', 'createdAt'])
                       && request.resource.data.text is string
                       && request.resource.data.text.size() <= 140;
-        // A teacher merge can combine two already-capped stickies, so the
-        // update path allows a longer combined string than a fresh create.
-        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text'])
+        // Merging two stickies is a teacher action, so both update and delete
+        // are scoped to the session owner -- `delete: if true` previously let
+        // any student wipe the class's work.
+        allow update: if request.auth != null
+                      && get(/databases/$(database)/documents/snowballSessions/$(sessionId)).data.ownerUid == request.auth.uid
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text'])
                       && request.resource.data.text is string
                       && request.resource.data.text.size() <= 400;
-        allow delete: if true;
+        allow delete: if request.auth != null
+                      && get(/databases/$(database)/documents/snowballSessions/$(sessionId)).data.ownerUid == request.auth.uid;
       }
     }
 
@@ -137,13 +180,24 @@ service cloud.firestore {
     match /challengeDeckSessions/{sessionId} {
       allow get: if true;
       allow list: if false;
-      allow write: if request.resource.data.keys().hasOnly(['title', 'categories']);
+      // createdAt added to the allowlist so the TTL policy has a field to
+      // expire on; createSession() stamps it on every new session.
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['title', 'categories', 'ownerUid', 'createdAt'])
+                   && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.ownerUid == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['title', 'categories', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
       match /progress/{studentId} {
         allow get, list: if true;
-        allow write: if request.resource.data.keys().hasOnly(['nickname', 'completedCardIds', 'joinedAt'])
+        allow write: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['nickname', 'completedCardIds', 'joinedAt'])
                      && request.resource.data.nickname is string
-                     && request.resource.data.nickname.size() <= 40;
+                     && request.resource.data.nickname.size() <= 40
+                     && request.resource.data.completedCardIds is list
+                     && request.resource.data.completedCardIds.size() <= 200;
       }
     }
 
@@ -154,14 +208,23 @@ service cloud.firestore {
     match /chiliChallengeSessions/{sessionId} {
       allow get: if true;
       allow list: if false;
-      allow write: if request.resource.data.keys().hasOnly(['title', 'level1Text', 'level2Text', 'level3Text', 'createdAt']);
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['title', 'level1Text', 'level2Text', 'level3Text', 'ownerUid', 'createdAt'])
+                   && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.ownerUid == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['title', 'level1Text', 'level2Text', 'level3Text', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
       match /choices/{studentId} {
         allow get, list: if true;
-        allow write: if request.resource.data.keys().hasOnly(['nickname', 'level', 'joinedAt'])
+        allow write: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['nickname', 'level', 'joinedAt'])
                      && request.resource.data.nickname is string
                      && request.resource.data.nickname.size() <= 40
-                     && request.resource.data.level is number;
+                     && request.resource.data.level is number
+                     && request.resource.data.level >= 1
+                     && request.resource.data.level <= 3;
       }
     }
 
@@ -174,12 +237,24 @@ service cloud.firestore {
     match /helpLadderSessions/{sessionId} {
       allow get: if true;
       allow list: if false;
-      allow write: if request.resource.data.keys().hasOnly(['step1', 'step2', 'step3', 'step4', 'step5', 'createdAt']);
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['step1', 'step2', 'step3', 'step4', 'step5', 'ownerUid', 'createdAt'])
+                   && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.ownerUid == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['step1', 'step2', 'step3', 'step4', 'step5', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
       match /signals/{studentId} {
         allow get, list: if true;
-        allow write: if request.resource.data.keys().hasOnly(['joinedAt']);
-        allow delete: if true;
+        allow write: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['joinedAt']);
+        // Known limitation: a signal doc is keyed by the localStorage
+        // studentId, not by request.auth.uid, so the rules cannot tell "I am
+        // cancelling my own signal" from "I am clearing someone else's".
+        // Requiring auth removes drive-by deletion; a classmate can still
+        // clear a flag. Keying signals by uid would close it properly.
+        allow delete: if request.auth != null;
       }
     }
 
@@ -191,11 +266,18 @@ service cloud.firestore {
     match /brainstormSessions/{sessionId} {
       allow get: if true;
       allow list: if false;
-      allow write: if request.resource.data.keys().hasOnly(['object', 'durationSeconds', 'createdAt', 'startedAt']);
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['object', 'durationSeconds', 'ownerUid', 'createdAt', 'startedAt'])
+                   && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.ownerUid == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['object', 'durationSeconds', 'ownerUid', 'createdAt', 'startedAt']);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
       match /ideas/{ideaId} {
         allow get, list: if true;
-        allow create: if request.resource.data.keys().hasOnly(['text', 'createdAt'])
+        allow create: if request.auth != null
+                      && request.resource.data.keys().hasOnly(['text', 'createdAt'])
                       && request.resource.data.text is string
                       && request.resource.data.text.size() <= 100;
         allow update, delete: if false;
@@ -209,11 +291,18 @@ service cloud.firestore {
     match /peerFeedbackSessions/{sessionId} {
       allow get: if true;
       allow list: if false;
-      allow write: if request.resource.data.keys().hasOnly(['targets', 'createdAt']);
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['targets', 'ownerUid', 'createdAt'])
+                   && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.ownerUid == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['targets', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
       match /feedback/{feedbackId} {
         allow get, list: if true;
-        allow create: if request.resource.data.keys().hasOnly(['target', 'stars', 'wish', 'createdAt'])
+        allow create: if request.auth != null
+                      && request.resource.data.keys().hasOnly(['target', 'stars', 'wish', 'createdAt'])
                       && request.resource.data.stars is list
                       && request.resource.data.stars.size() == 2
                       && request.resource.data.wish is string

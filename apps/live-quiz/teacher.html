@@ -521,12 +521,14 @@
       const newId = TKLiveQuiz.randomSessionCode();
       startBtn.disabled = true;
       withTimeout(
-        TKLiveQuiz.sessionDocRef(newId).set({
+        // createSession waits for anonymous sign-in, then stamps ownerUid and
+        // createdAt. The rules only accept a session create from its owner,
+        // and only let the owner change currentQuestion/revealed afterwards.
+        window.TKFirebase.createSession('liveQuizSessions', newId, {
           title,
           questions,
           currentQuestion: -1,
-          revealed: false,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          revealed: false
         }),
         () => {
           startBtn.disabled = false;

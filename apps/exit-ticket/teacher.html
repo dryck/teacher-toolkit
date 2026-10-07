@@ -444,7 +444,7 @@
         setupError.textContent = 'Could not create session — check your connection and try again.';
       }, 8000);
 
-      TKExitTicket.sessionDocRef(code).set(config)
+      window.TKFirebase.createSession('exitTicketSessions', code, config)
         .then(() => {
           if (settled) return;
           settled = true;
