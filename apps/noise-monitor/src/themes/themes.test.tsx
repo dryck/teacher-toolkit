@@ -13,6 +13,9 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
 import type { ComponentType } from 'react'
+import { readFileSync, readdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { NoiseBand, ThemeProps } from '../types'
 
 import { EggTheme } from './EggTheme'
@@ -104,6 +107,42 @@ describe.each(Object.entries(THEMES))('%s', (name, Theme) => {
     const loud = renderHtml(Theme, propsFor('loud'))
     const tooLoud = renderHtml(Theme, propsFor('tooLoud', true))
     expect(tooLoud, `${name} looks the same raising the alarm as not`).not.toBe(loud)
+  })
+})
+
+describe('no theme depends on a one-shot SVG animation', () => {
+  // ThermometerTheme's mercury grew from height="0" through two
+  // `<animate fill="freeze">` elements with no `begin`. Those start at
+  // document load and run once; SMIL does not restart them when React changes
+  // their `to`. So the mercury rose to the first band the page ever saw and
+  // then stayed there for the rest of the lesson -- a thermometer that does
+  // not move, on a tool whose whole job is to move.
+  //
+  // A rendering test cannot catch that: jsdom runs no SMIL, and in a real
+  // browser the first render looks right. So this reads the source instead,
+  // which is the level the mistake lives at.
+  // readFileSync rather than import.meta.glob: the production build runs tsc
+  // over the tests, and import.meta.glob needs Vite's ambient types.
+  const themeDir = dirname(fileURLToPath(import.meta.url))
+  const themeFiles = readdirSync(themeDir).filter(
+    (f) => f.endsWith('.tsx') && !f.includes('.test.')
+  )
+
+  it.each(themeFiles)('%s', (file) => {
+      const src = readFileSync(join(themeDir, file), 'utf8')
+      // Each <animate> element, with its attributes.
+      const animations = src.match(/<animate[\s\S]*?\/>/g) ?? []
+      for (const animation of animations) {
+        const frozen = animation.includes('fill="freeze"')
+        const hasBegin = /\bbegin=/.test(animation)
+        const bandDependent = animation.includes('band ===')
+        expect(
+          frozen && bandDependent && !hasBegin,
+          `${file} animates a band-dependent value with fill="freeze" and no ` +
+            `begin, so it will run once at load and then ignore the band. ` +
+            `Drive the value directly and let a CSS transition smooth it.`
+        ).toBe(false)
+      }
   })
 })
 
