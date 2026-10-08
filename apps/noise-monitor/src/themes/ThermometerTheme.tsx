@@ -1,5 +1,5 @@
 import React from 'react';
-import { ThemeProps } from '../types';
+import { ThemeProps, NoiseBand } from '../types';
 
 /**
  * Thermometer Theme
@@ -10,7 +10,17 @@ import { ThemeProps } from '../types';
  * Level 4 (Too Loud): Red, max mercury, boiling/steam
  */
 
+/** How full the tube is per band: the heights the old animation aimed at
+ *  (24, 108, 174, 210) as fractions of the 220-unit column. */
+const MERCURY_FRACTION: Record<NoiseBand, number> = {
+  quiet: 24 / 220,
+  moderate: 108 / 220,
+  loud: 174 / 220,
+  tooLoud: 210 / 220
+}
+
 export const ThermometerTheme: React.FC<ThemeProps> = ({ band }) => {
+  const mercuryFraction = MERCURY_FRACTION[band]
   const getMercuryHeight = () => {
     switch (band) {
       case 'quiet': return '20%';
@@ -84,35 +94,31 @@ export const ThermometerTheme: React.FC<ThemeProps> = ({ band }) => {
             {/* Thermometer tube background */}
             <rect x="45" y="20" width="30" height="220" rx="15" fill="#E5E7EB" stroke="#9CA3AF" strokeWidth="2"/>
             
-            {/* Mercury column */}
-            <rect 
-              x="50" 
-              y="240" 
-              width="20" 
-              height="0" 
-              rx="10" 
+            {/* Mercury column.
+                Driven by a transform, not by SVG <animate>. It used to grow
+                from height="0" via two <animate fill="freeze"> elements with
+                no `begin`, which start at load and run once: SMIL does not
+                restart when React changes their `to`, so the mercury rose on
+                the first band it ever saw and then never moved again.
+
+                A CSS transition on `transform` is the deterministic version.
+                Note transform rather than the y/height attributes -- those are
+                only transitionable as CSS properties in some browsers, and
+                Safari is not one of them. */}
+            <rect
+              x="50"
+              y="20"
+              width="20"
+              height="220"
+              rx="10"
               fill={mercuryColor}
-              className="transition-all duration-700 ease-out"
-            >
-              <animate 
-                attributeName="y" 
-                from="240" 
-                to={band === 'quiet' ? '216' : band === 'moderate' ? '132' : band === 'loud' ? '66' : '30'}
-                dur="0.7s" 
-                fill="freeze"
-                calcMode="spline"
-                keySplines="0.4 0 0.2 1"
-              />
-              <animate 
-                attributeName="height" 
-                from="0" 
-                to={band === 'quiet' ? '24' : band === 'moderate' ? '108' : band === 'loud' ? '174' : '210'}
-                dur="0.7s" 
-                fill="freeze"
-                calcMode="spline"
-                keySplines="0.4 0 0.2 1"
-              />
-            </rect>
+              style={{
+                transform: `scaleY(${mercuryFraction})`,
+                transformOrigin: '50% 240px',
+                transition: 'transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+              className="transition-colors duration-500"
+            />
 
             {/* Tick marks */}
             {[0, 1, 2, 3, 4].map((i) => (

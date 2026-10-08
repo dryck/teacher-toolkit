@@ -131,8 +131,13 @@ export const VolcanoTheme: React.FC<ThemeProps> = ({ band }) => {
             />
 
             {/* Lava glow inside crater - loud+ */}
+            {/* key={band} on the ellipse so React remounts it when the band
+                changes. Changing `dur` on an already-running indefinite SMIL
+                animation is not reliably picked up, so without it the glow
+                would keep pulsing at the slower rate after the room crossed
+                into tooLoud. */}
             {(band === 'loud' || band === 'tooLoud') && (
-              <ellipse cx="150" cy="85" rx="25" ry="8" fill="#EF4444" opacity="0.8">
+              <ellipse key={band} cx="150" cy="85" rx="25" ry="8" fill="#EF4444" opacity="0.8">
                 <animate attributeName="opacity" values="0.6;1;0.6" dur={band === 'tooLoud' ? '0.3s' : '1s'} repeatCount="indefinite"/>
               </ellipse>
             )}
