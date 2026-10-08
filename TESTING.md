@@ -144,15 +144,26 @@ Live Quiz (the most stateful) and Choice Board would close most of that.
 `/firebase/i` and `/firestore/i` console errors — correct while there is no
 config, but it means a genuine Firestore bug passes the smoke suite.
 
-Before trusting the Firebase-backed tools in a classroom:
+Before trusting the Firebase-backed tools in a classroom, run:
 
-1. Put a real config in `firebase-config.js` (it is a public identifier, safe
-   to commit; security comes from the rules, which are tested).
-2. Publish `packages/shell/firestore.rules` to the project, and set a TTL
-   policy on `createdAt` for each collection.
-3. Narrow `IGNORED_CONSOLE` in `smoke.spec.mjs` so Firebase errors fail again.
-4. Extend the e2e suite to the remaining nine tools, or walk them by hand
-   once: open the teacher page, join from a phone, check the write lands.
+```bash
+npx firebase login                                   # interactive, one time
+bash scripts/firebase-setup.sh <your-project-id>
+```
+
+That publishes the rules, requests the TTL policies and writes
+`firebase-config.js`. **The order is not arbitrary** — the client code
+requires the current rules, so publishing them has to come before a real
+config reaches the deployed site. A git push does not publish rules; they live
+in the Firebase project, and the file here is only the source of truth for
+what to publish.
+
+Two steps have no CLI and the script says so when it reaches them: enabling
+Anonymous sign-in, and creating the Firestore database if the project is new.
+
+Afterwards, narrow `IGNORED_CONSOLE` in `smoke.spec.mjs` so Firebase errors
+fail the smoke run again, and walk one teacher page and one student page by
+hand — nothing automated covers the real backend.
 
 ## Troubleshooting
 
