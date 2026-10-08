@@ -1,9 +1,9 @@
 // Shared Firebase/session helpers for both the student deck page and the
-// teacher dashboard. Loaded after firebase-config.js and the Firebase
+// teacher dashboard. Loaded after ../shell/firebase.js and the Firebase
 // compat SDK scripts. Mirrors apps/choice-board/choice-board.js.
 (function () {
-  firebase.initializeApp(window.TK_FIREBASE_CONFIG);
-  const db = firebase.firestore();
+  const db = window.TKFirebase.db();
+  const { randomSessionCode, randomStudentId } = window.TKFirebase;
 
   const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 
@@ -16,21 +16,8 @@
     Hard: { bg: '#fee2e2', fg: '#b91c1c' }
   };
 
-  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous 0/O/1/I
-
-  function randomSessionCode() {
-    let code = '';
-    for (let i = 0; i < 5; i++) {
-      code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-    }
-    return code;
-  }
-
   // Stable per-device student identifier, stored in localStorage alongside
   // the nickname so a student's progress doc persists across visits.
-  function randomStudentId() {
-    return 'stu_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  }
 
   function sessionDocRef(sessionId) {
     return db.collection('challengeDeckSessions').doc(sessionId);

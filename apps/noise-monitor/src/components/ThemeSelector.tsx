@@ -1,4 +1,4 @@
-import { Theme, CustomImage } from '../types'
+import { Theme, CustomImage, NoiseBand, ThemeProps } from '../types'
 import { EggTheme } from '../themes/EggTheme'
 import { EggClassicTheme } from '../themes/EggClassicTheme'
 import { GlassTheme } from '../themes/GlassTheme'
@@ -65,24 +65,26 @@ const themes: { id: Theme; name: string; description: string; preview: string }[
   },
 ]
 
-// Mini preview component that renders a theme at a specific noise level
-function ThemePreview({ theme, level, customImages }: { theme: Theme; level: 'quiet' | 'moderate' | 'loud' | 'tooLoud'; customImages: CustomImage[] }) {
-  // Mock props for legacy themes (egg, glass, custom)
-  const getMockProps = () => {
-    switch (level) {
-      case 'quiet':
-        return { noiseLevel: 30, threshold: 70, isTooLoud: false, customImages, backgroundColor: 'dark' }
-      case 'moderate':
-        return { noiseLevel: 50, threshold: 70, isTooLoud: false, customImages, backgroundColor: 'dark' }
-      case 'loud':
-        return { noiseLevel: 65, threshold: 70, isTooLoud: false, customImages, backgroundColor: 'dark' }
-      case 'tooLoud':
-        return { noiseLevel: 85, threshold: 70, isTooLoud: true, customImages, backgroundColor: 'dark' }
-    }
+// A theme rendered at one band, for the picker's four-up preview.
+function ThemePreview({ theme, band, customImages }: { theme: Theme; band: NoiseBand; customImages: CustomImage[] }) {
+  // One props object, like NoiseMonitor builds. There used to be two here
+  // too -- mockProps for the themes on the old contract and levelProps for the
+  // others -- which meant the preview could show a theme a state the monitor
+  // would never hand it.
+  const INTENSITY: Record<NoiseBand, number> = {
+    quiet: 0.4,
+    moderate: 0.7,
+    loud: 0.9,
+    tooLoud: 1.1
   }
 
-  const levelProps = { level }
-  const mockProps = getMockProps()
+  const previewProps: ThemeProps = {
+    band,
+    intensity: INTENSITY[band],
+    isTooLoud: band === 'tooLoud',
+    customImages,
+    backgroundColor: 'dark'
+  }
 
   // Scale down the theme for mini preview
   const scaleStyle = { transform: 'scale(0.25)', transformOrigin: 'center center' }
@@ -90,23 +92,23 @@ function ThemePreview({ theme, level, customImages }: { theme: Theme; level: 'qu
   const renderMiniTheme = () => {
     switch (theme) {
       case 'egg':
-        return <EggTheme {...mockProps} />
+        return <EggTheme {...previewProps} />
       case 'eggClassic':
-        return <EggClassicTheme {...mockProps} />
+        return <EggClassicTheme {...previewProps} />
       case 'glass':
-        return <GlassTheme {...mockProps} />
+        return <GlassTheme {...previewProps} />
       case 'custom':
-        return <CustomTheme {...mockProps} />
+        return <CustomTheme {...previewProps} />
       case 'thermometer':
-        return <ThermometerTheme {...levelProps} />
+        return <ThermometerTheme {...previewProps} />
       case 'battery':
-        return <BatteryTheme {...levelProps} />
+        return <BatteryTheme {...previewProps} />
       case 'weather':
-        return <WeatherTheme {...levelProps} />
+        return <WeatherTheme {...previewProps} />
       case 'volcano':
-        return <VolcanoTheme {...levelProps} />
+        return <VolcanoTheme {...previewProps} />
       default:
-        return <EggTheme {...mockProps} />
+        return <EggTheme {...previewProps} />
     }
   }
 
@@ -121,19 +123,19 @@ function ThemePreview({ theme, level, customImages }: { theme: Theme; level: 'qu
 
 // Preview grid showing all 4 levels for a theme
 function ThemePreviewGallery({ theme, customImages }: { theme: Theme; customImages: CustomImage[] }) {
-  const levels: { level: 'quiet' | 'moderate' | 'loud' | 'tooLoud'; label: string; color: string }[] = [
-    { level: 'quiet', label: 'Quiet', color: 'bg-green-100 text-green-700 border-green-200' },
-    { level: 'moderate', label: 'Moderate', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    { level: 'loud', label: 'Loud', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-    { level: 'tooLoud', label: 'Too Loud', color: 'bg-red-100 text-red-700 border-red-200' },
+  const bands: { band: NoiseBand; label: string; color: string }[] = [
+    { band: 'quiet', label: 'Quiet', color: 'bg-green-100 text-green-700 border-green-200' },
+    { band: 'moderate', label: 'Moderate', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+    { band: 'loud', label: 'Loud', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+    { band: 'tooLoud', label: 'Too Loud', color: 'bg-red-100 text-red-700 border-red-200' },
   ]
 
   return (
     <div className="mt-3 grid grid-cols-4 gap-2">
-      {levels.map(({ level, label, color }) => (
-        <div key={level} className="flex flex-col items-center">
+      {bands.map(({ band, label, color }) => (
+        <div key={band} className="flex flex-col items-center">
           <div className={`w-full aspect-square rounded-lg border-2 ${color} flex items-center justify-center overflow-hidden`}>
-            <ThemePreview theme={theme} level={level} customImages={customImages} />
+            <ThemePreview theme={theme} band={band} customImages={customImages} />
           </div>
           <span className={`text-[10px] font-medium mt-1 ${color.split(' ')[1]}`}>{label}</span>
         </div>

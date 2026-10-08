@@ -292,8 +292,10 @@
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
   <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/firebase.js"></script>
   <script src="../shell/toast.js"></script>
   <script src="help-ladder.js"></script>
   <script>
@@ -437,13 +439,12 @@
       }, 8000);
 
       const currentSteps = TKHelpLadder.loadSteps();
-      TKHelpLadder.sessionDocRef(newId).set({
+      window.TKFirebase.createSession('helpLadderSessions', newId, {
         step1: currentSteps[0],
         step2: currentSteps[1],
         step3: currentSteps[2],
         step4: currentSteps[3],
-        step5: currentSteps[4],
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        step5: currentSteps[4]
       }).then(() => {
         if (settled) return;
         settled = true;

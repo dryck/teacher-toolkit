@@ -339,8 +339,10 @@
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
   <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/firebase.js"></script>
   <script src="exit-ticket.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
@@ -442,7 +444,7 @@
         setupError.textContent = 'Could not create session — check your connection and try again.';
       }, 8000);
 
-      TKExitTicket.sessionDocRef(code).set(config)
+      window.TKFirebase.createSession('exitTicketSessions', code, config)
         .then(() => {
           if (settled) return;
           settled = true;

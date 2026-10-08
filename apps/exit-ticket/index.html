@@ -191,7 +191,7 @@
 
       <div id="joinScreen">
         <p>Enter the code your teacher gave you:</p>
-        <input type="text" id="codeInput" maxlength="5" placeholder="ABCDE" autocomplete="off">
+        <input type="text" id="codeInput" maxlength="6" placeholder="ABCDEF" autocomplete="off">
         <div id="errorMsg"></div>
         <button id="joinBtn">Join</button>
       </div>
@@ -249,8 +249,10 @@
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
   <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/firebase.js"></script>
   <script src="../shell/toast.js"></script>
   <script src="exit-ticket.js"></script>
   <script>
@@ -369,8 +371,13 @@
         TKToast.show('Could not submit — check your connection and try again.');
       }, WRITE_TIMEOUT_MS);
 
-      TKExitTicket.responsesRef(sessionId).add(payload)
-        .then(() => {
+      // Gate on anonymous sign-in: the rules reject an unauthenticated write
+      // and Firestore does not retry one, so without this the tap looks like
+      // it worked and then times out eight seconds later with a generic toast.
+      window.TKFirebase.ready.then(() =>
+        TKExitTicket.responsesRef(sessionId).add(payload)
+        
+      ).then(() => {
           if (settled) return;
           settled = true;
           clearTimeout(timeoutId);
@@ -433,8 +440,8 @@
 
     document.getElementById('joinBtn').onclick = () => {
       const code = document.getElementById('codeInput').value.trim().toUpperCase();
-      if (code.length !== 5) {
-        errorMsg.textContent = 'Enter the 5-character code your teacher gave you.';
+      if (!window.TKFirebase.isSessionCode(code)) {
+        errorMsg.textContent = 'Enter the code your teacher gave you.';
         return;
       }
       sessionId = code;

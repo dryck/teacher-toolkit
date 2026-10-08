@@ -49,7 +49,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [noiseLevel, setNoiseLevel] = useState(0)
-  const { thresholds, delays, errors, updateThreshold, updateDelay, resetToWHO, isUsingWHODefaults } = useSettings()
+  const { thresholds, delays, errors, source, updateThreshold, updateDelay, applyCalibration, setLimitFromCurrent, resetThresholds, isUsingDefaults } = useSettings()
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
@@ -71,6 +71,10 @@ function App() {
     } else {
       document.exitFullscreen().then(() => {
         setIsFullscreen(false)
+      }).catch(() => {
+        // The enter path handles its rejection; this one did not, so a refusal
+        // here surfaced as an unhandled promise rejection instead of a log.
+        console.error('Could not leave fullscreen')
       })
     }
   }, [])
@@ -87,7 +91,8 @@ function App() {
     <div className="h-full w-full bg-gradient-to-br from-gray-50 to-gray-100">
       <NoiseMonitor
         theme={settings.theme}
-        threshold={thresholds.alarmTrigger}
+        thresholds={thresholds}
+        onCalibrated={applyCalibration}
         selectedSound={settings.selectedSound}
         customSounds={settings.customSounds}
         customImages={settings.customImages}
@@ -111,10 +116,12 @@ function App() {
           thresholds={thresholds}
           delays={delays}
           errors={errors}
+          source={source}
+          onUseCurrentAsLimit={setLimitFromCurrent}
           updateThreshold={updateThreshold}
           updateDelay={updateDelay}
-          resetToWHO={resetToWHO}
-          isUsingWHODefaults={isUsingWHODefaults}
+          resetThresholds={resetThresholds}
+          isUsingDefaults={isUsingDefaults}
           onThemeChange={(theme) => setSettings(prev => ({ ...prev, theme }))}
           onSoundSettingsChange={(soundSettings) => setSettings(prev => ({ ...prev, soundSettings }))}
           onClose={() => setShowSettings(false)}

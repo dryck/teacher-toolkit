@@ -1,24 +1,72 @@
 // Paste this into Firebase Console -> Firestore Database -> Rules -> Publish.
 //
 // One shared Firebase project backs every real-time tool in the toolkit.
-// Each tool gets its own top-level collection, scoped so only that tool's
-// expected fields/subcollections are readable or writable -- everything
-// else is denied by the catch-all at the bottom. No student identity is
-// ever required or stored; nicknames (Choice Board) and free text
-// (Exit Ticket, Growth Mindset) are the only non-numeric fields, and
-// none of them are linked to a real name, login, or device ID.
+// Each tool gets its own top-level collection; everything not matched here is
+// denied by the catch-all at the bottom.
+//
+// The model, in three rules:
+//   - `get` is open, `list` is denied. A student resolves one code from a QR
+//     link; nobody walks the collection. (`read` grants both, which is how
+//     every session in the project used to be dumpable by anyone.)
+//   - Every write needs request.auth. Clients sign in anonymously via
+//     packages/shell/firebase.js -- no login for a child, but a stable
+//     identity the rules can check.
+//   - A session doc carries `ownerUid`, set on create. Only that uid may
+//     change or delete it, which is what stops a student rewriting a live
+//     quiz or self-approving onto the projected wall. Zones is the documented
+//     exception; see its block.
+//
+// On student identity: this file used to claim none was stored. That was not
+// accurate. Choice Board, Challenge Deck, Chili Challenge and Live Quiz ask
+// for a name and store it as `nickname`, and Peer Feedback's `targets` are
+// presenter names. Those fields are real identifiers and should be read as
+// such. Zones, Help Ladder signals, Brainstorm ideas and Peer Feedback
+// submissions genuinely carry no identity.
+//
+// Covered by tests/rules.integration.mjs -- `npm run test:rules`.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Zones Check-In: one doc per session, just 4 zone counters.
+    // Retention is not expressible here. Set a TTL policy on `createdAt` in
+    // the Firebase console (Firestore -> a collection -> Collection Settings
+    // -> Time-to-live) for each collection below; without it, children's
+    // free-text answers accumulate forever.
+    //
+    // A session created before ownerUid existed has none, and the rules read
+    // it with .get('ownerUid', '') so a missing field evaluates to false
+    // rather than throwing. The effect: legacy sessions can still be read and
+    // still accept student submissions, but their config can no longer be
+    // edited. They expire with the TTL policy above.
+
+    // Zones Check-In: unlike every other tool here, the session doc IS the
+    // student-written data -- four counters bumped by FieldValue.increment --
+    // so `update` cannot be owner-scoped without blocking every check-in.
+    // Instead: only the owner creates and deletes, anyone signed in may move
+    // the counters, and ownerUid/createdAt are immutable once set.
     match /zonesSessions/{sessionId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['blue', 'green', 'yellow', 'red'])
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['blue', 'green', 'yellow', 'red', 'ownerUid', 'createdAt'])
+                   && request.resource.data.get('ownerUid', '') == request.auth.uid
                    && (!('blue' in request.resource.data) || request.resource.data.blue is number)
                    && (!('green' in request.resource.data) || request.resource.data.green is number)
                    && (!('yellow' in request.resource.data) || request.resource.data.yellow is number)
                    && (!('red' in request.resource.data) || request.resource.data.red is number);
+      allow update: if request.auth != null
+                   && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['blue', 'green', 'yellow', 'red'])
+                   && request.resource.data.get('ownerUid', '') == resource.data.get('ownerUid', '')
+                   && request.resource.data.blue is number
+                   && request.resource.data.green is number
+                   && request.resource.data.yellow is number
+                   && request.resource.data.red is number
+                   && request.resource.data.blue >= 0
+                   && request.resource.data.green >= 0
+                   && request.resource.data.yellow >= 0
+                   && request.resource.data.red >= 0;
+      allow delete: if request.auth != null && resource.data.get('ownerUid', '') == request.auth.uid;
     }
 
     // Exit Ticket: a config doc (written once by the teacher when
@@ -37,12 +85,26 @@ service cloud.firestore {
     // red/yellow/green) is enforced client-side, same level of trust
     // this file already extends to every other collection here.
     match /exitTicketSessions/{sessionId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['mode', 'q1Enabled', 'q1Text', 'q2Enabled', 'q3Enabled', 'q3Text', 'createdAt']);
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['mode', 'q1Enabled', 'q1Text', 'q2Enabled', 'q3Enabled', 'q3Text', 'ownerUid', 'createdAt'])
+                   && request.resource.data.get('ownerUid', '') == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.get('ownerUid', '') == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['mode', 'q1Enabled', 'q1Text', 'q2Enabled', 'q3Enabled', 'q3Text', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.get('ownerUid', '') == request.auth.uid;
 
       match /responses/{responseId} {
-        allow read: if true;
-        allow create: if request.resource.data.keys().hasOnly(['q1Answer', 'confidence', 'q3Answer', 'clearText', 'cloudyText', 'light', 'submittedAt']);
+        allow get, list: if true;
+        // Free text with no length cap was the one unbounded field here: a
+        // ~1MB answer renders straight onto the projected dashboard.
+        allow create: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['q1Answer', 'confidence', 'q3Answer', 'clearText', 'cloudyText', 'light', 'submittedAt'])
+                     && (!('q1Answer' in request.resource.data) || request.resource.data.q1Answer.size() <= 500)
+                     && (!('q3Answer' in request.resource.data) || request.resource.data.q3Answer.size() <= 500)
+                     && (!('clearText' in request.resource.data) || request.resource.data.clearText.size() <= 500)
+                     && (!('cloudyText' in request.resource.data) || request.resource.data.cloudyText.size() <= 500);
         allow update, delete: if false;
       }
     }
@@ -50,32 +112,52 @@ service cloud.firestore {
     // Choice Board: a config doc (board layout, written by the teacher)
     // plus a per-student progress subcollection.
     match /choiceBoardSessions/{sessionId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['title', 'cells', 'mustDoMode', 'minRequired']);
+      allow get: if true;
+      allow list: if false;
+      // createdAt added to the allowlist so the TTL policy has a field to
+      // expire on; createSession() stamps it on every new session.
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['title', 'cells', 'mustDoMode', 'minRequired', 'ownerUid', 'createdAt'])
+                   && request.resource.data.get('ownerUid', '') == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.get('ownerUid', '') == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['title', 'cells', 'mustDoMode', 'minRequired', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.get('ownerUid', '') == request.auth.uid;
 
       match /progress/{studentId} {
-        allow read: if true;
-        allow write: if request.resource.data.keys().hasOnly(['nickname', 'completed', 'joinedAt'])
+        allow get, list: if true;
+        allow write: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['nickname', 'completed', 'joinedAt'])
                      && request.resource.data.nickname is string
                      && request.resource.data.nickname.size() <= 40;
       }
     }
 
-    // Growth Mindset's "Wall of Yet": the session doc itself is unused
-    // (just a parent for the subcollection); entries start unapproved
-    // and only the teacher's moderation view flips `approved` or
-    // deletes a rejected one.
+    // Growth Mindset's "Wall of Yet": session doc stores ownerUid (teacher).
+    // Entries start unapproved, and ONLY the teacher can flip `approved`
+    // or delete a rejected one.
     match /growthWallSessions/{sessionId} {
-      allow read, write: if false;
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['ownerUid', 'createdAt'])
+                   && request.resource.data.get('ownerUid', '') == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.get('ownerUid', '') == request.auth.uid;
 
       match /entries/{entryId} {
         allow read: if true;
-        allow create: if request.resource.data.keys().hasOnly(['text', 'approved', 'createdAt'])
-                      && request.resource.data.approved == false
-                      && request.resource.data.text is string
-                      && request.resource.data.text.size() <= 280;
-        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approved']);
-        allow delete: if true;
+        allow create: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['text', 'approved', 'createdAt'])
+                     && request.resource.data.approved == false
+                     && request.resource.data.text is string
+                     && request.resource.data.text.size() <= 280;
+        allow update: if request.auth != null
+                     && exists(/databases/$(database)/documents/growthWallSessions/$(sessionId))
+                      && get(/databases/$(database)/documents/growthWallSessions/$(sessionId)).data.get('ownerUid', '') == request.auth.uid
+                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approved']);
+        allow delete: if request.auth != null
+                     && exists(/databases/$(database)/documents/growthWallSessions/$(sessionId))
+                      && get(/databases/$(database)/documents/growthWallSessions/$(sessionId)).data.get('ownerUid', '') == request.auth.uid;
       }
     }
 
@@ -85,21 +167,36 @@ service cloud.firestore {
     // (merge two stickies' text together) or delete (after a merge) any
     // sticky, but never create one themselves.
     match /snowballSessions/{sessionId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['concept', 'phase', 'createdAt'])
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['concept', 'phase', 'ownerUid', 'createdAt'])
+                   && request.resource.data.get('ownerUid', '') == request.auth.uid
                    && (!('phase' in request.resource.data) || request.resource.data.phase is number);
+      allow update: if request.auth != null
+                   && resource.data.get('ownerUid', '') == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['concept', 'phase', 'ownerUid', 'createdAt'])
+                   && (!('phase' in request.resource.data) || request.resource.data.phase is number);
+      allow delete: if request.auth != null && resource.data.get('ownerUid', '') == request.auth.uid;
 
       match /stickies/{stickyId} {
-        allow read: if true;
-        allow create: if request.resource.data.keys().hasOnly(['text', 'phase', 'createdAt'])
+        allow get, list: if true;
+        allow create: if request.auth != null
+                      && request.resource.data.keys().hasOnly(['text', 'phase', 'createdAt'])
                       && request.resource.data.text is string
                       && request.resource.data.text.size() <= 140;
-        // A teacher merge can combine two already-capped stickies, so the
-        // update path allows a longer combined string than a fresh create.
-        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text'])
+        // Merging two stickies is a teacher action, so both update and delete
+        // are scoped to the session owner -- `delete: if true` previously let
+        // any student wipe the class's work.
+        allow update: if request.auth != null
+                      && exists(/databases/$(database)/documents/snowballSessions/$(sessionId))
+                      && get(/databases/$(database)/documents/snowballSessions/$(sessionId)).data.get('ownerUid', '') == request.auth.uid
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text'])
                       && request.resource.data.text is string
                       && request.resource.data.text.size() <= 400;
-        allow delete: if true;
+        allow delete: if request.auth != null
+                      && exists(/databases/$(database)/documents/snowballSessions/$(sessionId))
+                      && get(/databases/$(database)/documents/snowballSessions/$(sessionId)).data.get('ownerUid', '') == request.auth.uid;
       }
     }
 
@@ -107,14 +204,26 @@ service cloud.firestore {
     // difficulty and a list of card strings) plus a per-student progress
     // subcollection, same shape as Choice Board's.
     match /challengeDeckSessions/{sessionId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['title', 'categories']);
+      allow get: if true;
+      allow list: if false;
+      // createdAt added to the allowlist so the TTL policy has a field to
+      // expire on; createSession() stamps it on every new session.
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['title', 'categories', 'ownerUid', 'createdAt'])
+                   && request.resource.data.get('ownerUid', '') == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.get('ownerUid', '') == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['title', 'categories', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.get('ownerUid', '') == request.auth.uid;
 
       match /progress/{studentId} {
-        allow read: if true;
-        allow write: if request.resource.data.keys().hasOnly(['nickname', 'completedCardIds', 'joinedAt'])
+        allow get, list: if true;
+        allow write: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['nickname', 'completedCardIds', 'joinedAt'])
                      && request.resource.data.nickname is string
-                     && request.resource.data.nickname.size() <= 40;
+                     && request.resource.data.nickname.size() <= 40
+                     && request.resource.data.completedCardIds is list
+                     && request.resource.data.completedCardIds.size() <= 200;
       }
     }
 
@@ -123,15 +232,25 @@ service cloud.firestore {
     // choice is an upsert (they can change their mind), same shape as
     // Choice Board's progress subcollection.
     match /chiliChallengeSessions/{sessionId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['title', 'level1Text', 'level2Text', 'level3Text', 'createdAt']);
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['title', 'level1Text', 'level2Text', 'level3Text', 'ownerUid', 'createdAt'])
+                   && request.resource.data.get('ownerUid', '') == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.get('ownerUid', '') == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['title', 'level1Text', 'level2Text', 'level3Text', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.get('ownerUid', '') == request.auth.uid;
 
       match /choices/{studentId} {
-        allow read: if true;
-        allow write: if request.resource.data.keys().hasOnly(['nickname', 'level', 'joinedAt'])
+        allow get, list: if true;
+        allow write: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['nickname', 'level', 'joinedAt'])
                      && request.resource.data.nickname is string
                      && request.resource.data.nickname.size() <= 40
-                     && request.resource.data.level is number;
+                     && request.resource.data.level is number
+                     && request.resource.data.level >= 1
+                     && request.resource.data.level <= 3;
       }
     }
 
@@ -142,13 +261,26 @@ service cloud.firestore {
     // no nickname, ever -- that a student can also delete themselves to
     // cancel, and the teacher can bulk-delete via "Clear all".
     match /helpLadderSessions/{sessionId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['step1', 'step2', 'step3', 'step4', 'step5', 'createdAt']);
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['step1', 'step2', 'step3', 'step4', 'step5', 'ownerUid', 'createdAt'])
+                   && request.resource.data.get('ownerUid', '') == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.get('ownerUid', '') == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['step1', 'step2', 'step3', 'step4', 'step5', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.get('ownerUid', '') == request.auth.uid;
 
       match /signals/{studentId} {
-        allow read: if true;
-        allow write: if request.resource.data.keys().hasOnly(['joinedAt']);
-        allow delete: if true;
+        allow get, list: if true;
+        allow write: if request.auth != null
+                     && request.resource.data.keys().hasOnly(['joinedAt']);
+        // Known limitation: a signal doc is keyed by the localStorage
+        // studentId, not by request.auth.uid, so the rules cannot tell "I am
+        // cancelling my own signal" from "I am clearing someone else's".
+        // Requiring auth removes drive-by deletion; a classmate can still
+        // clear a flag. Keying signals by uid would close it properly.
+        allow delete: if request.auth != null;
       }
     }
 
@@ -158,12 +290,20 @@ service cloud.firestore {
     // doc per submitted idea, no student identity, never edited or
     // deleted once created.
     match /brainstormSessions/{sessionId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['object', 'durationSeconds', 'createdAt', 'startedAt']);
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['object', 'durationSeconds', 'ownerUid', 'createdAt', 'startedAt'])
+                   && request.resource.data.get('ownerUid', '') == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.get('ownerUid', '') == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['object', 'durationSeconds', 'ownerUid', 'createdAt', 'startedAt']);
+      allow delete: if request.auth != null && resource.data.get('ownerUid', '') == request.auth.uid;
 
       match /ideas/{ideaId} {
-        allow read: if true;
-        allow create: if request.resource.data.keys().hasOnly(['text', 'createdAt'])
+        allow get, list: if true;
+        allow create: if request.auth != null
+                      && request.resource.data.keys().hasOnly(['text', 'createdAt'])
                       && request.resource.data.text is string
                       && request.resource.data.text.size() <= 100;
         allow update, delete: if false;
@@ -175,12 +315,20 @@ service cloud.firestore {
     // feedback subcollection -- one doc per submission, no student
     // identity, never edited or deleted once created.
     match /peerFeedbackSessions/{sessionId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['targets', 'createdAt']);
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['targets', 'ownerUid', 'createdAt'])
+                   && request.resource.data.get('ownerUid', '') == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.get('ownerUid', '') == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['targets', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.get('ownerUid', '') == request.auth.uid;
 
       match /feedback/{feedbackId} {
-        allow read: if true;
-        allow create: if request.resource.data.keys().hasOnly(['target', 'stars', 'wish', 'createdAt'])
+        allow get, list: if true;
+        allow create: if request.auth != null
+                      && request.resource.data.keys().hasOnly(['target', 'stars', 'wish', 'createdAt'])
                       && request.resource.data.stars is list
                       && request.resource.data.stars.size() == 2
                       && request.resource.data.wish is string
@@ -200,21 +348,30 @@ service cloud.firestore {
     // revealed, the same trust level already extended to every other
     // collection in this file.
     match /liveQuizSessions/{sessionId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasOnly(['title', 'questions', 'currentQuestion', 'revealed', 'createdAt']);
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['title', 'questions', 'currentQuestion', 'revealed', 'ownerUid', 'createdAt'])
+                   && request.resource.data.get('ownerUid', '') == request.auth.uid;
+      allow update: if request.auth != null
+                   && resource.data.get('ownerUid', '') == request.auth.uid
+                   && request.resource.data.keys().hasOnly(['title', 'questions', 'currentQuestion', 'revealed', 'ownerUid', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.get('ownerUid', '') == request.auth.uid;
 
       match /players/{studentId} {
-        allow read: if true;
-        allow write: if request.resource.data.keys().hasOnly(['nickname', 'joinedAt'])
-                     && request.resource.data.nickname is string
-                     && request.resource.data.nickname.size() <= 40;
+        allow get, list: if true;
+        allow write: if request.auth != null
+                    && request.resource.data.keys().hasOnly(['nickname', 'joinedAt'])
+                    && request.resource.data.nickname is string
+                    && request.resource.data.nickname.size() <= 40;
       }
 
       match /responses/{responseId} {
-        allow read: if true;
-        allow write: if request.resource.data.keys().hasOnly(['studentId', 'questionIndex', 'optionIndex', 'createdAt'])
-                     && request.resource.data.questionIndex is number
-                     && request.resource.data.optionIndex is number;
+        allow get, list: if true;
+        allow write: if request.auth != null
+                    && request.resource.data.keys().hasOnly(['studentId', 'questionIndex', 'optionIndex', 'createdAt'])
+                    && request.resource.data.questionIndex is number
+                    && request.resource.data.optionIndex is number;
       }
     }
 

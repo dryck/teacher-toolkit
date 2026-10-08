@@ -1,28 +1,15 @@
 // Shared Firebase/session helpers for both the student page and the teacher
-// dashboard. Loaded after firebase-config.js and the Firebase compat SDK
+// dashboard. Loaded after ../shell/firebase.js and the Firebase compat SDK
 // scripts. Mirrors apps/choice-board/choice-board.js and
 // apps/challenge-deck/challenge-deck.js.
 (function () {
-  firebase.initializeApp(window.TK_FIREBASE_CONFIG);
-  const db = firebase.firestore();
-
-  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous 0/O/1/I
-
-  function randomSessionCode() {
-    let code = '';
-    for (let i = 0; i < 5; i++) {
-      code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-    }
-    return code;
-  }
+  const db = window.TKFirebase.db();
+  const { randomSessionCode, randomStudentId } = window.TKFirebase;
 
   // Stable per-device student identifier, stored in localStorage alongside
   // the nickname so a student's identity (and their responses) persist
   // across visits to the same session. Mirrors choice-board's/
   // challenge-deck's randomStudentId().
-  function randomStudentId() {
-    return 'stu_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  }
 
   function sessionDocRef(sessionId) {
     return db.collection('liveQuizSessions').doc(sessionId);

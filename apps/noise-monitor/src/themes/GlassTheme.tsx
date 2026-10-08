@@ -1,19 +1,19 @@
-import { ThemeProps } from '../types'
+import { ThemeProps, NoiseBand } from '../types'
 
-export function GlassTheme({ noiseLevel, threshold, isTooLoud }: ThemeProps) {
-  // Calculate fill level (0 to 100)
-  const fillLevel = Math.min((noiseLevel / threshold) * 100, 100)
-  
-  // Determine active level (0-3) for the 4 dots
-  const getActiveLevel = () => {
-    const ratio = noiseLevel / threshold
-    if (ratio < 0.25) return 0
-    if (ratio < 0.5) return 1
-    if (ratio < 0.75) return 2
-    return 3
-  }
+const BAND_DOT: Record<NoiseBand, number> = {
+  quiet: 0,
+  moderate: 1,
+  loud: 2,
+  tooLoud: 3
+}
 
-  const activeLevel = getActiveLevel()
+export function GlassTheme({ band, intensity, isTooLoud }: ThemeProps) {
+  const fillLevel = Math.min(intensity * 100, 100)
+
+  // Which of the four dots is lit. This used to be its own ratio ladder
+  // (0.25/0.5/0.75 of the alarm point), so the dots stepped at values that had
+  // nothing to do with the bounds the teacher set in Settings.
+  const activeLevel = BAND_DOT[band]
   
   // Colors for each dot level
   const dotColors = ['#10B981', '#10B981', '#F59E0B', '#EF4444'] // Green, Green, Yellow, Red

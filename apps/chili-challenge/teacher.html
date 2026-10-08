@@ -193,36 +193,18 @@
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
   <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/firebase.js"></script>
   <script src="../shell/toast.js"></script>
   <script src="chili-challenge.js"></script>
   <script>
     let sessionId = (new URLSearchParams(location.search).get('session') || '').toUpperCase();
 
-    // Without a timeout, a bad connection/config leaves a write pending
-    // forever with no feedback at all — same failure mode fixed on the
-    // student page. `onFailure` and the promise's own then/catch are
-    // mutually exclusive via the `settled` flag.
-    function withTimeout(promise, onSuccess, onFailure, ms = 8000) {
-      let settled = false;
-      const timeoutId = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        onFailure(new Error('timeout'));
-      }, ms);
-      promise.then(result => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onSuccess(result);
-      }).catch(err => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timeoutId);
-        onFailure(err);
-      });
-    }
+    // Shared: packages/shell/firebase.js. Waits for anonymous sign-in before
+    // issuing the write, since the rules reject unauthenticated ones.
+    const withTimeout = window.TKFirebase.withWriteTimeout;
 
     const titleInput = document.getElementById('titleInput');
     const level1Input = document.getElementById('level1Input');
@@ -316,9 +298,7 @@
       const newId = TKChiliChallenge.randomSessionCode();
       generateBtn.disabled = true;
       withTimeout(
-        TKChiliChallenge.sessionDocRef(newId).set(Object.assign({}, config, {
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        })),
+        () => window.TKFirebase.createSession('chiliChallengeSessions', newId, config),
         () => {
           generateBtn.disabled = false;
           sessionId = newId;

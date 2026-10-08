@@ -10,10 +10,16 @@
     "dev:noise-monitor": "npm run dev --workspace apps/noise-monitor",
     "build": "bash scripts/build.sh",
     "serve": "node scripts/serve.mjs",
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:rules": "playwright test --config playwright.rules.config.mjs",
+    "test:e2e": "playwright test --config playwright.e2e.config.mjs",
+    "test:unit": "npm test --workspace apps/noise-monitor"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.0"
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@playwright/test": "^1.49.0",
+    "firebase-admin": "^14.5.0",
+    "firebase-tools": "^15.32.1"
   },
   "license": "MIT"
 }

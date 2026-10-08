@@ -1,9 +1,9 @@
 import React from 'react';
-import { NewThemeProps } from '../types';
+import { ThemeProps } from '../types';
 
-export const BatteryTheme: React.FC<NewThemeProps> = ({ level }) => {
+export const BatteryTheme: React.FC<ThemeProps> = ({ band }) => {
   const getBatteryLevel = () => {
-    switch (level) {
+    switch (band) {
       case 'quiet': return 100;
       case 'moderate': return 70;
       case 'loud': return 35;
@@ -13,7 +13,7 @@ export const BatteryTheme: React.FC<NewThemeProps> = ({ level }) => {
   };
 
   const getBatteryColor = () => {
-    switch (level) {
+    switch (band) {
       case 'quiet': return '#22C55E';
       case 'moderate': return '#84CC16';
       case 'loud': return '#F97316';
@@ -23,7 +23,7 @@ export const BatteryTheme: React.FC<NewThemeProps> = ({ level }) => {
   };
 
   const getFaceExpression = () => {
-    switch (level) {
+    switch (band) {
       case 'quiet': return { eyes: '^ ^', mouth: 'ᴗ', blush: true };
       case 'moderate': return { eyes: '◠ ◠', mouth: '‿', blush: false };
       case 'loud': return { eyes: '◯ ◯', mouth: 'ω', blush: false };
@@ -41,14 +41,14 @@ export const BatteryTheme: React.FC<NewThemeProps> = ({ level }) => {
 
   return (
     <div className={`w-full h-full flex flex-col items-center justify-center transition-all duration-500 ${
-      level === 'quiet' ? 'bg-gradient-to-br from-green-50 to-emerald-100' :
-      level === 'moderate' ? 'bg-gradient-to-br from-lime-50 to-yellow-100' :
-      level === 'loud' ? 'bg-gradient-to-br from-orange-50 to-amber-100' :
+      band === 'quiet' ? 'bg-gradient-to-br from-green-50 to-emerald-100' :
+      band === 'moderate' ? 'bg-gradient-to-br from-lime-50 to-yellow-100' :
+      band === 'loud' ? 'bg-gradient-to-br from-orange-50 to-amber-100' :
       'bg-gradient-to-br from-red-50 to-rose-100'
     }`}>
       <div className="relative w-full max-w-[280px] px-4 flex flex-col items-center">
         {/* Sparks for too loud */}
-        {level === 'tooLoud' && (
+        {band === 'tooLoud' && (
           <div className="absolute inset-0 pointer-events-none">
             {[...Array(6)].map((_, i) => (
               <div
@@ -100,7 +100,7 @@ export const BatteryTheme: React.FC<NewThemeProps> = ({ level }) => {
             rx="12" 
             fill={batteryColor}
             opacity="0.3"
-            className={level === 'tooLoud' ? 'animate-pulse' : ''}
+            className={band === 'tooLoud' ? 'animate-pulse' : ''}
           />
 
           {/* Face */}
@@ -120,14 +120,14 @@ export const BatteryTheme: React.FC<NewThemeProps> = ({ level }) => {
           </g>
 
           {/* Lightning bolt */}
-          {(level === 'quiet' || level === 'moderate') && (
+          {(band === 'quiet' || band === 'moderate') && (
             <g transform="translate(100, 220)" opacity="0.8" className="animate-pulse">
               <path d="M-8 -15 L2 -5 L-5 -5 L8 15 L-2 5 L5 5 Z" fill="#FCD34D"/>
             </g>
           )}
 
           {/* Cracks for tooLoud */}
-          {level === 'tooLoud' && (
+          {band === 'tooLoud' && (
             <>
               <path d="M30 60 L45 80 L35 95" stroke="#EF4444" strokeWidth="2" fill="none" opacity="0.7">
                 <animate attributeName="opacity" values="0.7;1;0.7" dur="0.5s" repeatCount="indefinite"/>
@@ -145,7 +145,7 @@ export const BatteryTheme: React.FC<NewThemeProps> = ({ level }) => {
         {/* 4 Colored dots indicator - BELOW the battery */}
         <div className="flex items-center justify-center gap-3 mt-4">
           {[0, 1, 2, 3].map((dotIndex) => {
-            const levelIndex = level === 'quiet' ? 0 : level === 'moderate' ? 1 : level === 'loud' ? 2 : 3;
+            const levelIndex = band === 'quiet' ? 0 : band === 'moderate' ? 1 : band === 'loud' ? 2 : 3;
             const dotColors = ['#22C55E', '#84CC16', '#F97316', '#EF4444'];
             const isActive = dotIndex <= levelIndex;
             return (

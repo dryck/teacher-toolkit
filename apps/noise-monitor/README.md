@@ -1,9 +1,17 @@
-# Sound Level Monitor
+# Noise Monitor
 
-> A professional classroom noise management tool for teachers
+> A classroom noise management tool for teachers
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-blue)](https://dryck.github.io/sound-level-monitor)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-blue)](https://dryck.github.io/teacher-toolkit/noise-monitor/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+
+Part of [Teacher Toolkit](../../README.md). This was originally a standalone
+repo (`dryck/sound-level-monitor`) and is now `apps/noise-monitor` in the
+monorepo — the only tool with a build step (React + Vite + TypeScript). For
+repo-wide setup, standards and the contribution process, see the root
+[CONTRIBUTING.md](../../CONTRIBUTING.md) and
+[docs/CODEMAPS/](../../docs/CODEMAPS/INDEX.md); this file documents the app
+itself.
 
 ## 🎯 What is it?
 
@@ -78,24 +86,25 @@ Install on any device:
 ### Online (Recommended)
 Simply open in your browser:
 ```
-https://dryck.github.io/sound-level-monitor
+https://dryck.github.io/teacher-toolkit/noise-monitor/
 ```
 
 ### Local Development
+Run these from the **repository root**, not this directory — the monorepo's
+npm workspace owns the dependency install.
+
 ```bash
 # Clone the repository
-git clone https://github.com/dryck/sound-level-monitor.git
+git clone https://github.com/dryck/teacher-toolkit.git
+cd teacher-toolkit
 
-# Navigate to project
-cd sound-level-monitor
-
-# Install dependencies
+# Install dependencies for every workspace
 npm install
 
-# Start development server
-npm run dev
+# Start this app's dev server on http://localhost:3000
+npm run dev:noise-monitor
 
-# Build for production
+# Build the whole toolkit (including this app) into ./dist
 npm run build
 ```
 
@@ -271,4 +280,4 @@ Designed by educators, for educators.
 
 ---
 
-**[⬆ Back to Top](#sound-level-monitor)**
+**[⬆ Back to Top](#noise-monitor)**

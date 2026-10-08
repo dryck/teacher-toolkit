@@ -1,21 +1,28 @@
-import { ThemeProps } from '../types'
+import { ThemeProps, NoiseBand } from '../types'
 
-export function EggTheme({ noiseLevel, threshold, isTooLoud, backgroundColor: _bg }: ThemeProps) {
-  // Calculate animation intensity based on noise level
-  const intensity = Math.min(noiseLevel / threshold, 1.5)
-  const scale = 1 + (intensity * 0.1)
-  
-  // Calculate level (1-4)
-  const level = isTooLoud ? 4 : intensity < 0.5 ? 1 : intensity < 0.8 ? 2 : 3
-  
-  // Color interpolation
-  const getColor = () => {
-    if (isTooLoud) return '#EF4444' // Red
-    const ratio = noiseLevel / threshold
-    if (ratio < 0.5) return '#10B981' // Green
-    if (ratio < 0.8) return '#F59E0B' // Yellow
-    return '#EF4444' // Red
-  }
+const BAND_COLOR: Record<NoiseBand, string> = {
+  quiet: '#10B981',
+  moderate: '#10B981',
+  loud: '#F59E0B',
+  tooLoud: '#EF4444'
+}
+
+/** Band to the 1-4 stage these illustrations are numbered by. */
+const BAND_STAGE: Record<NoiseBand, 1 | 2 | 3 | 4> = {
+  quiet: 1,
+  moderate: 2,
+  loud: 3,
+  tooLoud: 4
+}
+
+export function EggTheme({ band, intensity, isTooLoud, backgroundColor: _bg }: ThemeProps) {
+  // The wobble stays continuous; only which stage and colour to show comes
+  // from the band. Both used to be re-derived here from ratios of the alarm
+  // point, so the egg ignored three of the teacher's four bounds.
+  const wobble = Math.min(intensity, 1.5)
+  const scale = 1 + (wobble * 0.1)
+  const level = BAND_STAGE[band]
+  const getColor = () => BAND_COLOR[band]
 
   return (
     <div className="flex flex-col items-center justify-center gap-4">
@@ -64,8 +71,8 @@ export function EggTheme({ noiseLevel, threshold, isTooLoud, backgroundColor: _b
             {/* Left eye */}
             <circle cx="110" cy="200" r="25" fill="white" stroke="#333" strokeWidth="2" />
             <circle 
-              cx={110 + (noiseLevel / 100) * 5} 
-              cy={200 + (noiseLevel / 100) * 2} 
+              cx={110 + Math.min(wobble, 1) * 5} 
+              cy={200 + Math.min(wobble, 1) * 2} 
               r="12" 
               fill="#333" 
             />
@@ -74,8 +81,8 @@ export function EggTheme({ noiseLevel, threshold, isTooLoud, backgroundColor: _b
             {/* Right eye */}
             <circle cx="190" cy="200" r="25" fill="white" stroke="#333" strokeWidth="2" />
             <circle 
-              cx={190 + (noiseLevel / 100) * 5} 
-              cy={200 + (noiseLevel / 100) * 2} 
+              cx={190 + Math.min(wobble, 1) * 5} 
+              cy={200 + Math.min(wobble, 1) * 2} 
               r="12" 
               fill="#333" 
             />
@@ -86,7 +93,7 @@ export function EggTheme({ noiseLevel, threshold, isTooLoud, backgroundColor: _b
           {isTooLoud ? (
             // Shocked mouth
             <ellipse cx="150" cy="260" rx="20" ry="30" fill="#333" />
-          ) : noiseLevel > threshold * 0.7 ? (
+          ) : band === 'loud' ? (
             // Worried mouth
             <path
               d="M 120 260 Q 150 240, 180 260"

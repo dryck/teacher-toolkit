@@ -179,8 +179,10 @@
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
   <script src="../shell/firebase-config.js"></script>
+  <script src="../shell/firebase.js"></script>
   <script src="../shell/toast.js"></script>
   <script src="growth-mindset.js"></script>
   <script>
@@ -215,6 +217,21 @@
       url.searchParams.set('session', TKGrowth.randomSessionCode());
       location.href = url.toString();
     };
+
+    // Claim the parent session doc. It holds nothing but ownerUid/createdAt,
+    // and used to not exist at all -- the entries subcollection was written
+    // directly. It has to exist now: the rules read its ownerUid to decide
+    // who may approve or delete an entry, which is what makes "the teacher
+    // moderates before it reaches the projector" true in the data rather
+    // than only in this page's UI.
+    TKGrowth.sessionDocRef(sessionId).get()
+      .then(doc => doc.exists
+        ? null
+        : window.TKFirebase.createSession('growthWallSessions', sessionId, {}))
+      .catch(err => {
+        console.error(err);
+        TKToast.show('Could not open this wall for moderation — check your connection.');
+      });
 
     const queueList = document.getElementById('queueList');
     const queueEmpty = document.getElementById('queueEmpty');

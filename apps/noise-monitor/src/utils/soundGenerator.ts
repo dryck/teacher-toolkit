@@ -1,8 +1,26 @@
-// Sound Level Monitor - Sound Generator
-// Generates sounds using Web Audio API (no external files needed)
+// Generates the alarm sounds as WAV data URLs, so the app ships no audio files.
+//
+// These three functions each used to open their own AudioContext and never
+// close it -- three leaked on mount. Browsers cap how many a page may have
+// open (around six in Chrome), which packages/shell/audio.js documents from
+// the time it killed audio part-way through a lesson in the static tools.
+//
+// They only ever need the context for `sampleRate` and `createBuffer`, so one
+// shared OfflineAudioContext does the job: it is purely computational and
+// never takes a hardware output slot, so it cannot contribute to that cap.
+let offlineCtx: OfflineAudioContext | null = null
+
+function bufferContext(): OfflineAudioContext {
+  if (!offlineCtx) {
+    const Ctor =
+      window.OfflineAudioContext || (window as any).webkitOfflineAudioContext
+    offlineCtx = new Ctor(1, 1, 44100)
+  }
+  return offlineCtx
+}
 
 export function generateBellSound(): string {
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+  const audioContext = bufferContext()
   const duration = 2
   const sampleRate = audioContext.sampleRate
   const buffer = audioContext.createBuffer(1, duration * sampleRate, sampleRate)
@@ -21,7 +39,7 @@ export function generateBellSound(): string {
 }
 
 export function generateChimeSound(): string {
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+  const audioContext = bufferContext()
   const duration = 1.5
   const sampleRate = audioContext.sampleRate
   const buffer = audioContext.createBuffer(1, duration * sampleRate, sampleRate)
@@ -39,7 +57,7 @@ export function generateChimeSound(): string {
 }
 
 export function generateBuzzSound(): string {
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+  const audioContext = bufferContext()
   const duration = 1
   const sampleRate = audioContext.sampleRate
   const buffer = audioContext.createBuffer(1, duration * sampleRate, sampleRate)
@@ -53,6 +71,28 @@ export function generateBuzzSound(): string {
   }
   
   return bufferToWave(buffer, duration * sampleRate)
+}
+
+/**
+ * The three built-in alarm sounds, as blob URLs, generated once per page.
+ *
+ * Each generator calls URL.createObjectURL, so calling them repeatedly leaks a
+ * blob every time. useAudio generated all three on mount and Settings wanted
+ * them too; caching here means one set exists for the page's lifetime, which
+ * is right for sounds that may be played at any moment -- there is nothing to
+ * revoke and no window in which the alarm has no sound to play.
+ */
+let generatedUrls: Record<string, string> | null = null
+
+export function getGeneratedSoundUrls(): Record<string, string> {
+  if (!generatedUrls) {
+    generatedUrls = {
+      bell: generateBellSound(),
+      chime: generateChimeSound(),
+      buzz: generateBuzzSound()
+    }
+  }
+  return generatedUrls
 }
 
 function bufferToWave(abuffer: AudioBuffer, len: number): string {

@@ -23,4 +23,6 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 30_000
   }
+  // Firestore rules tests live in playwright.rules.config.mjs -- they need the
+  // emulator, not this static server. Run them with `npm run test:rules`.
 });

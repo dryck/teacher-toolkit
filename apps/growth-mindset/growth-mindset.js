@@ -1,20 +1,10 @@
 // Shared Firebase/session helpers + the reframe-template library, used by
 // both the student page (index.html) and the teacher "Wall of Yet" page
-// (wall.html). Loaded after firebase-config.js and the Firebase compat SDK
+// (wall.html). Loaded after ../shell/firebase.js and the Firebase compat SDK
 // scripts (same pattern as apps/zones/zones.js).
 (function () {
-  firebase.initializeApp(window.TK_FIREBASE_CONFIG);
-  const db = firebase.firestore();
-
-  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous 0/O/1/I
-
-  function randomSessionCode() {
-    let code = '';
-    for (let i = 0; i < 5; i++) {
-      code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-    }
-    return code;
-  }
+  const db = window.TKFirebase.db();
+  const { randomSessionCode } = window.TKFirebase;
 
   // growthWallSessions/{code}/entries/{autoId} -- { text, approved, createdAt }
   function sessionDocRef(sessionId) {
