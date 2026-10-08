@@ -650,7 +650,12 @@
     
     function startVoting() {
       const question = document.getElementById('questionInput').value.trim() || 'Your question?';
-      expectedCount = parseInt(document.getElementById('studentCount').value) || 25;
+      // min/max on a number input is advisory: a typed -5 or 500 reaches here.
+      // A negative made `totalVotes >= expectedCount` true immediately, so the
+      // poll revealed itself on the first vote, and drove the progress bar to a
+      // negative width.
+      const typed = parseInt(document.getElementById('studentCount').value, 10);
+      expectedCount = Number.isFinite(typed) ? Math.min(50, Math.max(1, typed)) : 25;
       currentBloomLevel = document.getElementById('bloomLevel').value;
 
       if (!currentPreset) {

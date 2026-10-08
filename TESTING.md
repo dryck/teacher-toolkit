@@ -15,7 +15,10 @@ npm test
   and nobody noticed, since nothing loaded these pages except a human clicking.
 - **`tests/logic.spec.mjs`** drives the real shipped functions for the places
   where "quietly wrong" costs something: the picker's fairness promise, group
-  sizes, and timer drift in a throttled background tab.
+  sizes, timer drift in a throttled background tab, the Jigsaw invariants
+  (one expert per topic per home group, nobody dropped), and the rubric
+  arithmetic in Assessment Checklist — the one tool whose output may become a
+  grade.
 
 ## `npm run test:unit` — 104 tests, no setup
 
@@ -156,8 +159,14 @@ Before trusting the Firebase-backed tools in a classroom:
 
 ## Troubleshooting
 
-**`npm test` fails with `ENOENT` on a page** — `dist/` is stale, or a build was
-running during the suite. Re-run `npm run build`, then `npm test`.
+**`npm test` fails with `ENOENT` on a page** — this used to happen because the
+suite re-read each page from disk while running. It now reads them once at
+collection time, so if you see it, `dist/` is genuinely stale: re-run
+`npm run build`.
+
+**A page times out in `page.goto`** — the suite blocks fonts.googleapis.com for
+exactly this reason, so if it recurs the cause is something else. It will not
+be the webfonts.
 
 **`test:rules` fails with "no longer supports Java version before 21"** — a
 JDK is installed but too old, or `/usr/bin/java` is macOS's stub. Put a real

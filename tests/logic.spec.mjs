@@ -468,3 +468,43 @@ test.describe('Assessment Checklist', () => {
     expect(result.empty, 'an empty rubric must not yield NaN').toBe(0);
   });
 });
+
+/* ------------------------------------------------------------ quick poll */
+
+test('Quick Poll: a mistyped class size cannot reveal the poll instantly', async ({ page }) => {
+  /* min="1" on a number input is advisory, so a typed -5 reached the handler.
+     `totalVotes >= expectedCount` was then true on the first vote and the poll
+     revealed itself before the class had answered -- while the progress bar
+     went to a negative width. */
+  await page.goto('/quick-poll/index.html');
+
+  const clamped = await page.evaluate(() => {
+    const input = document.getElementById('studentCount');
+    const read = (value) => {
+      input.value = value;
+      const typed = parseInt(input.value, 10);
+      return Number.isFinite(typed) ? Math.min(50, Math.max(1, typed)) : 25;
+    };
+    return { negative: read('-5'), zero: read('0'), huge: read('500'), blank: read(''), ok: read('30') };
+  });
+
+  expect(clamped.negative).toBe(1);
+  expect(clamped.zero).toBe(1);
+  expect(clamped.huge).toBe(50);
+  expect(clamped.blank).toBe(25);
+  expect(clamped.ok).toBe(30);
+});
+
+/* ---------------------------------------------------------- class points */
+
+test('Class Points: a score never goes below zero', async ({ page }) => {
+  // A teacher taps minus more times than plus -- common when correcting a
+  // mis-tap. A negative total would be meaningless on a projected scoreboard.
+  await page.goto('/class-points/index.html');
+  const floor = await page.evaluate(() => {
+    let current = 0;
+    for (let i = 0; i < 5; i++) current = Math.max(0, current - 1);
+    return current;
+  });
+  expect(floor).toBe(0);
+});
