@@ -630,13 +630,46 @@
       renderCriteriaEditor();
     });
 
+    /* Bring already-entered scores back inside the rubric after it is edited.
+
+       Editing the rubric mid-assessment is a normal sequence: score a few
+       teams, realise a criterion should be out of 3 rather than 5, save. The
+       stored 5 used to survive that, with two consequences -- levelLabel(3, 5)
+       falls off the end of its label list and renders blank, and the total
+       still counted 5 against a possible 3, so a team could show 167%. On
+       something a teacher may turn into a grade, that is the part that
+       matters. Scores for criteria that no longer exist are dropped too. */
+    function reconcileScoresWithRubric() {
+      const byId = new Map(rubric.criteria.map(c => [c.id, c]));
+      teams.forEach(team => {
+        Object.keys(team.scores || {}).forEach(id => {
+          const criterion = byId.get(id);
+          if (!criterion) {
+            delete team.scores[id];
+            return;
+          }
+          const score = team.scores[id];
+          if (score === null || score === undefined) return;
+          const n = Number(score);
+          if (!Number.isFinite(n)) { team.scores[id] = null; return; }
+          team.scores[id] = Math.min(Math.max(Math.round(n), 0), criterion.max);
+        });
+        // A criterion added since the last save has no entry yet.
+        rubric.criteria.forEach(c => {
+          if (!(c.id in (team.scores || {}))) team.scores[c.id] = null;
+        });
+      });
+    }
+
     document.getElementById('saveRubricBtn').addEventListener('click', () => {
       // Drop fully-blank criteria (no name typed) to keep saved data tidy.
       rubric.criteria = rubric.criteria.filter(c => c.name && c.name.trim().length > 0);
       rubric.criteria.forEach(c => {
         c.max = (Number.isFinite(Number(c.max)) && Number(c.max) > 0) ? Math.round(Number(c.max)) : 1;
       });
+      reconcileScoresWithRubric();
       saveRubricToStorage(rubric);
+      saveTeamsToStorage(teams);
       renderCriteriaEditor();
       const msg = document.getElementById('rubricSavedMsg');
       msg.textContent = '✓ Rubric saved (' + rubric.criteria.length + ' criteria, ' +

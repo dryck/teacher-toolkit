@@ -446,6 +446,13 @@
     let phases = [];
     let phaseIndex = 0;
     let remainingSeconds = 0;
+    // Wall-clock deadline for the current phase. The countdown is derived from
+    // it rather than decremented per tick: a backgrounded tab is throttled to
+    // roughly one tick a minute, so `remainingSeconds--` loses almost the whole
+    // minute each time. A teacher who switches to their slides and back would
+    // find the round barely moved. Same fix rotation-timer and visual-timer
+    // already carry.
+    let deadline = null;
     let totalSeconds = 0;
     let timerInterval = null;
     let topicText = '';
@@ -571,11 +578,14 @@
       updateTimerDisplay();
       playTone(660, 0.18);
 
-      timerInterval = setInterval(tick, 1000);
+      deadline = Date.now() + phase.seconds * 1000;
+      // 250ms rather than 1000: recomputing from the deadline means extra ticks
+      // cost nothing, and the display lands on each second promptly.
+      timerInterval = setInterval(tick, 250);
     }
 
     function tick() {
-      remainingSeconds--;
+      remainingSeconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       updateTimerDisplay();
 
       const percentRemaining = totalSeconds > 0 ? remainingSeconds / totalSeconds : 0;
