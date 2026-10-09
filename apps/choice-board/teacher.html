@@ -289,6 +289,8 @@
       num.textContent = 'Cell ' + (i + 1);
 
       const iconSelect = document.createElement('select');
+      // Labelled by position in the 3x3 grid, which a screen reader cannot see.
+      iconSelect.setAttribute('aria-label', 'Icon for this task');
       const noneOpt = document.createElement('option');
       noneOpt.value = '';
       noneOpt.textContent = '(empty)';

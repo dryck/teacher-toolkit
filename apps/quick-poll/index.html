@@ -514,7 +514,7 @@
       <div class="input-group">
         <div class="input-row">
           <input type="text" id="questionInput" placeholder="e.g. Was today's topic clear?" oninput="updateBankSaveButtonState()">
-          <select id="bloomLevel">
+          <select id="bloomLevel" aria-label="Bloom's level for this poll">
             <option value="">Bloom's level (optional)</option>
             <option value="Remember">Remember</option>
             <option value="Understand">Understand</option>
@@ -538,7 +538,7 @@
 
       <div class="section-title">3. How many students in class?</div>
       <div class="input-group">
-        <input type="number" id="studentCount" value="25" min="1" max="50">
+        <input type="number" id="studentCount" value="25" min="1" max="50" aria-label="How many students are voting">
       </div>
 
       <div class="controls">

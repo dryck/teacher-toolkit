@@ -257,6 +257,8 @@
 
       const difficultySelect = document.createElement('select');
       difficultySelect.className = 'cat-difficulty';
+      // Sits beside the category name with no label of its own.
+      difficultySelect.setAttribute('aria-label', 'Difficulty for this category');
       TKChallengeDeck.DIFFICULTIES.forEach(d => {
         const opt = document.createElement('option');
         opt.value = d;

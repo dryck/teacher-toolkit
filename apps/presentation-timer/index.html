@@ -337,7 +337,7 @@
     }
     .footer a {
       color: var(--tk-primary);
-      text-decoration: none;
+      text-decoration: underline;
     }
 
     /* Fullscreen tweaks */
@@ -441,7 +441,7 @@
       row.className = 'team-row';
       row.innerHTML = `
         <input type="text" class="team-name-input" placeholder="Team or student name" value="${name || ''}">
-        <input type="number" class="team-minutes-input" min="0.5" step="0.5" value="${minutes != null ? minutes : 5}">
+        <input type="number" class="team-minutes-input" min="0.5" step="0.5" value="${minutes != null ? minutes : 5}" aria-label="Minutes for this team">
         <button class="remove-row-btn" title="Remove row">✕</button>
       `;
       row.querySelector('.remove-row-btn').addEventListener('click', () => row.remove());

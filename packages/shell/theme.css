@@ -14,12 +14,23 @@
 :root {
   --tk-primary: #265787;
   --tk-primary-dark: #1c4368;
-  --tk-accent: #b86f55;
+  /* Darkened from #b86f55, which gave 3.86:1 under white button labels --
+     under the 4.5:1 floor wherever the accent is used as a background. The
+     direction is safe: more contrast also helps the places it is used as
+     text. */
+  --tk-accent: #ac6349;
   --tk-bg: #f5f3ed;
   --tk-bg-gradient: var(--tk-bg);
   --tk-surface: #ffffff;
   --tk-text: #265787;
-  --tk-text-muted: #7d7a6e;
+  /* Darkened from #7d7a6e, which measured 4.30:1 on white and 3.88:1 on
+     --tk-surface -- just under the 4.5:1 AA floor, so it failed on 45 of the
+     50 pages and accounted for nearly every contrast violation in the project.
+     This is 11 steps darker along the same hue: 5.04:1 on white, 4.54:1 on the
+     cream surface. Barely a visible change, and it matters most where these
+     tools are actually read -- a projector in a bright classroom washes out
+     exactly this kind of low-contrast secondary text. */
+  --tk-text-muted: #726f63;
   --tk-radius: 20px;
   --tk-shadow: 0 12px 32px rgba(38, 87, 135, 0.14);
   --tk-nav-height: 56px;
@@ -37,4 +48,53 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--tk-font-heading) !important;
+}
+
+/* Footer "back to the toolkit" links.
+ *
+ * Every page has one, and it sat inside a line of text distinguished only by
+ * colour -- which fails WCAG 1.4.1 and, more practically, is invisible to
+ * anyone who cannot separate the two hues. An underline is the cheap, correct
+ * answer, and one rule here covers all nineteen pages that had it. */
+.footer a,
+#setupFooter a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Respect a reduced-motion preference.
+ *
+ * Fourteen of these pages animate: a spinning name wheel, a flipping coin,
+ * pulsing timers, a shaking egg. Motion of that kind is a vestibular trigger
+ * for some people, and the tools most likely to be used by a student with
+ * sensory differences are precisely the inclusive-classroom ones -- Zones
+ * Check-In, Break Timer, Behaviour Reflection, Help Ladder.
+ *
+ * Nothing here opted out, and the OS-level preference existed on every device
+ * running these pages. One rule honours it everywhere. Durations are near-zero
+ * rather than `none` so that animationend/transitionend handlers still fire --
+ * several tools advance their own state from those events, and removing the
+ * animation outright would stall them. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* A visible focus ring.
+ *
+ * Every tool styles its own buttons, and none of them defined a focus state --
+ * only :hover. So a teacher driving a projected tool from the keyboard, or a
+ * student on a device without a working touchscreen, had no way to tell what
+ * was selected. :focus-visible rather than :focus so a mouse click does not
+ * leave a ring behind. */
+:focus-visible {
+  outline: 3px solid var(--tk-primary-dark, #265787);
+  outline-offset: 2px;
+  border-radius: 4px;
 }

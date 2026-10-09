@@ -359,6 +359,9 @@
       const radio = document.createElement('input');
       radio.type = 'radio';
       radio.name = 'correct-' + qb.uid;
+      // The radio marks which option is the correct answer. Its only visible
+      // cue is its position next to the option text.
+      radio.setAttribute('aria-label', 'Mark this option as the correct answer');
       radio.checked = !!checked;
       radio.onchange = saveDraft;
 

@@ -47,7 +47,7 @@
       color: #f39c12;
     }
     .timer-display.danger {
-      color: #e74c3c;
+      color: #d83d2d;
       animation: pulse 1s infinite;
     }
     @keyframes pulse {
@@ -74,7 +74,7 @@
       background: linear-gradient(90deg, #f39c12 0%, #f1c40f 100%);
     }
     .progress-bar.danger {
-      background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+      background: linear-gradient(90deg, #d83d2d 0%, #c0392b 100%);
     }
     .presets {
       display: grid;
@@ -148,11 +148,11 @@
       color: white;
     }
     .btn-reset {
-      background: #e74c3c;
+      background: #d83d2d;
       color: white;
     }
     .btn-fullscreen {
-      background: #3498db;
+      background: #177bbe;
       color: white;
     }
     .mascot-container {
@@ -200,12 +200,16 @@
     .footer {
       text-align: center;
       margin-top: 30px;
-      color: rgba(255,255,255,0.8);
+      /* Was rgba(255,255,255,...) -- white text left over from when this
+         page had a dark background. The shared theme now paints a light
+         cream one, so it rendered near-invisible: axe measured it at
+         1.0:1. Uses the shared muted token, which is contrast-checked. */
+      color: var(--tk-text-muted);
       font-size: 0.9rem;
     }
     .footer a {
-      color: white;
-      text-decoration: none;
+      color: var(--tk-text-muted);
+      text-decoration: underline;
     }
     /* Fullscreen styles */
     .fullscreen .container {
@@ -439,7 +443,7 @@
       // Flash effect
       let flashes = 0;
       const flashInterval = setInterval(() => {
-        document.body.style.background = flashes % 2 === 0 ? '#e74c3c' : '';
+        document.body.style.background = flashes % 2 === 0 ? '#d83d2d' : '';
         flashes++;
         if (flashes >= 6) {
           clearInterval(flashInterval);

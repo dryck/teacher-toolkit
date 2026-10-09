@@ -308,7 +308,10 @@
     }
     .results-empty {
       text-align: center;
-      color: #999;
+      /* Was #999, which measures 2.85:1 on white -- below the 4.5:1 floor.
+         The shared token is contrast-checked against every background the
+         shell paints. */
+      color: var(--tk-text-muted);
       padding: 30px;
       font-size: 1.05rem;
     }
@@ -360,7 +363,7 @@
     }
     .footer a {
       color: var(--tk-primary);
-      text-decoration: none;
+      text-decoration: underline;
     }
     @media (max-width: 480px) {
       .settings-row { flex-direction: column; align-items: stretch; }
@@ -409,7 +412,7 @@ Julia</textarea>
         </div>
       </div>
       <div class="mode-value-wrap">
-        <input type="number" id="modeValue" min="1" value="3">
+        <input type="number" id="modeValue" min="1" value="3" aria-label="Number of groups or students per group">
         <span id="modeUnitLabel">groups</span>
       </div>
     </div>
