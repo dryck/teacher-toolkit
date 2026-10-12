@@ -73,8 +73,8 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function mount(overrides = {}) {
-  return render(
+function monitor(overrides = {}) {
+  return (
     <NoiseMonitor
       theme="egg"
       thresholds={DEFAULT_THRESHOLDS}
@@ -92,6 +92,10 @@ function mount(overrides = {}) {
       {...overrides}
     />
   )
+}
+
+function mount(overrides = {}) {
+  return render(monitor(overrides))
 }
 
 const start = async () => {
@@ -282,4 +286,159 @@ describe('the band the display reaches, from the microphone up', () => {
   // expression -- and the alternative, a data-testid in every theme's markup,
   // is production code existing for a test. The themes' own suite covers each
   // one rendering all four bands distinctly, which is the half that can break.
+})
+
+/* The alarm latches until a teacher acknowledges it.
+ *
+ * Reported from use: the alarm was over almost as soon as it started. It
+ * cleared itself on the next downward commit, so its length was however long
+ * the room stayed loud -- and since the down delay (2-4s) is shorter than the
+ * alarm sounds (the bell is 2s), stopAlerts() paused the audio part-way
+ * through. A brief eruption produced a clipped noise and a mended egg.
+ */
+describe('the alarm, once raised', () => {
+  const byteForLevel = (level: number) => Math.round(level * 1.28)
+
+  function feed(level: number) {
+    ;(analyser.getByteFrequencyData as ReturnType<typeof vi.fn>).mockImplementation(
+      (array: Uint8Array) => array.fill(byteForLevel(level))
+    )
+  }
+
+  let play: ReturnType<typeof vi.spyOn>
+  let pause: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    play = vi.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+    pause = vi.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'performance', 'Date']
+    })
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
+      setTimeout(() => cb(performance.now()), 16) as unknown as number
+    )
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    play.mockRestore()
+    pause.mockRestore()
+  })
+
+  /** Raise the alarm: start loud enough to pass alarmTrigger (85) and let the
+   *  up delay commit. */
+  async function raiseAlarm(overrides = {}) {
+    feed(95)
+    const rendered = mount(overrides)
+    fireEvent.click(screen.getByRole('button', { name: /start monitoring/i }))
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.advanceTimersByTimeAsync(4000)
+    expect(play, 'the alarm never sounded, so there is nothing to latch').toHaveBeenCalled()
+    return rendered
+  }
+
+  /** Drop the room to `level` and wait out the down delay (4s) and then some. */
+  async function calmTo(level: number) {
+    feed(level)
+    await vi.advanceTimersByTimeAsync(10000)
+  }
+
+  const resetButton = () => screen.queryByRole('button', { name: /^reset$/i })
+  const status = () => screen.getByText(/quiet|moderate|loud|too loud/i).textContent
+
+  it('stays raised after the room goes quiet', async () => {
+    await raiseAlarm()
+    await calmTo(10)
+    expect(status()).toMatch(/Too Loud/)
+    expect(resetButton(), 'no way to clear a latched alarm').toBeTruthy()
+  })
+
+  it('does not cut the sound short when the level drops', async () => {
+    // The direct cause of "the alarm is too short to notice": stopAlerts()
+    // called pause() on a sound still playing.
+    await raiseAlarm()
+    pause.mockClear()
+    await calmTo(10)
+    expect(pause, 'the alarm was paused by the room quietening').not.toHaveBeenCalled()
+  })
+
+  it('offers no reset button before the alarm has been raised', async () => {
+    feed(45)
+    mount()
+    fireEvent.click(screen.getByRole('button', { name: /start monitoring/i }))
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.advanceTimersByTimeAsync(4000)
+    expect(resetButton()).toBeNull()
+  })
+
+  it('clears on the reset button, and the display follows the room again', async () => {
+    await raiseAlarm()
+    await calmTo(10)
+    fireEvent.click(resetButton() as HTMLElement)
+    expect(resetButton()).toBeNull()
+    expect(status()).toMatch(/^Quiet$/)
+  })
+
+  it('does not re-announce itself when the room dips and surges again', async () => {
+    // The class drops below the alarm point and comes back before anyone has
+    // pressed reset. 75 is band 4 but under the alarm, so this genuinely
+    // commits down and back up.
+    //
+    // Three layers independently prevent the re-announcement -- the latch
+    // guard here, useAudio's one-shot flag, useTTS's -- so removing any one of
+    // them leaves this green. It is kept as a statement of the behaviour a
+    // teacher relies on, not as cover for a particular line.
+    await raiseAlarm()
+    const callsAfterRaise = play.mock.calls.length
+    await calmTo(75)
+    feed(95)
+    await vi.advanceTimersByTimeAsync(6000)
+    expect(play.mock.calls.length).toBe(callsAfterRaise)
+    expect(resetButton(), 'the latch should have been held throughout').toBeTruthy()
+  })
+
+  it('does not re-break the egg immediately when reset in a still-loud room', async () => {
+    // Pressing reset mid-shout and watching it fire again a moment later reads
+    // as a broken button. It re-arms instead: the alarm returns once the room
+    // has dropped below the alarm point and risen through it again.
+    await raiseAlarm()
+    play.mockClear()
+    fireEvent.click(resetButton() as HTMLElement)
+    await vi.advanceTimersByTimeAsync(10000)
+    expect(play, 'the alarm re-fired without the room ever calming').not.toHaveBeenCalled()
+    expect(resetButton()).toBeNull()
+  })
+
+  it('re-arms: fires again after the room falls and climbs back', async () => {
+    await raiseAlarm()
+    fireEvent.click(resetButton() as HTMLElement)
+    play.mockClear()
+    await calmTo(20)
+    feed(95)
+    await vi.advanceTimersByTimeAsync(6000)
+    expect(play, 'the alarm never came back').toHaveBeenCalled()
+    expect(resetButton()).toBeTruthy()
+  })
+
+  it('is silenced by mute, but stays latched', async () => {
+    // Mute is the first thing a teacher reaches for, and it must not count as
+    // acknowledging the alarm: the egg stays broken until someone resets it.
+    const { rerender } = await raiseAlarm()
+    pause.mockClear()
+    rerender(monitor({ isMuted: true }))
+    await vi.advanceTimersByTimeAsync(100)
+    expect(pause, 'mute did not stop the sound').toHaveBeenCalled()
+    expect(resetButton(), 'mute cleared the latch').toBeTruthy()
+  })
+
+  it('shows the top band while latched, not the calm room behind it', async () => {
+    // A broken egg on a green background is the display disagreeing with
+    // itself. The band underneath keeps tracking, so reset is immediate.
+    await raiseAlarm()
+    await calmTo(10)
+    expect(status()).toMatch(/Too Loud/)
+    fireEvent.click(resetButton() as HTMLElement)
+    expect(status()).toMatch(/^Quiet$/)
+  })
 })
