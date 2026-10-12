@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Theme, CustomImage, ThresholdConfig, DelayConfig, SoundSettings } from '../types'
+import { Theme, CustomImage, ThresholdConfig, DelayConfig, SoundSettings, DELAY_BOUNDS } from '../types'
 import { getGeneratedSoundUrls } from '../utils/soundGenerator'
 import type { ThresholdSource } from '../hooks/useSettings'
 import { ThemeSelector } from './ThemeSelector'
@@ -419,6 +419,49 @@ export function SettingsPanel({
                     className="w-full accent-tisa-purple"
                   />
                   <p className="text-xs text-gray-500 mt-1">Delay before noise level decreases</p>
+                </div>
+              </div>
+
+              {/* Its own section, not a third transition delay: this governs
+                  how long a raised alarm stays raised, which is a different
+                  thing from how long the display waits before moving. */}
+              <div className="space-y-4 pt-6 border-t">
+                <h3 className="font-semibold text-gray-800">Alarm</h3>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label htmlFor="autoResetSeconds" className="font-medium text-gray-700">
+                      Reset after
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="autoResetSeconds"
+                        type="number"
+                        value={delays.autoResetSeconds}
+                        onChange={(e) => updateDelay('autoResetSeconds', Number(e.target.value))}
+                        className="w-20 px-2 py-1 border rounded text-center"
+                        min={DELAY_BOUNDS.autoResetSeconds.min}
+                        max={DELAY_BOUNDS.autoResetSeconds.max}
+                        step={5}
+                      />
+                      <span className="text-gray-500">sec</span>
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    aria-label="Reset the alarm automatically after this many seconds"
+                    min={DELAY_BOUNDS.autoResetSeconds.min}
+                    max={DELAY_BOUNDS.autoResetSeconds.max}
+                    step={5}
+                    value={delays.autoResetSeconds}
+                    onChange={(e) => updateDelay('autoResetSeconds', Number(e.target.value))}
+                    className="w-full accent-tisa-purple"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {delays.autoResetSeconds > 0
+                      ? `The alarm clears itself after ${delays.autoResetSeconds} seconds. Reset still works at any time.`
+                      : 'Off \u2014 a raised alarm stays until you press Reset. Set a time if the screen is out of reach.'}
+                  </p>
                 </div>
               </div>
 

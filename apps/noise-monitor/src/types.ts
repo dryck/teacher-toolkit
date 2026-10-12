@@ -128,13 +128,35 @@ export const DEFAULT_THRESHOLDS: ThresholdConfig = {
   alarmTrigger: 85
 }
 
-// Delay settings for noise level transitions
+// Seconds, all three.
 export interface DelayConfig {
-  upDelay: number   // seconds before increasing noise level
-  downDelay: number // seconds before decreasing noise level
+  upDelay: number   // before the display moves up a band
+  downDelay: number // before it moves down
+  /**
+   * How long a raised alarm is held before it resets itself. 0 means never:
+   * the alarm stays until someone presses Reset, which is the behaviour the
+   * latch shipped with.
+   *
+   * The latch demands acknowledgement, and that is the point of it -- but it
+   * also means walking to the machine, which is the wrong trade when the tool
+   * is on a projector across the room. This lets a teacher decide which they
+   * want rather than having one picked for them.
+   */
+  autoResetSeconds: number
 }
 
 export const DEFAULT_DELAYS: DelayConfig = {
   upDelay: 2,
-  downDelay: 4
+  downDelay: 4,
+  // Off by default: a timed reset is a choice to opt into, not something to
+  // start clearing teachers' alarms for them on upgrade.
+  autoResetSeconds: 0
+}
+
+/** Accepted ranges, so the UI, the clamp and the stored-value check cannot
+ *  drift apart. `min: 0` on autoResetSeconds is the "never" case. */
+export const DELAY_BOUNDS: Record<keyof DelayConfig, { min: number; max: number }> = {
+  upDelay: { min: 0.5, max: 10 },
+  downDelay: { min: 0.5, max: 15 },
+  autoResetSeconds: { min: 0, max: 300 }
 }

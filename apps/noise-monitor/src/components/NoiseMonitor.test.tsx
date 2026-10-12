@@ -442,3 +442,129 @@ describe('the alarm, once raised', () => {
     expect(status()).toMatch(/^Quiet$/)
   })
 })
+
+/* The teacher's timed reset.
+ *
+ * The latch demands acknowledgement, which is the point of it -- but it also
+ * means walking to the machine, and the tool is usually on a projector across
+ * the room. So the hold is a setting: 0 keeps the latch, anything else clears
+ * the alarm after that many seconds.
+ */
+describe('the timed reset', () => {
+  const byteForLevel = (level: number) => Math.round(level * 1.28)
+
+  function feed(level: number) {
+    ;(analyser.getByteFrequencyData as ReturnType<typeof vi.fn>).mockImplementation(
+      (array: Uint8Array) => array.fill(byteForLevel(level))
+    )
+  }
+
+  let play: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    play = vi.spyOn(window.HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+    vi.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'performance', 'Date']
+    })
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
+      setTimeout(() => cb(performance.now()), 16) as unknown as number
+    )
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id))
+  })
+
+  afterEach(() => vi.useRealTimers())
+
+  async function raiseAlarm(overrides = {}) {
+    feed(95)
+    const rendered = mount(overrides)
+    fireEvent.click(screen.getByRole('button', { name: /start monitoring/i }))
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.advanceTimersByTimeAsync(4000)
+    expect(play, 'the alarm never sounded').toHaveBeenCalled()
+    return rendered
+  }
+
+  const resetButton = () => screen.queryByRole('button', { name: /^reset$/i })
+
+  it('holds the alarm for the configured time, then clears it', async () => {
+    // The hold starts when the alarm latches, which is partway through
+    // raiseAlarm's own 4s of advancing -- so the margins here are wide rather
+    // than one second either side of the nominal time. A 60s hold with checks
+    // at ~54s and ~69s cannot be satisfied by an implementation that ignores
+    // the setting in either direction.
+    await raiseAlarm({ autoResetSeconds: 60 })
+    await vi.advanceTimersByTimeAsync(50_000)
+    expect(resetButton(), 'cleared well before the hold was up').toBeTruthy()
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(resetButton(), 'still latched well after the hold expired').toBeNull()
+  })
+
+  it('never clears itself at 0, which is how the setting is turned off', async () => {
+    await raiseAlarm({ autoResetSeconds: 0 })
+    await vi.advanceTimersByTimeAsync(600_000)
+    expect(resetButton()).toBeTruthy()
+  })
+
+  it('treats a missing setting as off', async () => {
+    // The prop default, for a caller that does not pass it.
+    await raiseAlarm()
+    await vi.advanceTimersByTimeAsync(600_000)
+    expect(resetButton()).toBeTruthy()
+  })
+
+  it('treats a nonsense setting as off, not as zero', async () => {
+    // NaN is the shape this arrives in when something upstream is wrong -- an
+    // arithmetic slip, or a stored config predating the setting. `x <= 0` is
+    // false for NaN, so the guard would fall through to
+    // setTimeout(callback, NaN), which browsers treat as 0: the alarm would
+    // clear the instant it was raised, and look like it had never fired.
+    //
+    // useSettings cannot produce this any more, but autoResetSeconds is a
+    // public prop and the component is responsible for its own contract.
+    await raiseAlarm({ autoResetSeconds: NaN })
+    await vi.advanceTimersByTimeAsync(600_000)
+    expect(resetButton(), 'a NaN hold cleared the alarm').toBeTruthy()
+  })
+
+  it('cancels the countdown when the setting is turned off mid-hold', async () => {
+    const { rerender } = await raiseAlarm({ autoResetSeconds: 20 })
+    await vi.advanceTimersByTimeAsync(10_000)
+    rerender(monitor({ autoResetSeconds: 0 }))
+    await vi.advanceTimersByTimeAsync(600_000)
+    expect(resetButton()).toBeTruthy()
+  })
+
+  it('gives a second alarm its full hold, not what was left of the first', async () => {
+    // The reason the hold is an effect on the latch rather than a timer
+    // started when the alarm fires. A timer started at the first alarm and
+    // cleared only on manual reset would still be in flight, and would cut
+    // the next alarm short by however long the first one ran.
+    await raiseAlarm({ autoResetSeconds: 20 })
+    fireEvent.click(resetButton() as HTMLElement)
+
+    // Drop below the alarm point and climb back, so the alarm re-arms and
+    // fires again -- about 16s after the first one did.
+    feed(75)
+    await vi.advanceTimersByTimeAsync(10_000)
+    feed(95)
+    await vi.advanceTimersByTimeAsync(6_000)
+    expect(resetButton(), 'the alarm did not come back').toBeTruthy()
+
+    // 15s into the second hold: a stale timer from the first would have fired
+    // by now.
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(resetButton(), 'the second alarm was cut short').toBeTruthy()
+    await vi.advanceTimersByTimeAsync(6_000)
+    expect(resetButton()).toBeNull()
+  })
+
+  it('stops the sound when it clears itself, as a manual reset does', async () => {
+    const pause = vi.spyOn(window.HTMLMediaElement.prototype, 'pause')
+    await raiseAlarm({ autoResetSeconds: 10 })
+    pause.mockClear()
+    await vi.advanceTimersByTimeAsync(11_000)
+    expect(resetButton()).toBeNull()
+    expect(pause, 'the timed reset left the alarm sounding').toHaveBeenCalled()
+  })
+})

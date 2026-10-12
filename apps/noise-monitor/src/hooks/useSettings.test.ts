@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useSettings } from './useSettings'
-import { DEFAULT_THRESHOLDS } from '../types'
+import { DEFAULT_THRESHOLDS, DEFAULT_DELAYS, DELAY_BOUNDS } from '../types'
 import { getNoiseBand } from '../utils/noiseCalculator'
 import { BAND_FRACTIONS } from '../utils/calibration'
 
@@ -259,5 +259,84 @@ describe('the measured floor', () => {
     }, 38))
     expect(result.current.source).toBe('manual')
     expect(result.current.measuredFloor).toBe(38)
+  })
+})
+
+describe('the delay config', () => {
+  const DELAYS_KEY = 'noise-monitor-delays'
+
+  it('keeps the default for a key a stored config predates', () => {
+    // The upgrade case, and the reason parseDelays merges over the defaults
+    // instead of rebuilding the object. Returning { upDelay, downDelay }
+    // literally left autoResetSeconds undefined -- and `undefined * 1000` is
+    // NaN, which setTimeout treats as 0, so the alarm would have cleared the
+    // instant it was raised. Only for teachers who already had settings
+    // saved, which is the worst possible audience for it.
+    localStorage.setItem(DELAYS_KEY, JSON.stringify({ upDelay: 3, downDelay: 6 }))
+    const { result } = renderHook(() => useSettings())
+    expect(result.current.delays.upDelay).toBe(3)
+    expect(result.current.delays.downDelay).toBe(6)
+    expect(result.current.delays.autoResetSeconds).toBe(DEFAULT_DELAYS.autoResetSeconds)
+    expect(Number.isFinite(result.current.delays.autoResetSeconds)).toBe(true)
+  })
+
+  it('clamps a stored value that is out of range rather than discarding the lot', () => {
+    // Unlike thresholds, where a bad order leaves a band unreachable, a delay
+    // outside its range is still usable once pulled into it.
+    localStorage.setItem(
+      DELAYS_KEY,
+      JSON.stringify({ upDelay: -5, downDelay: 999, autoResetSeconds: 10_000 })
+    )
+    const { result } = renderHook(() => useSettings())
+    expect(result.current.delays.upDelay).toBe(DELAY_BOUNDS.upDelay.min)
+    expect(result.current.delays.downDelay).toBe(DELAY_BOUNDS.downDelay.max)
+    expect(result.current.delays.autoResetSeconds).toBe(DELAY_BOUNDS.autoResetSeconds.max)
+  })
+
+  it('rejects a stored config whose value is not a number at all', () => {
+    localStorage.setItem(DELAYS_KEY, JSON.stringify({ upDelay: 'slow', downDelay: 4 }))
+    const { result } = renderHook(() => useSettings())
+    expect(result.current.delays).toEqual(DEFAULT_DELAYS)
+  })
+
+  it('clamps what the number input lets through', () => {
+    // min/max on <input type="number"> is advisory. Clearing the field gives
+    // Number('') === 0, and a 0 up-delay removes the transition delay
+    // entirely -- the setting's whole purpose.
+    const { result } = renderHook(() => useSettings())
+    act(() => result.current.updateDelay('upDelay', 0))
+    expect(result.current.delays.upDelay).toBe(DELAY_BOUNDS.upDelay.min)
+
+    act(() => result.current.updateDelay('downDelay', 9999))
+    expect(result.current.delays.downDelay).toBe(DELAY_BOUNDS.downDelay.max)
+
+    act(() => result.current.updateDelay('autoResetSeconds', -1))
+    expect(result.current.delays.autoResetSeconds).toBe(0)
+  })
+
+  it('falls back to the default on a value that is not a number', () => {
+    const { result } = renderHook(() => useSettings())
+    act(() => result.current.updateDelay('autoResetSeconds', NaN))
+    expect(result.current.delays.autoResetSeconds).toBe(DEFAULT_DELAYS.autoResetSeconds)
+  })
+
+  it('allows 0 for the auto-reset, which is how it is turned off', () => {
+    // The one delay whose minimum is genuinely 0: the other two are durations
+    // that must pass, this one is a feature that can be absent.
+    const { result } = renderHook(() => useSettings())
+    act(() => result.current.updateDelay('autoResetSeconds', 30))
+    expect(result.current.delays.autoResetSeconds).toBe(30)
+    act(() => result.current.updateDelay('autoResetSeconds', 0))
+    expect(result.current.delays.autoResetSeconds).toBe(0)
+  })
+
+  it('stops reporting defaults once the auto-reset is set', () => {
+    // isUsingDefaults drives the "Using defaults ✓" label. It compared only
+    // upDelay and downDelay by name, so a new delay key would have been left
+    // out of it silently.
+    const { result } = renderHook(() => useSettings())
+    expect(result.current.isUsingDefaults).toBe(true)
+    act(() => result.current.updateDelay('autoResetSeconds', 25))
+    expect(result.current.isUsingDefaults).toBe(false)
   })
 })

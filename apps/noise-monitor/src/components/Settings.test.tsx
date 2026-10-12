@@ -255,3 +255,41 @@ describe('what the threshold descriptions promise', () => {
     expect(screen.getByText(/above this, the alarm sounds/i)).toBeTruthy()
   })
 })
+
+describe('the timed alarm reset', () => {
+  const field = () =>
+    screen.getByLabelText(/reset after/i) as HTMLInputElement
+
+  it('shows the hold the teacher has set', () => {
+    setup({ delays: { ...DEFAULT_DELAYS, autoResetSeconds: 30 } })
+    openThresholds()
+    expect(field().value).toBe('30')
+    expect(screen.getByText(/clears itself after 30 seconds/i)).toBeTruthy()
+  })
+
+  it('says plainly that 0 means the alarm waits for Reset', () => {
+    // 0 in a seconds field reads as "immediately" unless the panel says
+    // otherwise, and this one means the opposite.
+    setup({ delays: { ...DEFAULT_DELAYS, autoResetSeconds: 0 } })
+    openThresholds()
+    expect(screen.getByText(/stays until you press Reset/i)).toBeTruthy()
+  })
+
+  it('forwards what was typed as a number', () => {
+    const updateDelay = vi.fn()
+    setup({ updateDelay })
+    openThresholds()
+    fireEvent.change(field(), { target: { value: '45' } })
+    expect(updateDelay).toHaveBeenCalledWith('autoResetSeconds', 45)
+  })
+
+  it('forwards a cleared field as 0, not NaN', () => {
+    // Number('') is 0, which useSettings reads as "off". NaN would reach the
+    // hold timer and fire it immediately.
+    const updateDelay = vi.fn()
+    setup({ updateDelay })
+    openThresholds()
+    fireEvent.change(field(), { target: { value: '' } })
+    expect(updateDelay).toHaveBeenCalledWith('autoResetSeconds', 0)
+  })
+})

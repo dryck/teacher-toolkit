@@ -66,6 +66,9 @@ interface NoiseMonitorProps {
   backgroundColor?: string
   upDelay?: number
   downDelay?: number
+  // Seconds to hold a raised alarm before resetting it unprompted. 0 (the
+  // default) means never: it waits for the Reset button.
+  autoResetSeconds?: number
   soundSettings?: SoundSettings
   onSettingsClick: () => void
   onFullscreenClick: () => void
@@ -85,6 +88,7 @@ export function NoiseMonitor({
   backgroundColor = 'dark',
   upDelay: _upDelay = 2,
   downDelay: _downDelay = 4,
+  autoResetSeconds = 0,
   soundSettings,
   onSettingsClick,
   onFullscreenClick,
@@ -397,6 +401,38 @@ export function NoiseMonitor({
     // stopAlerts/stopTTS are no longer called from this loop -- only from
     // resetAlarm and stopListening -- so they are not dependencies of it.
   }, [isListening, thresholds, _upDelay, _downDelay, alertType, triggerAlerts, triggerTTS, onNoiseLevelChange, onCalibrated])
+
+  // Kept in a ref so the hold timer below is not restarted by resetAlarm being
+  // recreated -- it depends on `thresholds`, so without this, adjusting a
+  // slider while the alarm was up would silently start the countdown again.
+  const resetAlarmRef = useRef(resetAlarm)
+  useEffect(() => {
+    resetAlarmRef.current = resetAlarm
+  }, [resetAlarm])
+
+  /**
+   * The teacher's timed reset.
+   *
+   * Written as an effect on the latch rather than a timer started at the
+   * moment of the alarm, so every way out of the alarm cancels it for free:
+   * pressing Reset, stopping the monitor, closing the page, or changing the
+   * setting. A timer started inside the measurement loop would have needed
+   * each of those cases remembered separately.
+   *
+   * Changing the setting while the alarm is up restarts the countdown, which
+   * is the only reasonable reading of "hold it for 20 seconds" arriving
+   * mid-hold.
+   */
+  useEffect(() => {
+    // `!(x > 0)` rather than `x <= 0`: the two differ on NaN, and
+    // setTimeout(callback, NaN) fires immediately -- the alarm would clear the
+    // instant it was raised and look like it had never fired. useSettings
+    // cannot pass NaN any more, but this is a public prop, so the component
+    // defends its own contract.
+    if (!isAlarmLatched || !(autoResetSeconds > 0)) return
+    const timer = setTimeout(() => resetAlarmRef.current(), autoResetSeconds * 1000)
+    return () => clearTimeout(timer)
+  }, [isAlarmLatched, autoResetSeconds])
 
   useEffect(() => {
     return () => {
