@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Theme, Sound, CustomImage, SoundSettings, ThresholdConfig, ThemeProps } from '../types'
+import { Theme, Sound, CustomImage, SoundSettings, ThresholdConfig, ThemeProps, NoiseBand } from '../types'
 import { EggTheme } from '../themes/EggTheme'
 import { EggClassicTheme } from '../themes/EggClassicTheme'
 import { GlassTheme } from '../themes/GlassTheme'
@@ -10,7 +10,13 @@ import { WeatherTheme } from '../themes/WeatherTheme'
 import { VolcanoTheme } from '../themes/VolcanoTheme'
 import { useAudio } from '../hooks/useAudio'
 import { useTTS, TTSConfig } from '../hooks/useTTS'
-import { calculateNoiseLevel, getNoiseBand, getNoiseLevelNumber, smoothNoiseLevel } from '../utils/noiseCalculator'
+import {
+  calculateNoiseLevel,
+  bandFromLevelNumber,
+  getNoiseLevelNumber,
+  smoothNoiseLevel,
+  ALARM_STEP
+} from '../utils/noiseCalculator'
 import { calibrateWithFloor, CALIBRATION_MS } from '../utils/calibration'
 
 // Time constant (seconds) for the exponential moving average applied to the
@@ -21,9 +27,33 @@ import { calibrateWithFloor, CALIBRATION_MS } from '../utils/calibration'
 // setting on a real sound level meter.
 const SMOOTHING_TAU = 0.3
 
+// Colours and wording for the status pill, keyed by band.
+const BAND_LABEL: Record<NoiseBand, string> = {
+  quiet: 'Quiet',
+  moderate: 'Moderate',
+  loud: 'Loud',
+  tooLoud: 'Too Loud!'
+}
+
+const BAND_DOT: Record<NoiseBand, string> = {
+  quiet: 'bg-green-500',
+  moderate: 'bg-yellow-500',
+  loud: 'bg-orange-500',
+  tooLoud: 'bg-red-500'
+}
+
+// Darker than the dots: these sit on white as text, where the dot shades do
+// not reach 4.5:1 -- yellow-500 on white is about 1.9:1.
+const BAND_TEXT: Record<NoiseBand, string> = {
+  quiet: 'text-green-600',
+  moderate: 'text-yellow-700',
+  loud: 'text-orange-700',
+  tooLoud: 'text-red-600'
+}
+
 interface NoiseMonitorProps {
   theme: Theme
-  // The teacher's four band bounds, not just the alarm point. Passing only
+  // All four bounds: the three band edges and the alarm point. Passing only
   // alarmTrigger is what left the other three sliders inert.
   thresholds: ThresholdConfig
   // Called once with bands measured from this room, a few seconds after
@@ -79,16 +109,23 @@ export function NoiseMonitor({
   const pendingDownRef = useRef(false)
   // The smoothed level is the source of truth for both the continuous
   // visual display and the alert/threshold logic below; committedLevelNumberRef
-  // tracks the last level number (1-4) that actually got "confirmed" through
-  // the up/down delay, separate from the live, every-frame smoothed value.
+  // tracks the last step (1-5: the four bands, then the alarm) that actually
+  // got "confirmed" through the up/down delay, separate from the live,
+  // every-frame smoothed value.
   const smoothedLevelRef = useRef(0)
   const lastFrameTimeRef = useRef<number | null>(null)
   const committedLevelNumberRef = useRef(1)
-  // Themes render off this, NOT the live smoothedLevel -- it only moves when
-  // the up/down delay below actually commits a new level, so every theme's
-  // own color/mood/fill logic (which all independently threshold noiseLevel)
-  // automatically respects the user's configured Transition Delay instead of
-  // flickering with every small fluctuation in the smoothed mic signal.
+  // What the themes render: the committed step itself, mirrored into state.
+  //
+  // The band used to be re-derived from a *snapshot of the level* taken at the
+  // moment of the commit, which made the committed state two values that could
+  // disagree. They did: changing a threshold in Settings re-ran getNoiseBand on
+  // the stale snapshot, so the picture could move to a band the delay logic's
+  // own counter did not believe it was in -- and from there the next up/down
+  // comparison was made against the wrong baseline. One number now.
+  const [committedStep, setCommittedStep] = useState(1)
+  // Kept only for `intensity` (continuous fill heights and wobble), which needs
+  // a level rather than a band. Delay-gated like the step, for the same reason.
   const [committedDisplayLevel, setCommittedDisplayLevel] = useState(0)
 
   const alertType = soundSettings?.alertType || 'sound'
@@ -176,6 +213,7 @@ export function NoiseMonitor({
     calibrationSamplesRef.current = null
     calibrationUntilRef.current = 0
     committedLevelNumberRef.current = 1
+    setCommittedStep(1)
     setCommittedDisplayLevel(0)
     stopAlerts()
     stopTTS()
@@ -240,9 +278,10 @@ export function NoiseMonitor({
             const oldLevelNumber = committedLevelNumberRef.current
             if (freshLevelNumber > oldLevelNumber) {
               committedLevelNumberRef.current = freshLevelNumber
+              setCommittedStep(freshLevelNumber)
               setCommittedDisplayLevel(smoothedLevelRef.current)
-              setIsTooLoud(freshLevelNumber >= 4)
-              if (freshLevelNumber >= 4 && oldLevelNumber < 4) {
+              setIsTooLoud(freshLevelNumber >= ALARM_STEP)
+              if (freshLevelNumber >= ALARM_STEP && oldLevelNumber < ALARM_STEP) {
                 if (alertType !== 'voice') triggerAlerts()
                 if (alertType !== 'sound') triggerTTS()
               }
@@ -260,9 +299,10 @@ export function NoiseMonitor({
             const oldLevelNumber = committedLevelNumberRef.current
             if (freshLevelNumber < oldLevelNumber) {
               committedLevelNumberRef.current = freshLevelNumber
+              setCommittedStep(freshLevelNumber)
               setCommittedDisplayLevel(smoothedLevelRef.current)
-              setIsTooLoud(freshLevelNumber >= 4)
-              if (freshLevelNumber < 4) {
+              setIsTooLoud(freshLevelNumber >= ALARM_STEP)
+              if (freshLevelNumber < ALARM_STEP) {
                 stopAlerts()
                 stopTTS()
               }
@@ -311,18 +351,20 @@ export function NoiseMonitor({
     }
   }, [stopListening])
 
+  // The committed band, shared by the themes and the status pill below so the
+  // picture and the words can never name different levels.
+  const band = bandFromLevelNumber(committedStep)
+
   const renderTheme = () => {
-    // Every theme below thresholds this number itself (for color, mood,
-    // fill height, active dot count, etc.) -- feeding them the delay-gated
-    // committedDisplayLevel, not the live per-frame smoothed level, is what
-    // makes the Transition Delay setting actually govern when a theme's
-    // visual state is allowed to change, instead of only gating the
-    // isTooLoud alert boundary.
-    // One set of props for every theme. The band comes from getNoiseBand, so
-    // all four of the teacher's bounds reach the display -- not just the alarm
-    // point, which is all the old contract carried.
+    // One set of props for every theme, off the one committed step -- so the
+    // band a theme draws and the step the delay logic counts can never be two
+    // different answers.
+    //
+    // Both values are the delay-gated ones rather than the live per-frame
+    // level, which is what makes the Transition Delay setting govern when a
+    // theme is allowed to change at all, instead of only gating the alarm.
     const props: ThemeProps = {
-      band: isTooLoud ? 'tooLoud' : getNoiseBand(committedDisplayLevel, thresholds),
+      band,
       intensity: thresholds.alarmTrigger > 0
         ? committedDisplayLevel / thresholds.alarmTrigger
         : 0,
@@ -447,10 +489,15 @@ export function NoiseMonitor({
       {isListening && (
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
           <div className="bg-white/90 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${isTooLoud ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
-              <span className={`font-medium ${isTooLoud ? 'text-red-600' : 'text-green-600'}`}>
-                {isTooLoud ? 'Too Loud!' : 'Quiet'}
+            {/* Named the band, not just quiet-or-alarm. This read "Quiet" for
+                everything below the alarm, so the one piece of text on the
+                screen contradicted a picture that had already gone orange --
+                and a teacher checking which band the room was in was told the
+                wrong one three times out of four. */}
+            <div className="flex items-center gap-3" aria-live="polite">
+              <div className={`w-3 h-3 rounded-full ${BAND_DOT[band]} ${isTooLoud ? 'animate-pulse' : ''}`} />
+              <span className={`font-medium ${BAND_TEXT[band]}`}>
+                {isTooLoud ? 'Too Loud!' : BAND_LABEL[band]}
               </span>
             </div>
           </div>
