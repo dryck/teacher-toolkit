@@ -92,7 +92,19 @@ export function NoiseMonitor({
   isFullscreen,
   onNoiseLevelChange,
 }: NoiseMonitorProps) {
-  const [isTooLoud, setIsTooLoud] = useState(false)
+  // The alarm latches: once raised it stays raised until the teacher resets
+  // it, however quiet the room gets.
+  //
+  // It used to clear itself on the next downward commit, which made the alarm
+  // as short as the room's own dip -- and the down delay (2-4s) is shorter
+  // than the alarm sounds themselves (the bell is 2s), so stopAlerts() paused
+  // the audio mid-playback. A class that got briefly loud produced a clipped
+  // noise and an egg that was whole again before anyone looked up.
+  //
+  // Mirrored into a ref because the measurement loop runs off refs and would
+  // otherwise read the value captured when its effect last ran.
+  const [isAlarmLatched, setIsAlarmLatched] = useState(false)
+  const alarmLatchedRef = useRef(false)
   // Raw samples from the first few seconds of listening, used once to place
   // the bands relative to this room's own floor. Dropped afterwards.
   const calibrationSamplesRef = useRef<number[] | null>(null)
@@ -203,7 +215,8 @@ export function NoiseMonitor({
       audioContextRef.current.close()
     }
     setIsListening(false)
-    setIsTooLoud(false)
+    alarmLatchedRef.current = false
+    setIsAlarmLatched(false)
     if (upDelayTimerRef.current) clearTimeout(upDelayTimerRef.current)
     if (downDelayTimerRef.current) clearTimeout(downDelayTimerRef.current)
     pendingUpRef.current = false
@@ -218,6 +231,38 @@ export function NoiseMonitor({
     stopAlerts()
     stopTTS()
   }, [stopAlerts, stopTTS])
+
+  /**
+   * Acknowledge the alarm: stop the sound, mend the egg, re-arm.
+   *
+   * Re-arming syncs the committed step to the room's *current* level rather
+   * than dropping it to 1. Two reasons: the picture must not claim the room
+   * went quiet when it did not, and a reset pressed while the class is still
+   * shouting would otherwise re-break the egg a moment later, which reads as
+   * a broken button rather than an accurate one. So the alarm comes back when
+   * the room has fallen below the alarm point and risen through it again --
+   * acknowledge-and-rearm, the way an alarm panel's silence button works.
+   */
+  const resetAlarm = useCallback(() => {
+    alarmLatchedRef.current = false
+    setIsAlarmLatched(false)
+    stopAlerts()
+    stopTTS()
+
+    const step = getNoiseLevelNumber(smoothedLevelRef.current, thresholds)
+    committedLevelNumberRef.current = step
+    setCommittedStep(step)
+    setCommittedDisplayLevel(smoothedLevelRef.current)
+
+    // A timer still pending from before the reset would commit against the
+    // baseline this just replaced.
+    if (upDelayTimerRef.current) clearTimeout(upDelayTimerRef.current)
+    if (downDelayTimerRef.current) clearTimeout(downDelayTimerRef.current)
+    upDelayTimerRef.current = null
+    downDelayTimerRef.current = null
+    pendingUpRef.current = false
+    pendingDownRef.current = false
+  }, [stopAlerts, stopTTS, thresholds])
 
   useEffect(() => {
     if (!isListening || !analyserRef.current) return
@@ -280,8 +325,15 @@ export function NoiseMonitor({
               committedLevelNumberRef.current = freshLevelNumber
               setCommittedStep(freshLevelNumber)
               setCommittedDisplayLevel(smoothedLevelRef.current)
-              setIsTooLoud(freshLevelNumber >= ALARM_STEP)
-              if (freshLevelNumber >= ALARM_STEP && oldLevelNumber < ALARM_STEP) {
+              // Raised once per latch. useAudio and useTTS each guard their
+              // own re-entry too (a one-shot flag, a repeat interval), so
+              // removing this changes nothing observable today and no test can
+              // tell the two arrangements apart -- it is here so the latch's
+              // meaning is stated where the latch lives, rather than resting
+              // on an internal ref in another module.
+              if (freshLevelNumber >= ALARM_STEP && !alarmLatchedRef.current) {
+                alarmLatchedRef.current = true
+                setIsAlarmLatched(true)
                 if (alertType !== 'voice') triggerAlerts()
                 if (alertType !== 'sound') triggerTTS()
               }
@@ -301,11 +353,10 @@ export function NoiseMonitor({
               committedLevelNumberRef.current = freshLevelNumber
               setCommittedStep(freshLevelNumber)
               setCommittedDisplayLevel(smoothedLevelRef.current)
-              setIsTooLoud(freshLevelNumber >= ALARM_STEP)
-              if (freshLevelNumber < ALARM_STEP) {
-                stopAlerts()
-                stopTTS()
-              }
+              // Deliberately does not stop the alarm. A quietening room is
+              // what the alarm is asking for, not a reason to cancel it
+              // before anyone has acknowledged it -- that is the reset
+              // button's job.
             }
             pendingDownRef.current = false
           }, _downDelay * 1000)
@@ -343,7 +394,9 @@ export function NoiseMonitor({
         cancelAnimationFrame(animationFrameRef.current)
       }
     }
-  }, [isListening, thresholds, _upDelay, _downDelay, alertType, triggerAlerts, triggerTTS, stopAlerts, stopTTS, onNoiseLevelChange, onCalibrated])
+    // stopAlerts/stopTTS are no longer called from this loop -- only from
+    // resetAlarm and stopListening -- so they are not dependencies of it.
+  }, [isListening, thresholds, _upDelay, _downDelay, alertType, triggerAlerts, triggerTTS, onNoiseLevelChange, onCalibrated])
 
   useEffect(() => {
     return () => {
@@ -353,7 +406,12 @@ export function NoiseMonitor({
 
   // The committed band, shared by the themes and the status pill below so the
   // picture and the words can never name different levels.
-  const band = bandFromLevelNumber(committedStep)
+  //
+  // While latched the band is pinned to the top: a broken egg sitting on a
+  // calm green background would be two halves of the display disagreeing. The
+  // step underneath keeps tracking the room regardless, so the moment the
+  // teacher resets, the display is already correct.
+  const band = isAlarmLatched ? 'tooLoud' : bandFromLevelNumber(committedStep)
 
   const renderTheme = () => {
     // One set of props for every theme, off the one committed step -- so the
@@ -368,7 +426,7 @@ export function NoiseMonitor({
       intensity: thresholds.alarmTrigger > 0
         ? committedDisplayLevel / thresholds.alarmTrigger
         : 0,
-      isTooLoud,
+      isTooLoud: isAlarmLatched,
       customImages,
       backgroundColor
     }
@@ -487,7 +545,7 @@ export function NoiseMonitor({
 
       {/* Noise Level Indicator */}
       {isListening && (
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-3">
           <div className="bg-white/90 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg">
             {/* Named the band, not just quiet-or-alarm. This read "Quiet" for
                 everything below the alarm, so the one piece of text on the
@@ -495,12 +553,26 @@ export function NoiseMonitor({
                 and a teacher checking which band the room was in was told the
                 wrong one three times out of four. */}
             <div className="flex items-center gap-3" aria-live="polite">
-              <div className={`w-3 h-3 rounded-full ${BAND_DOT[band]} ${isTooLoud ? 'animate-pulse' : ''}`} />
+              <div className={`w-3 h-3 rounded-full ${BAND_DOT[band]} ${isAlarmLatched ? 'animate-pulse' : ''}`} />
               <span className={`font-medium ${BAND_TEXT[band]}`}>
-                {isTooLoud ? 'Too Loud!' : BAND_LABEL[band]}
+                {isAlarmLatched ? 'Too Loud!' : BAND_LABEL[band]}
               </span>
             </div>
           </div>
+
+          {/* The only way out of the alarm. Rendered beside the status rather
+              than in the top control bar so it is where the teacher is already
+              looking, and large enough to hit from a standing position at a
+              projector. */}
+          {isAlarmLatched && (
+            <button
+              onClick={resetAlarm}
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full px-6 py-3 shadow-lg transition-colors active:scale-95"
+              title="Stop the alarm and mend the egg"
+            >
+              Reset
+            </button>
+          )}
         </div>
       )}
     </div>
