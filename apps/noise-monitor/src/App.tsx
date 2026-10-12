@@ -99,6 +99,7 @@ function App() {
         isMuted={settings.isMuted}
         upDelay={delays.upDelay}
         downDelay={delays.downDelay}
+        autoResetSeconds={delays.autoResetSeconds}
         soundSettings={settings.soundSettings}
         onSettingsClick={() => setShowSettings(true)}
         onFullscreenClick={toggleFullscreen}

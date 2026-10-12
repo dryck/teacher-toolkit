@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ThresholdConfig, DEFAULT_THRESHOLDS, DelayConfig, DEFAULT_DELAYS } from '../types'
+import { ThresholdConfig, DEFAULT_THRESHOLDS, DelayConfig, DEFAULT_DELAYS, DELAY_BOUNDS } from '../types'
 import { bandsFromFloorAndLimit } from '../utils/calibration'
 
 const THRESHOLDS_KEY = 'noise-monitor-thresholds'
@@ -49,16 +49,47 @@ function parseThresholds(raw: string | null): ThresholdConfig | null {
   }
 }
 
+const DELAY_KEYS = ['upDelay', 'downDelay', 'autoResetSeconds'] as const
+
+/** Keep a delay inside its range. `min`/`max` on a number input is advisory:
+ *  typing 9999, or clearing the field to get Number('') === 0, both arrive
+ *  here otherwise -- and a 0 up-delay removes the transition delay entirely,
+ *  which is that setting's whole purpose. */
+function clampDelay(key: keyof DelayConfig, value: number): number {
+  const { min, max } = DELAY_BOUNDS[key]
+  if (!Number.isFinite(value)) return DEFAULT_DELAYS[key]
+  return Math.min(max, Math.max(min, value))
+}
+
+/**
+ * A stored DelayConfig, or null if it is not one.
+ *
+ * Merged over the defaults rather than rebuilt field by field. The previous
+ * version returned `{ upDelay, downDelay }` literally, so a key added later
+ * came back `undefined` for every teacher with a stored config -- and
+ * `undefined * 1000` is NaN, which setTimeout treats as 0. A setting meant to
+ * default to "never auto-reset" would have cleared the alarm instantly on the
+ * first upgrade, and only for existing users.
+ *
+ * Out-of-range values are clamped rather than rejected: unlike thresholds,
+ * where a bad order leaves a band unreachable, a delay outside its range is
+ * still a usable delay once pulled into it.
+ */
 function parseDelays(raw: string | null): DelayConfig | null {
   if (!raw) return null
   try {
     const parsed = JSON.parse(raw)
     if (!parsed || typeof parsed !== 'object') return null
-    const up = parsed.upDelay
-    const down = parsed.downDelay
-    if (typeof up !== 'number' || !Number.isFinite(up)) return null
-    if (typeof down !== 'number' || !Number.isFinite(down)) return null
-    return { upDelay: up, downDelay: down }
+    const merged: DelayConfig = { ...DEFAULT_DELAYS }
+    for (const key of DELAY_KEYS) {
+      const value = parsed[key]
+      // A missing key keeps its default; a present but unusable one means the
+      // whole config is suspect.
+      if (value === undefined) continue
+      if (typeof value !== 'number' || !Number.isFinite(value)) return null
+      merged[key] = clampDelay(key, value)
+    }
+    return merged
   } catch {
     return null
   }
@@ -144,7 +175,7 @@ export function useSettings() {
   }
 
   const updateDelay = (key: keyof DelayConfig, value: number) => {
-    setDelays(prev => ({ ...prev, [key]: value }))
+    setDelays(prev => ({ ...prev, [key]: clampDelay(key, value) }))
   }
 
   /** Adopt bands measured from the room. Never overrides what a teacher set by
@@ -193,8 +224,7 @@ export function useSettings() {
 
   const isUsingDefaults =
     source === 'default' &&
-    delays.upDelay === DEFAULT_DELAYS.upDelay &&
-    delays.downDelay === DEFAULT_DELAYS.downDelay
+    DELAY_KEYS.every((key) => delays[key] === DEFAULT_DELAYS[key])
 
   return {
     thresholds,
