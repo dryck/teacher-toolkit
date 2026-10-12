@@ -209,11 +209,15 @@
       font-weight: 600;
       padding: 6px 10px;
       cursor: pointer;
-      opacity: 0.7;
+      /* Deliberately quieter than the plus button, but done with the border
+         and weight rather than `opacity: 0.7`. Opacity dimmed the text as
+         well, which took the contrast-checked token down to an effective
+         2.6:1 -- the correction control became the hardest thing on the
+         scoreboard to read. */
       touch-action: manipulation;
       font-family: inherit;
     }
-    .btn-minus:hover { opacity: 1; background: #f7f7f7; }
+    .btn-minus:hover { background: #f7f7f7; border-color: #cfcfcf; }
     .btn-minus:active { transform: scale(0.95); }
 
     @keyframes tk-points-pulse {
@@ -231,7 +235,7 @@
     }
     .footer a {
       color: var(--tk-primary);
-      text-decoration: none;
+      text-decoration: underline;
     }
 
     @media (max-width: 480px) {

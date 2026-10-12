@@ -337,7 +337,7 @@
     }
     .footer a {
       color: var(--tk-primary);
-      text-decoration: none;
+      text-decoration: underline;
     }
 
     /* Fullscreen tweaks */
@@ -424,6 +424,15 @@
     let remaining = 0;             // seconds left in the current phase
     let total = 0;                 // seconds the current phase started with (for the progress bar)
     let isPaused = false;
+    // The countdown is derived from a wall-clock deadline, not decremented per
+    // tick. A backgrounded tab is throttled to roughly one tick a minute, so
+    // `remaining--` loses almost the whole minute -- a teacher who switches to
+    // their slides and back would find the presentation slot barely moved.
+    // visual-timer and rotation-timer already work this way.
+    let deadline = null;
+    // While paused, the remaining milliseconds frozen at pause time; the
+    // deadline is rebuilt from it on resume.
+    let pausedRemainingMs = null;
     let tickHandle = null;
 
     // ---------------- Setup screen: team rows ----------------
@@ -432,7 +441,7 @@
       row.className = 'team-row';
       row.innerHTML = `
         <input type="text" class="team-name-input" placeholder="Team or student name" value="${name || ''}">
-        <input type="number" class="team-minutes-input" min="0.5" step="0.5" value="${minutes != null ? minutes : 5}">
+        <input type="number" class="team-minutes-input" min="0.5" step="0.5" value="${minutes != null ? minutes : 5}" aria-label="Minutes for this team">
         <button class="remove-row-btn" title="Remove row">✕</button>
       `;
       row.querySelector('.remove-row-btn').addEventListener('click', () => row.remove());
@@ -494,6 +503,8 @@
       if (phase === 'presenting') {
         total = Math.round(team.minutes * 60);
         remaining = total;
+        deadline = Date.now() + total * 1000;
+        pausedRemainingMs = null;
         document.getElementById('phaseBadge').textContent = '🎤 Presenting';
         document.getElementById('teamNameDisplay').textContent = team.name;
         document.getElementById('qnaTargetLine').classList.add('hidden');
@@ -501,6 +512,8 @@
       } else if (phase === 'qna') {
         total = qnaSeconds;
         remaining = total;
+        deadline = Date.now() + total * 1000;
+        pausedRemainingMs = null;
         stage.classList.add('phase-qna');
         document.getElementById('phaseBadge').textContent = '❓ Q&A Time';
         document.getElementById('teamNameDisplay').textContent = '❓ Q&A Time';
@@ -537,7 +550,9 @@
 
     function startTicking() {
       stopTicking();
-      tickHandle = setInterval(tick, 1000);
+      // 250ms rather than 1000: recomputing from the deadline makes extra ticks
+      // free, and the display lands on each second promptly.
+      tickHandle = setInterval(tick, 250);
     }
     function stopTicking() {
       if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
@@ -545,7 +560,7 @@
 
     function tick() {
       if (isPaused) return;
-      remaining--;
+      remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       if (remaining <= 0) {
         remaining = 0;
         renderTime();
@@ -613,6 +628,13 @@
     document.getElementById('pauseBtn').addEventListener('click', () => {
       if (curPhase === 'complete') return;
       isPaused = !isPaused;
+      if (isPaused) {
+        pausedRemainingMs = Math.max(0, deadline - Date.now());
+      } else if (pausedRemainingMs !== null) {
+        // Rebuild the deadline so the pause does not count against the phase.
+        deadline = Date.now() + pausedRemainingMs;
+        pausedRemainingMs = null;
+      }
       updatePauseButton();
     });
 

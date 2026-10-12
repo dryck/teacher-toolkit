@@ -45,17 +45,45 @@ const IGNORED_CONSOLE = [
   /Could not reach Cloud Firestore/i
 ];
 
-const pages = await htmlPages(DIST);
+/* Read each page's source once, here at collection time, rather than inside
+   the test that needs it.
+
+   The navbar assertion below only needs to know whether a page opts into the
+   shared shell, which is a property of the file. Re-reading from disk once the
+   tests are already running made the suite fail with an ENOENT naming a page
+   that plainly exists -- any build touching dist/ while the run is in flight
+   is enough, and the error points at the page rather than at the race. */
+const pages = await Promise.all(
+  (await htmlPages(DIST)).map(async (file) => ({
+    file,
+    urlPath: '/' + relative(DIST, file).split(/[/\\]/).join('/'),
+    usesNavbar: (await readFile(file, 'utf8')).includes('shell/navbar.js')
+  }))
+);
 
 test('the build produced the pages we expect to test', () => {
   // Guards against the glob silently finding nothing and every test vacuously passing.
   expect(pages.length).toBeGreaterThan(20);
 });
 
-for (const file of pages) {
-  const urlPath = '/' + relative(DIST, file).split(/[/\\]/).join('/');
-
+for (const { urlPath, usesNavbar } of pages) {
   test(`loads clean: ${urlPath}`, async ({ page }) => {
+    /* Block the webfonts.
+
+       Every page links fonts.googleapis.com, and `waitUntil: 'load'` waits for
+       every subresource -- so with four workers over fifty pages the run makes
+       hundreds of external requests, and when those are slow the load event
+       never fires and the test times out after thirty seconds naming the page
+       rather than the cause. It cost a 1-in-5 flake in a suite that gates the
+       deploy.
+
+       Only the fonts: the Firebase SDK also comes from gstatic, and blocking it
+       would leave `firebase` undefined and every tool script throwing a
+       ReferenceError -- a failure about the test, not the page. What is under
+       test is that the page comes up without errors, which does not depend on
+       a typeface arriving. */
+    await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+
     const crashes = [];
     const errors = [];
 
@@ -74,8 +102,7 @@ for (const file of pages) {
     expect(errors, `console errors on ${urlPath}`).toEqual([]);
 
     // If the page opts into the shared navbar, it must actually appear.
-    const source = await readFile(file, 'utf8');
-    if (source.includes('shell/navbar.js')) {
+    if (usesNavbar) {
       await expect(page.locator('.tk-navbar'), `navbar missing on ${urlPath}`).toHaveCount(1);
     }
   });

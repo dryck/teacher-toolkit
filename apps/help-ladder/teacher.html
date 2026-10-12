@@ -343,6 +343,9 @@
         const input = document.createElement('input');
         input.type = 'text';
         input.value = text;
+        // The visible cue is the step number rendered beside it, which a screen
+        // reader announces as a separate element -- the field had no name.
+        input.setAttribute('aria-label', 'Step ' + (i + 1) + ' of the help ladder');
         input.addEventListener('input', () => {
           steps[i] = input.value;
           TKHelpLadder.saveSteps(steps);

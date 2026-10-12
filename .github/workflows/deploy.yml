@@ -120,7 +120,8 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Smoke test every page
+      # Smoke, logic and accessibility -- one Playwright project, no backend.
+      - name: Smoke, logic and accessibility
         run: npm test
 
       - name: Upload test report on failure

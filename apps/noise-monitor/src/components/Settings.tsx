@@ -21,11 +21,19 @@ function LiveNoiseBar({
   thresholds: ThresholdConfig
 }) {
   const pct = Math.min(Math.max(noiseLevel, 0), 100)
-  const markerPositions = {
-    lv2: Math.min(Math.max(thresholds.quietToModerate, 0), 100),
-    lv3: Math.min(Math.max(thresholds.moderateToLoud, 0), 100),
-    lv4: Math.min(Math.max(thresholds.loudToTooLoud, 0), 100),
-  }
+  const clamp = (n: number) => Math.min(Math.max(n, 0), 100)
+  // The three bounds that start bands 2, 3 and 4. Each bound is the lower edge
+  // of the band it names, so a marker sits exactly where the picture changes.
+  const bandMarkers = [
+    { label: '2', at: clamp(thresholds.quietToModerate) },
+    { label: '3', at: clamp(thresholds.moderateToLoud) },
+    { label: '4', at: clamp(thresholds.loudToTooLoud) }
+  ]
+  // Drawn separately because it is not a band edge: the display reaches "too
+  // loud" at marker 4 and the alarm waits for this. Without it on the bar the
+  // gap is invisible, and a teacher reading three markers would reasonably
+  // assume the last one is where the sound fires.
+  const alarmAt = clamp(thresholds.alarmTrigger)
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
       <div className="flex justify-between items-end mb-2">
@@ -43,27 +51,26 @@ function LiveNoiseBar({
             transition: 'width 100ms linear',
           }}
         />
-        {/* Markers */}
+        {bandMarkers.map(({ label, at }) => (
+          <div
+            key={label}
+            className="absolute top-0 bottom-0 w-0.5 bg-gray-800"
+            style={{ left: `${at}%` }}
+            title={`Level ${label} starts here`}
+          >
+            <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-700">
+              {label}
+            </span>
+          </div>
+        ))}
         <div
-          className="absolute top-0 bottom-0 w-0.5 bg-gray-800"
-          style={{ left: `${markerPositions.lv2}%` }}
-          title="Lv.2"
+          className="absolute top-0 bottom-0 w-0.5 bg-red-600"
+          style={{ left: `${alarmAt}%` }}
+          title="The alarm sounds here"
         >
-          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-700">2</span>
-        </div>
-        <div
-          className="absolute top-0 bottom-0 w-0.5 bg-gray-800"
-          style={{ left: `${markerPositions.lv3}%` }}
-          title="Lv.3"
-        >
-          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-700">3</span>
-        </div>
-        <div
-          className="absolute top-0 bottom-0 w-0.5 bg-gray-800"
-          style={{ left: `${markerPositions.lv4}%` }}
-          title="Lv.4"
-        >
-          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-700">4</span>
+          <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] font-bold text-red-600">
+            !
+          </span>
         </div>
       </div>
       <div className="flex justify-between mt-1 text-[10px] text-gray-500">

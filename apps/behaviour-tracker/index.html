@@ -32,7 +32,11 @@
     header .subtitle {
       margin-top: 4px;
       font-size: 0.95rem;
-      color: rgba(255,255,255,0.9);
+      /* Was rgba(255,255,255,...) -- white text left over from when this
+         page had a dark background. The shared theme now paints a light
+         cream one, so it rendered near-invisible: axe measured it at
+         1.0:1. Uses the shared muted token, which is contrast-checked. */
+      color: var(--tk-text-muted);
     }
 
     .toolbar {
@@ -336,7 +340,7 @@
     }
     .footer a {
       color: var(--tk-primary);
-      text-decoration: none;
+      text-decoration: underline;
     }
 
     @media (max-width: 480px) {

@@ -295,12 +295,16 @@
     .footer {
       text-align: center;
       margin-top: 30px;
-      color: rgba(255,255,255,0.8);
+      /* Was rgba(255,255,255,...) -- white text left over from when this
+         page had a dark background. The shared theme now paints a light
+         cream one, so it rendered near-invisible: axe measured it at
+         1.0:1. Uses the shared muted token, which is contrast-checked. */
+      color: var(--tk-text-muted);
       font-size: 0.9rem;
     }
     .footer a {
-      color: white;
-      text-decoration: none;
+      color: var(--tk-text-muted);
+      text-decoration: underline;
     }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">

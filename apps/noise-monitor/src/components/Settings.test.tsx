@@ -191,3 +191,67 @@ describe('Test Alarm', () => {
     audioSpy.mockRestore()
   })
 })
+
+describe('the live bar markers', () => {
+  /* The bar is where the disagreement was visible: the markers sat at the four
+   * bounds while the picture used them one slot higher, so the bar could be
+   * past marker 2 with the display still on band 1. These pin the markers to
+   * the bounds, and getNoiseBand's own suite pins the bands to the same
+   * numbers -- so neither half can move without the other failing.
+   */
+  const marker = (label: string) => {
+    const span = screen.getByText(label, { selector: 'span' })
+    const line = span.parentElement as HTMLElement
+    return parseFloat(line.style.left)
+  }
+
+  it('puts each band marker on the bound that starts that band', () => {
+    const thresholds = {
+      quietToModerate: 22,
+      moderateToLoud: 47,
+      loudToTooLoud: 61,
+      alarmTrigger: 88
+    }
+    setup({ thresholds })
+    openThresholds()
+
+    expect(marker('2')).toBeCloseTo(thresholds.quietToModerate, 5)
+    expect(marker('3')).toBeCloseTo(thresholds.moderateToLoud, 5)
+    expect(marker('4')).toBeCloseTo(thresholds.loudToTooLoud, 5)
+  })
+
+  it('marks the alarm point separately from the top band', () => {
+    // Not the same place any more: the display reaches "too loud" at marker 4
+    // and the alarm fires here. With only three markers a teacher would read
+    // the last one as the point the sound goes off.
+    const thresholds = { ...DEFAULT_THRESHOLDS, loudToTooLoud: 70, alarmTrigger: 88 }
+    setup({ thresholds })
+    openThresholds()
+
+    expect(marker('!')).toBeCloseTo(88, 5)
+    expect(marker('!')).toBeGreaterThan(marker('4'))
+  })
+
+  it('keeps a marker on the bar when a bound is out of range', () => {
+    // updateThreshold clamps, but a config restored from an older build can
+    // still carry anything; left: 140% puts the line outside the track.
+    setup({ thresholds: { ...DEFAULT_THRESHOLDS, alarmTrigger: 140 } })
+    openThresholds()
+    expect(marker('!')).toBe(100)
+  })
+})
+
+describe('what the threshold descriptions promise', () => {
+  it('describes all four bounds in terms that now hold', () => {
+    // Every one of these sentences was false for three of the four sliders:
+    // the panel described bounds the display did not use. Asserting the text
+    // is thin on its own -- the point is that these are the sentences the band
+    // tests were written from, so the code and the copy have one source.
+    setup()
+    openThresholds()
+    expect(screen.getByText(/below this, the room counts as quiet/i)).toBeTruthy()
+    expect(screen.getByText(/above this, the display shows "loud"/i)).toBeTruthy()
+    expect(screen.getByText(/above this, the display shows "too loud"/i)).toBeTruthy()
+    expect(screen.getByText(/above this, the alarm sounds/i)).toBeTruthy()
+  })
+})

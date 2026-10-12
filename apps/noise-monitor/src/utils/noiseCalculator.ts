@@ -44,23 +44,45 @@ export function smoothNoiseLevel(
 }
 
 /**
- * Which band a level falls into, from the teacher's four configured bounds.
+ * Which band a level falls into, from the three bounds that name the bands.
  *
- * This is the single place the bands are decided. It used to take only
- * `alarmTrigger` and derive the lower bounds as fixed 0.5 and 0.8 ratios of
- * it, so three of the four sliders in Settings changed nothing: they were
- * validated for ordering, drawn as markers on the live preview, and then
- * ignored. With alarmTrigger at its default 85 the real boundaries were 42.5
- * and 68, not the 40/55/70 the panel displayed.
+ * The bounds are named for the transitions they make -- `quietToModerate` is
+ * where quiet becomes moderate -- and Settings describes them that way too
+ * ("Below this, the room counts as quiet"). So each one is the *lower* edge of
+ * the band it names, and three bounds are all four bands need.
  *
- * The same ratio logic also existed, written out separately, in
- * NoiseMonitor's getLevel(). Both now call this.
+ * This read the four bounds one slot too high: `moderateToLoud` was used where
+ * `quietToModerate` belongs, and so on up, which left `quietToModerate`
+ * unreferenced in the whole app. Every band therefore began at the next
+ * teacher-set number rather than its own -- with the shipped defaults the room
+ * stayed "quiet" until 55 even though the panel's marker for band 2 sits at 40,
+ * and the live bar in Settings was past that marker while the picture had not
+ * moved. The panel was right; this was the half that disagreed.
+ *
+ * `alarmTrigger` is deliberately not a band edge -- see isAlarmLevel.
  */
 export function getNoiseBand(level: number, t: ThresholdConfig): NoiseBand {
-  if (level > t.alarmTrigger) return 'tooLoud'
-  if (level > t.loudToTooLoud) return 'loud'
-  if (level > t.moderateToLoud) return 'moderate'
+  if (level > t.loudToTooLoud) return 'tooLoud'
+  if (level > t.moderateToLoud) return 'loud'
+  if (level > t.quietToModerate) return 'moderate'
   return 'quiet'
+}
+
+/**
+ * Whether the level has passed the point the alarm sounds at.
+ *
+ * Separate from `band === 'tooLoud'` on purpose, and the fourth bound is what
+ * makes it so: the alarm point sits above the top band's lower edge, so the
+ * display reaches "too loud" and warns the room *before* the sound fires. That
+ * gap is the whole reason there are four bounds for four bands -- calibration
+ * already assumes it, placing the three band edges at 20/50/80% of the span
+ * between the room's floor and the alarm point.
+ *
+ * Previously the alarm was the top band, so `alarmTrigger` was the only bound
+ * doing anything and the warning gap did not exist.
+ */
+export function isAlarmLevel(level: number, t: ThresholdConfig): boolean {
+  return level > t.alarmTrigger
 }
 
 const BAND_NUMBER: Record<NoiseBand, number> = {
@@ -70,7 +92,22 @@ const BAND_NUMBER: Record<NoiseBand, number> = {
   tooLoud: 4
 }
 
-/** The band as 1-4, for the themes that take a number rather than a name. */
+/**
+ * Rungs the level has climbed, 1-5: the four bands, then the alarm above them.
+ *
+ * One number, so the up/down transition delay has a single monotone thing to
+ * compare -- and it stays monotone in `level` even if the stored bounds are out
+ * of order, since both terms rise with level and neither ever falls.
+ */
 export function getNoiseLevelNumber(level: number, t: ThresholdConfig): number {
-  return BAND_NUMBER[getNoiseBand(level, t)]
+  return BAND_NUMBER[getNoiseBand(level, t)] + (isAlarmLevel(level, t) ? 1 : 0)
 }
+
+/** The step 1-5 back as a band name; 5 (alarm) shows as the top band. */
+export function bandFromLevelNumber(step: number): NoiseBand {
+  const bands: NoiseBand[] = ['quiet', 'moderate', 'loud', 'tooLoud']
+  return bands[Math.min(Math.max(Math.round(step), 1), 4) - 1]
+}
+
+/** The step at which the alarm is raised. */
+export const ALARM_STEP = 5

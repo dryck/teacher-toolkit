@@ -2,7 +2,7 @@
 
 Two suites, deliberately separate: one runs anywhere, one needs a backend.
 
-## `npm test` — 58 tests, no setup
+## `npm test` — 126 tests, no setup
 
 ```bash
 npm run build   # the suite runs against dist/, so build first
@@ -13,9 +13,17 @@ npm test
   uncaught exception, an unexpected `console.error`, or a missing navbar. It
   exists because `random-picker` once shipped a `TypeError` on every page load
   and nobody noticed, since nothing loaded these pages except a human clicking.
+- **`tests/a11y.spec.mjs`** runs axe over every built page and fails on
+  anything serious or critical. It was added because nothing checked this and
+  the gap was not theoretical: 293 WCAG A/AA violations across the 50 pages,
+  including twelve student-facing pages that shipped `user-scalable=no` so a
+  child could not pinch-zoom their own phone.
 - **`tests/logic.spec.mjs`** drives the real shipped functions for the places
   where "quietly wrong" costs something: the picker's fairness promise, group
-  sizes, and timer drift in a throttled background tab.
+  sizes, timer drift in a throttled background tab, the Jigsaw invariants
+  (one expert per topic per home group, nobody dropped), and the rubric
+  arithmetic in Assessment Checklist — the one tool whose output may become a
+  grade.
 
 ## `npm run test:unit` — 104 tests, no setup
 
@@ -125,12 +133,22 @@ What it asserts:
 | Area | Covered by | Status |
 |---|---|---|
 | Every page loads clean | smoke | ✅ CI |
+| WCAG A/AA on every page | a11y | ✅ CI (50 pages) |
 | noise-monitor: engine, calibration, themes, settings, mic setup | 6 vitest files | ✅ CI (104 tests) |
 | Picker fairness, group sizes, timer drift | logic | ✅ CI |
 | Firestore rules, both directions | rules.integration | ✅ CI (29 tests) |
 | Sign-in, ownerUid, student → teacher sync | e2e.integration | ✅ CI (5 tests) |
 | The other 9 Firebase tools' sync | — | ⚠️ same pattern, untested |
 | `packages/shell/escape.js` | — | ❌ none, despite 17 call sites |
+
+### Not covered by the a11y suite
+
+axe checks what is machine-checkable. It does not check whether a live
+dashboard announces its updates (no page has an `aria-live` region, despite
+eleven of them updating in real time), nor whether the tab order makes sense,
+nor whether a screen reader's description of a projected wheel is useful. The
+shared theme now honours `prefers-reduced-motion` and draws a `:focus-visible`
+ring, which axe also does not test.
 
 ### The gap that matters most
 
@@ -156,8 +174,14 @@ Before trusting the Firebase-backed tools in a classroom:
 
 ## Troubleshooting
 
-**`npm test` fails with `ENOENT` on a page** — `dist/` is stale, or a build was
-running during the suite. Re-run `npm run build`, then `npm test`.
+**`npm test` fails with `ENOENT` on a page** — this used to happen because the
+suite re-read each page from disk while running. It now reads them once at
+collection time, so if you see it, `dist/` is genuinely stale: re-run
+`npm run build`.
+
+**A page times out in `page.goto`** — the suite blocks fonts.googleapis.com for
+exactly this reason, so if it recurs the cause is something else. It will not
+be the webfonts.
 
 **`test:rules` fails with "no longer supports Java version before 21"** — a
 JDK is installed but too old, or `/usr/bin/java` is macOS's stub. Put a real

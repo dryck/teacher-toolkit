@@ -65,27 +65,45 @@ export type NoiseBand = 'quiet' | 'moderate' | 'loud' | 'tooLoud'
  * One contract now, with the band decided once by getNoiseBand.
  */
 export interface ThemeProps {
-  /** Decided by getNoiseBand from all four configured bounds. */
+  /** Which of the four bands the display has settled on. Decided by
+   *  getNoiseBand from the three bounds named for those transitions, then held
+   *  through the up/down transition delay before it reaches a theme. */
   band: NoiseBand
   /**
    * How close the room is to the alarm, as a ratio: 1 means at it, and the
-   * value is allowed above 1. For fill heights and wobble, where a theme
-   * wants to move continuously rather than step between bands.
+   * value is allowed above 1. For fill heights and wobble, where a theme wants
+   * a position within a band rather than just the band.
+   *
+   * Gated by the same transition delay as `band`, so it moves in steps rather
+   * than continuously -- a theme animating off this is animating between
+   * committed levels, not tracking the microphone frame by frame. Deliberate:
+   * ungated, every fill on a projector would jitter with the room.
    */
   intensity: number
   /**
-   * Whether the alert is currently raised. Not the same as band === 'tooLoud':
-   * the transition delay can hold this on after the level has dropped back,
-   * which is the point of the delay.
+   * Whether the alarm is currently raised. Not the same as band === 'tooLoud',
+   * for two reasons: the alarm point sits above the top band's lower edge, so
+   * the display warns first and the sound follows; and the transition delay
+   * can hold this on after the level has dropped back, which is its purpose.
+   *
+   * Themes layer this over the band -- shake, pulse, the red of an alarm --
+   * rather than using it to pick a colour.
    */
   isTooLoud: boolean
   customImages: CustomImage[]
   backgroundColor?: string
 }
 
-// The four band bounds, as points on the relative 0-100 index that
-// calculateNoiseLevel produces. Not decibels: see noiseCalculator.ts for why
-// a browser cannot give an absolute sound-pressure reading.
+// Points on the relative 0-100 index that calculateNoiseLevel produces. Not
+// decibels: see noiseCalculator.ts for why a browser cannot give an absolute
+// sound-pressure reading.
+//
+// Three band edges and then the alarm point, not four band edges. Each of the
+// first three is the *lower* edge of the band it is named for, and the fourth
+// sits above them all: the display reaches "too loud" at loudToTooLoud and the
+// sound waits for alarmTrigger, so the room gets a visible warning first.
+// getNoiseBand read these one slot too high, which left quietToModerate
+// referenced nowhere and every band starting at the next teacher-set number.
 export interface ThresholdConfig {
   quietToModerate: number
   moderateToLoud: number

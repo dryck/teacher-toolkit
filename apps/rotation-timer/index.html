@@ -351,7 +351,7 @@
     }
     .footer a {
       color: var(--tk-primary);
-      text-decoration: none;
+      text-decoration: underline;
     }
 
     /* Fullscreen tweaks */
@@ -376,7 +376,7 @@
     <div class="section-title">Number of stations</div>
     <div class="stepper-row">
       <button type="button" class="stepper-btn" id="stationsMinusBtn">−</button>
-      <input type="number" id="stationsCountInput" min="2" max="10" value="4">
+      <input type="number" id="stationsCountInput" min="2" max="10" value="4" aria-label="Number of stations">
       <button type="button" class="stepper-btn" id="stationsPlusBtn">+</button>
     </div>
 
@@ -386,7 +386,7 @@
         <div class="mmss-row">
           <input type="number" id="minutesInput" min="0" max="59" value="5">
           <span>min</span>
-          <input type="number" id="secondsInput" min="0" max="59" value="0">
+          <input type="number" id="secondsInput" min="0" max="59" value="0" aria-label="Seconds per station">
           <span>sec</span>
         </div>
       </div>

@@ -78,6 +78,9 @@
     .wv-empty h2 { font-size: 1.15rem; color: var(--tk-text); }
     .wv-empty p { max-width: 460px; line-height: 1.5; font-size: 0.92rem; }
     .wv-empty code {
+      /* The translucent blue resolves to about #e0e3e3 over the surface, where
+         the shared muted token measures 3.90:1. Pinned a shade darker. */
+      color: #686559;
       background: rgba(38, 87, 135, 0.1);
       padding: 1px 6px;
       border-radius: 5px;

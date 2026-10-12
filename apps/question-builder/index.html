@@ -310,7 +310,7 @@
       color: var(--tk-text-muted);
       font-size: 0.9rem;
     }
-    .footer a { color: var(--tk-primary); text-decoration: none; }
+    .footer a { color: var(--tk-primary); text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -345,7 +345,7 @@
         <div class="manual-add">
           <h3>+ Add a custom question</h3>
           <input type="text" id="manualText" placeholder="Type your own question...">
-          <select id="manualLevel">
+          <select id="manualLevel" aria-label="Bloom's level for this question">
             <option value="Remember">Remember</option>
             <option value="Understand">Understand</option>
             <option value="Apply">Apply</option>

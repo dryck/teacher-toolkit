@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
 import { NoiseMonitor } from './NoiseMonitor'
 import { DEFAULT_THRESHOLDS, DEFAULT_DELAYS } from '../types'
+import { calculateNoiseLevel } from '../utils/noiseCalculator'
 import type { SoundSettings } from '../types'
 
 const soundSettings: SoundSettings = {
@@ -157,4 +158,128 @@ describe('microphone refusal', () => {
       expect(screen.getByText(/microphone access denied/i)).toBeTruthy()
     )
   })
+})
+
+/* The band a teacher actually sees, driven from the microphone bytes up.
+ *
+ * This is the test shape that was missing, and its absence is why the bands
+ * were wrong in a tool with 119 passing tests. getNoiseBand was covered in
+ * isolation -- but by a test written from the same misreading as the code, so
+ * the two agreed with each other and both disagreed with the Settings panel.
+ * Nothing crossed from a microphone reading to a rendered band, which is the
+ * only place the disagreement was visible, and the only place a teacher looks.
+ *
+ * So these assertions name the expected band from the *panel's* semantics --
+ * each bound is the lower edge of the band it names, which is what the sliders
+ * are labelled and what their descriptions say -- rather than from anything
+ * the module computes.
+ */
+describe('the band the display reaches, from the microphone up', () => {
+  // All bins set to the same byte: calculateNoiseLevel's RMS over equal bins
+  // is that byte, scaled by 100/128. So one byte per target level.
+  const byteForLevel = (level: number) => Math.round(level * 1.28)
+
+  function feed(level: number) {
+    const byte = byteForLevel(level)
+    ;(analyser.getByteFrequencyData as ReturnType<typeof vi.fn>).mockImplementation(
+      (array: Uint8Array) => array.fill(byte)
+    )
+  }
+
+  let play: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    // jsdom's play() throws "Not implemented"; this also makes the alarm
+    // observable, which is the second half of what these cases check.
+    play = vi
+      .spyOn(window.HTMLMediaElement.prototype, 'play')
+      .mockResolvedValue(undefined)
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'performance', 'Date']
+    })
+    // Re-stub against the fake clock so advancing time runs frames.
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) =>
+      setTimeout(() => cb(performance.now()), 16) as unknown as number
+    )
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    play.mockRestore()
+  })
+
+  /** Start listening at `level`, then let the EMA settle and the up-delay
+   *  commit. 4s is well past both: the smoothing time constant is 0.3s and
+   *  the default up delay 2s. */
+  async function settleAt(level: number, overrides = {}) {
+    feed(level)
+    mount(overrides)
+    fireEvent.click(screen.getByRole('button', { name: /start monitoring/i }))
+    // getUserMedia resolves on a microtask, which fake timers do not hold up.
+    await vi.advanceTimersByTimeAsync(0)
+    expect(getUserMedia).toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(4000)
+  }
+
+  const statusText = () =>
+    screen.getByText(/quiet|moderate|loud|too loud/i).textContent
+
+  it('feeds the level the test intends', () => {
+    // The harness itself, so a wrong byte cannot quietly make every case
+    // below assert about a different level than it names.
+    const bins = new Uint8Array(128)
+    feed(45)
+    ;(analyser.getByteFrequencyData as ReturnType<typeof vi.fn>).mock.calls.length
+    ;(analyser.getByteFrequencyData as any)(bins)
+    expect(calculateNoiseLevel(bins)).toBeCloseTo(45, 0)
+  })
+
+  // Defaults are 40 / 55 / 70 / 85.
+  it('stays on band 1 below the first bound', async () => {
+    await settleAt(30)
+    expect(statusText()).toMatch(/^Quiet$/)
+  })
+
+  it('reaches band 2 just above the bound the panel marks "2"', async () => {
+    // The reported symptom, as a test: 45 is past the panel's "2" marker at
+    // 40, so the display has to be on band 2. It was on band 1 until 55.
+    await settleAt(45)
+    expect(statusText()).toMatch(/^Moderate$/)
+  })
+
+  it('reaches band 3 above the second bound', async () => {
+    await settleAt(60)
+    expect(statusText()).toMatch(/^Loud$/)
+  })
+
+  it('reaches band 4 above the third bound, without sounding the alarm', async () => {
+    // The warning gap the fourth bound exists for: the display says too loud
+    // at 70, and the alarm waits for 85. Previously band 4 and the alarm were
+    // the same point, so the display could not warn ahead of the sound.
+    await settleAt(75)
+    expect(statusText()).toMatch(/Too Loud/)
+    expect(play, 'alarm sounded 10 below the alarm point').not.toHaveBeenCalled()
+  })
+
+  it('sounds the alarm above the alarm point', async () => {
+    await settleAt(90)
+    expect(statusText()).toMatch(/Too Loud/)
+    expect(play).toHaveBeenCalled()
+  })
+
+  it('moves the band when only the bound for that band moves', async () => {
+    // One slider, one effect. quietToModerate was referenced nowhere in the
+    // app, so this is the case that proves it now reaches the display.
+    await settleAt(45, {
+      thresholds: { ...DEFAULT_THRESHOLDS, quietToModerate: 50 }
+    })
+    expect(statusText()).toMatch(/^Quiet$/)
+  })
+
+  // Not asserted here: that the pill and the picture name the same band.
+  // They read the same `band` constant, so a test could only restate that
+  // expression -- and the alternative, a data-testid in every theme's markup,
+  // is production code existing for a test. The themes' own suite covers each
+  // one rendering all four bands distinctly, which is the half that can break.
 })
